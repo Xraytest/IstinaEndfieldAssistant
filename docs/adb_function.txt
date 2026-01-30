@@ -1,0 +1,193 @@
+"""
+MiniTouchController - 高精度安卓触控控制库
+
+模块路径：//utils/adb_function.py
+
+基于 MiniTouch 协议的无延迟安卓设备触控控制器，支持精确点击、滑动、多点触控操作。
+自动处理 Android 10+ SELinux 限制，内置 STFService 集成，适用于自动化测试与精准交互场景。
+
+典型用法:
+    >>> from minitouch_controller import MiniTouchController
+    >>> ctrl = MiniTouchController()
+    >>> devices = ctrl.list_devices()
+    >>> if devices:
+    ...     ctrl.connect(devices[0].id)
+    ...     ctrl.tap(devices[0].id, 500, 800, duration_ms=50)
+    ...     ctrl.disconnect(devices[0].id)
+"""
+
+class MiniTouchController:
+    """
+    基于 MiniTouch 的高精度安卓触控控制器（无仿人延迟）
+    
+    自动管理 MiniTouch 二进制部署、端口转发和 Socket 连接，提供像素级精确的触控操作。
+    内置 Android 10+ 兼容层（通过 STFService 绕过 /data/local/tmp 执行限制）。
+    
+    属性:
+        adb_path (str): ADB 可执行文件路径
+        CACHE_DIR (str): 本地缓存目录路径（MiniTouch 二进制/STFService APK）
+    
+    注意:
+        - 所有坐标操作使用屏幕像素坐标（自动转换为 MiniTouch 坐标）
+        - 操作无随机延迟，时间参数精确到毫秒
+        - 使用后必须调用 disconnect() 释放资源
+    """
+    
+    def __init__(self, adb_path: str = "adb"):
+        """
+        初始化 MiniTouch 控制器
+        
+        参数:
+            adb_path (str): ADB 可执行文件路径，默认使用系统 PATH 中的 'adb'
+        
+        异常:
+            RuntimeError: ADB 不可用或验证失败
+        """
+    
+    def list_devices(self) -> List[DeviceInfo]:
+        """
+        列出所有已连接的安卓设备
+        
+        返回:
+            List[DeviceInfo]: 设备信息列表，包含序列号、状态、机型、API 级别和 ABI 架构
+        
+        日志:
+            - 检测到设备时输出详细信息
+            - 无设备时输出警告
+        """
+    
+    def connect(self, device_id: str, reinstall: bool = False) -> bool:
+        """
+        连接设备并初始化 MiniTouch 服务
+        
+        自动执行以下操作：
+        1. 验证设备存在且状态正常
+        2. Android 10+ 设备自动安装/启动 STFService
+        3. 检查或部署 MiniTouch 二进制
+        4. 启动 MiniTouch 服务并建立 Socket 连接
+        5. 读取屏幕分辨率和触控坐标范围
+        
+        参数:
+            device_id (str): 目标设备序列号
+            reinstall (bool): 强制重新部署 MiniTouch 二进制（默认 False）
+        
+        返回:
+            bool: 连接成功返回 True
+        
+        异常:
+            ValueError: 设备未连接或状态异常
+            RuntimeError: 部署/启动过程失败
+        """
+    
+    def disconnect(self, device_id: str):
+        """
+        断开设备连接并清理所有资源
+        
+        执行清理操作：
+        - 关闭 MiniTouch Socket 连接
+        - 移除 ADB 端口转发
+        - 终止设备端 MiniTouch 进程
+        - 清除本地缓存的设备信息
+        
+        参数:
+            device_id (str): 要断开的设备序列号
+        """
+    
+    def tap(self, device_id: str, x: int, y: int, duration_ms: int = 50, pressure: int = 100):
+        """
+        精确点击操作（无随机延迟）
+        
+        参数:
+            device_id (str): 目标设备序列号
+            x (int): 屏幕 X 坐标（像素，左上角为原点）
+            y (int): 屏幕 Y 坐标（像素，左上角为原点）
+            duration_ms (int): 按压持续时间（毫秒），默认 50ms
+            pressure (int): 触控压力值（0-255），默认 100
+        
+        异常:
+            RuntimeError: 设备未连接
+        """
+    
+    def swipe(self, device_id: str, start_x: int, start_y: int, end_x: int, end_y: int, 
+              duration_ms: int = 200, steps: int = 10, pressure: int = 100):
+        """
+        精确滑动操作（无随机延迟，固定步进插值）
+        
+        参数:
+            device_id (str): 目标设备序列号
+            start_x (int): 起始 X 坐标（像素）
+            start_y (int): 起始 Y 坐标（像素）
+            end_x (int): 结束 X 坐标（像素）
+            end_y (int): 结束 Y 坐标（像素）
+            duration_ms (int): 滑动总时长（毫秒），默认 200ms
+            steps (int): 插值步数（影响轨迹平滑度），默认 10 步
+            pressure (int): 触控压力值（0-255），默认 100
+        
+        异常:
+            RuntimeError: 设备未连接
+        """
+    
+    def multi_touch(self, device_id: str, points: List[Tuple[int, int, int]], 
+                    duration_ms: int = 100, pressure: int = 100):
+        """
+        多点触控操作（最多支持 10 个触点）
+        
+        参数:
+            device_id (str): 目标设备序列号
+            points (List[Tuple[int, int, int]]): 触点列表，每个元素为 (x, y, contact_id)
+                - x/y: 屏幕坐标（像素）
+                - contact_id: 触点 ID（0-9，唯一标识每个触点）
+            duration_ms (int): 所有触点保持按压的时长（毫秒），默认 100ms
+            pressure (int): 所有触点的统一压力值（0-255），默认 100
+        
+        异常:
+            ValueError: 触点数量超过 10 或 contact_id 超出范围
+            RuntimeError: 设备未连接
+        """
+    
+    def long_press(self, device_id: str, x: int, y: int, duration_ms: int = 1000, pressure: int = 100):
+        """
+        长按操作（等效于持续时间较长的 tap）
+        
+        参数:
+            device_id (str): 目标设备序列号
+            x (int): 屏幕 X 坐标（像素）
+            y (int): 屏幕 Y 坐标（像素）
+            duration_ms (int): 长按持续时间（毫秒），默认 1000ms (1秒)
+            pressure (int): 触控压力值（0-255），默认 100
+        
+        异常:
+            RuntimeError: 设备未连接
+        """
+    
+    def get_screen_size(self, device_id: str) -> Tuple[int, int]:
+        """
+        获取设备屏幕分辨率
+        
+        参数:
+            device_id (str): 目标设备序列号
+        
+        返回:
+            Tuple[int, int]: (width, height) 屏幕宽度和高度（像素）
+        
+        异常:
+            RuntimeError: 设备未连接
+        """
+
+@dataclass
+class DeviceInfo:
+    """
+    设备信息数据类
+    
+    属性:
+        id (str): 设备序列号（如 "192.168.1.10:5555" 或 USB 序列号）
+        status (str): 连接状态（"device"/"offline"/"unauthorized"）
+        model (str): 机型名称（如 "Pixel_6"），可能为空字符串
+        api_level (int): Android API 级别（如 33 = Android 13），默认 0
+        abi (str): CPU 架构（如 "arm64-v8a"），默认空字符串
+    """
+    id: str
+    status: str
+    model: str = ""
+    api_level: int = 0
+    abi: str = ""
