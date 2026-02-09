@@ -476,6 +476,181 @@ def screencap(controller_id: str) -> Optional[object]:
         return None
 
 
+def get_device_resolution(device_name: str) -> tuple:
+    """
+    获取设备分辨率 - 通过截图获取实际分辨率
+    返回: (width, height) 或 (None, None) 如果失败
+    """
+    try:
+        print(f"📏 获取设备分辨率: {device_name}")
+
+        # 方法1：通过截图获取（最可靠）
+        print("🔍 方法1: 通过截图获取分辨率...")
+        try:
+            # 创建一个临时控制器ID用于截图
+            temp_controller_id = f"temp_{device_name}_{int(datetime.now().timestamp())}"
+            _connected_controllers[temp_controller_id] = device_name
+
+            # 获取截图
+            image_obj = screencap(temp_controller_id)
+
+            # 清理临时控制器
+            if temp_controller_id in _connected_controllers:
+                del _connected_controllers[temp_controller_id]
+
+            if image_obj and hasattr(image_obj, 'data'):
+                # 解析base64数据获取图像
+                data_url = image_obj.data
+                b64_data = data_url.split(',', 1)[1] if ',' in data_url else data_url
+                image_data = base64.b64decode(b64_data)
+
+                # 使用OpenCV读取图像尺寸
+                import numpy as np
+                nparr = np.frombuffer(image_data, np.uint8)
+                img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+
+                if img is not None:
+                    height, width = img.shape[:2]
+                    print(f"✅ 通过截图获取分辨率成功: {width}x{height}")
+                    return width, height
+                else:
+                    print("❌ 截图图像解码失败")
+            else:
+                print("❌ 截图返回空对象或无数据")
+        except Exception as e:
+            print(f"❌ 截图法获取分辨率失败: {str(e)}")
+
+        # 方法2：通过ADB wm命令获取（备用）
+        print("🔍 方法2: 尝试ADB wm命令获取分辨率...")
+        try:
+            cmd = [ADB_PATH, "-s", device_name, "shell", "wm", "size"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                print(f"📊 ADB输出: {output}")
+
+                # 解析格式: "Physical size: 1080x1920"
+                if "Physical size:" in output:
+                    size_part = output.split("Physical size:")[1].strip()
+                    if 'x' in size_part:
+                        width, height = map(int, size_part.split('x'))
+                        print(f"✅ ADB命令获取分辨率成功: {width}x{height}")
+                        return width, height
+
+                # 解析格式: "1080x1920" (直接输出)
+                import re
+                match = re.search(r'(\d+)x(\d+)', output)
+                if match:
+                    width, height = int(match.group(1)), int(match.group(2))
+                    print(f"✅ ADB命令获取分辨率成功: {width}x{height}")
+                    return width, height
+            else:
+                print(f"❌ ADB命令执行失败: {result.stderr}")
+        except Exception as e:
+            print(f"❌ ADB命令获取分辨率失败: {str(e)}")
+
+        # 方法3：通过dumpsys获取（备用）
+        print("🔍 方法3: 尝试dumpsys获取分辨率...")
+        try:
+            cmd = [ADB_PATH, "-s", device_name, "shell", "dumpsys", "window", "displays"]
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+
+            if result.returncode == 0:
+                output = result.stdout.strip()
+                # 查找 init=1080x1920 格式
+                import re
+                match = re.search(r'init=(\d+)x(\d+)', output)
+                if match:
+                    width, height = int(match.group(1)), int(match.group(2))
+                    print(f"✅ dumpsys获取分辨率成功: {width}x{height}")
+                    return width, height
+                else:
+                    print(f"❌ 未在dumpsys输出中找到分辨率信息")
+            else:
+                print(f"❌ dumpsys命令执行失败: {result.stderr}")
+        except Exception as e:
+            print(f"❌ dumpsys获取分辨率失败: {str(e)}")
+
+        print("⚠️ 所有分辨率获取方法均失败")
+        return None, None
+
+    except Exception as e:
+        print(f"❌ 获取设备分辨率时发生未知错误: {str(e)}")
+        return None, None
+
+
+def check_device_status(device_name: str) -> dict:
+    """
+    检查设备状态和基本信息
+    返回: 包含设备状态信息的字典
+    """
+    status = {
+        "connected": False,
+        "resolution": None,
+        "model": "未知",
+        "brand": "未知",
+        "android_version": "未知",
+        "errors": []
+    }
+
+    try:
+        # 检查设备是否响应
+        test_cmd = [ADB_PATH, "-s", device_name, "shell", "echo", "test"]
+        result = subprocess.run(test_cmd, capture_output=True, text=True, timeout=5)
+
+        if result.returncode == 0:
+            status["connected"] = True
+
+            # 获取设备型号
+            try:
+                model_cmd = [ADB_PATH, "-s", device_name, "shell", "getprop", "ro.product.model"]
+                model_result = subprocess.run(model_cmd, capture_output=True, text=True, timeout=5)
+                if model_result.returncode == 0:
+                    status["model"] = model_result.stdout.strip()
+            except Exception as e:
+                status["errors"].append(f"获取型号失败: {str(e)}")
+
+            # 获取设备品牌
+            try:
+                brand_cmd = [ADB_PATH, "-s", device_name, "shell", "getprop", "ro.product.brand"]
+                brand_result = subprocess.run(brand_cmd, capture_output=True, text=True, timeout=5)
+                if brand_result.returncode == 0:
+                    status["brand"] = brand_result.stdout.strip()
+            except Exception as e:
+                status["errors"].append(f"获取品牌失败: {str(e)}")
+
+            # 获取Android版本
+            try:
+                version_cmd = [ADB_PATH, "-s", device_name, "shell", "getprop", "ro.build.version.release"]
+                version_result = subprocess.run(version_cmd, capture_output=True, text=True, timeout=5)
+                if version_result.returncode == 0:
+                    status["android_version"] = version_result.stdout.strip()
+            except Exception as e:
+                status["errors"].append(f"获取Android版本失败: {str(e)}")
+
+            # 获取分辨率
+            try:
+                width, height = get_device_resolution(device_name)
+                if width and height:
+                    status["resolution"] = f"{width}x{height}"
+                else:
+                    status["errors"].append("获取分辨率失败")
+            except Exception as e:
+                status["errors"].append(f"获取分辨率时出错: {str(e)}")
+        else:
+            status["errors"].append(f"设备无响应: {result.stderr}")
+
+    except subprocess.TimeoutExpired:
+        status["errors"].append("设备响应超时")
+    except FileNotFoundError:
+        status["errors"].append("ADB命令未找到")
+    except Exception as e:
+        status["errors"].append(f"检查设备状态时发生错误: {str(e)}")
+
+    return status
+
+
 def get_current_datetime() -> str:
     """
     获取当前时间字符串（年月日时分秒）。

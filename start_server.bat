@@ -4,7 +4,7 @@
   --port 8080 ^
   --host 127.0.0.1 ^
   --ctx-size 20480 ^
-  --n-gpu-layers 36 ^
+  --n-gpu-layers 37 ^
   --threads 1 ^
   --n-predict 4096
 
