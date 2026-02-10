@@ -57,11 +57,6 @@ except ImportError as e:
     print(f"VLM导入错误: {e}")
     VLM_AVAILABLE = False
 
-# 为开发提供mock
-class MockKeyCode:
-    BACK = "BACK"; HOME = "HOME"; MENU = "MENU"; ENTER = "ENTER"
-    DEL = "DEL"; VOLUME_UP = "VOLUME_UP"; VOLUME_DOWN = "VOLUME_DOWN"; POWER = "POWER"
-KeyCode = MockKeyCode()
 
 class LLMTaskAutomationGUI:
     def __init__(self, root):
@@ -91,13 +86,19 @@ class LLMTaskAutomationGUI:
         self.current_task_group = self.load_current_task_group()
         self.current_subtasks = []
         self.knowledge_base = self.load_knowledge_base()
-        
+
+        # 添加UI助手函数
+        self.create_btn = self._create_btn
+        self.create_label = self._create_label
+
         # 安全参数
         self.press_duration_ms = 100  # 默认按压时长
         self.press_jitter_px = 2      # 随机抖动范围
 
         # 设备缓存
         self.device_cache = self.load_device_cache()
+        # 添加：上次成功设备
+        self.last_successful_device = self.load_last_successful_device()
 
         # 添加分辨率缓存
         self.cached_resolution = None  # 缓存的设备分辨率 (width, height)
@@ -111,7 +112,11 @@ class LLMTaskAutomationGUI:
         # 任务队列 - 新增
         self.task_queue = []  # 存储任务模板ID的列表
         self.current_task_index = 0  # 当前执行的任务索引
-        
+
+        # 添加UI助手函数
+        self.create_btn = self._create_btn
+        self.create_label = self._create_label
+
         # VLM工具定义（OpenAI格式）
         self.tools = self.define_vlm_tools()
         
@@ -276,7 +281,188 @@ class LLMTaskAutomationGUI:
                 }
             }
         ]
-    
+
+    def _create_btn(self, parent, text, cmd, style=None, side=tk.LEFT, **kwargs):
+        """创建按钮的助手函数"""
+        btn = ttk.Button(parent, text=text, command=cmd, style=style, **kwargs)
+        btn.pack(side=side, padx=5, pady=2)
+        return btn
+
+    def _create_label(self, parent, text, style=None, side=tk.LEFT, **kwargs):
+        """创建标签的助手函数"""
+        label = ttk.Label(parent, text=text, style=style, **kwargs)
+        label.pack(side=side, padx=5, pady=2)
+        return label
+
+    # VLM工具定义（OpenAI格式）
+    def define_vlm_tools(self) -> List[Dict]:
+        """从配置文件加载VLM工具定义"""
+        try:
+            config_path = "config/tools_config.json"
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    return json.load(f)
+            else:
+                self.log_message("⚠️ 已删除开发用Mock和尾部冗余代码", "all", "INFO")
+                return self._get_default_tools()
+        except Exception as e:
+            self.log_message(f"❌ 加载工具配置失败: {str(e)}，使用默认工具集", "llm", "ERROR")
+            return self._get_default_tools()
+
+    def _get_default_tools(self) -> List[Dict]:
+        """返回默认的VLM工具集（OpenAI格式）"""
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "safe_press",
+                    "description": "安全按压模拟（通过滑动模拟点击）。必须使用比例坐标(0.0-1.0)，左上角(0,0)，右下角(1,1)",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "x": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "description": "目标x坐标（比例，0.0-1.0）"
+                            },
+                            "y": {
+                                "type": "number",
+                                "minimum": 0.0,
+                                "maximum": 1.0,
+                                "description": "目标y坐标（比例，0.0-1.0）"
+                            },
+                            "duration_ms": {
+                                "type": "integer",
+                                "description": "按压时长（毫秒），默认100",
+                                "default": 100
+                            },
+                            "purpose": {
+                                "type": "string",
+                                "description": "操作目的描述（必须说明为什么点击此处）"
+                            }
+                        },
+                        "required": ["x", "y", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "safe_swipe",
+                    "description": "安全滑动操作，用于页面滚动或拖拽元素",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "start_x": {"type": "integer", "description": "起始x坐标"},
+                            "start_y": {"type": "integer", "description": "起始y坐标"},
+                            "end_x": {"type": "integer", "description": "结束x坐标"},
+                            "end_y": {"type": "integer", "description": "结束y坐标"},
+                            "duration_ms": {"type": "integer", "description": "滑动时长（毫秒），默认300", "default": 300},
+                            "purpose": {"type": "string", "description": "滑动目的描述"}
+                        },
+                        "required": ["start_x", "start_y", "end_x", "end_y", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "wait",
+                    "description": "等待指定时间，用于界面加载或动画播放",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "duration_ms": {"type": "integer", "description": "等待时长（毫秒）", "minimum": 100, "maximum": 5000},
+                            "purpose": {"type": "string", "description": "等待原因"}
+                        },
+                        "required": ["duration_ms", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "input_text",
+                    "description": "向设备输入文本（如聊天、搜索框）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "text": {"type": "string", "description": "要输入的文本"},
+                            "purpose": {"type": "string", "description": "输入目的"}
+                        },
+                        "required": ["text", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "press_key",
+                    "description": "模拟物理按键（BACK/HOME）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "key": {"type": "string", "enum": ["BACK", "HOME"], "description": "按键类型"},
+                            "purpose": {"type": "string", "description": "按键目的"}
+                        },
+                        "required": ["key", "purpose"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "create_subtask",
+                    "description": "创建新的子任务（动态任务分解）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "desc": {"type": "string", "description": "子任务描述"},
+                            "parent_id": {"type": "string", "description": "父任务ID（可选，用于嵌套）"}
+                        },
+                        "required": ["desc"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "update_subtask_status",
+                    "description": "更新子任务状态（pending/in_progress/completed）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "task_id": {"type": "string", "description": "子任务ID"},
+                            "status": {"type": "string", "enum": ["pending", "in_progress", "completed"], "description": "新状态"},
+                            "notes": {"type": "string", "description": "状态更新备注"}
+                        },
+                        "required": ["task_id", "status"]
+                    }
+                }
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "add_knowledge_entry",
+                    "description": "向持久化知识库添加新词条（图文结合）",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "type": {"type": "string", "enum": ["button", "enemy", "ally", "resource", "ui_element"], "description": "词条类型"},
+                            "content": {"type": "string", "description": "描述文本"},
+                            "x_ratio": {"type": "number", "minimum": 0.0, "maximum": 1.0, "description": "中心点x坐标比例（0.0-1.0）"},
+                            "y_ratio": {"type": "number", "minimum": 0.0, "maximum": 1.0, "description": "中心点y坐标比例（0.0-1.0）"},
+                            "width_ratio": {"type": "number", "minimum": 0.01, "maximum": 1.0, "description": "宽度比例"},
+                            "height_ratio": {"type": "number", "minimum": 0.01, "maximum": 1.0, "description": "高度比例"},
+                            "purpose": {"type": "string", "description": "添加此知识的目的"}
+                        },
+                        "required": ["type", "content", "x_ratio", "y_ratio", "width_ratio", "height_ratio", "purpose"]
+                    }
+                }
+            }
+        ]
+
     def setup_styles(self):
         """配置UI样式"""
         style = ttk.Style()
@@ -394,6 +580,28 @@ class LLMTaskAutomationGUI:
             pass
         return []
 
+    def load_last_successful_device(self) -> Optional[str]:
+        """加载上次成功连接的设备"""
+        try:
+            cache_path = "config/last_device.json"
+            if os.path.exists(cache_path):
+                with open(cache_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    return data.get('device_id')
+        except:
+            pass
+        return None
+
+    def save_last_successful_device(self, device_id: str):
+        """保存上次成功连接的设备"""
+        try:
+            os.makedirs("config", exist_ok=True)
+            with open("config/last_device.json", 'w', encoding='utf-8') as f:
+                json.dump({'device_id': device_id, 'timestamp': datetime.now().isoformat()},
+                         f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存上次成功设备失败: {e}")
+
     def save_device_cache(self):
         """保存设备缓存"""
         try:
@@ -420,10 +628,10 @@ class LLMTaskAutomationGUI:
         addr_var = tk.StringVar()
         ttk.Entry(addr_frame, textvariable=addr_var, width=30).pack(side=tk.LEFT, padx=5)
 
-        # 说明
+        # 说明（简化）
         ttk.Label(dialog, text="支持格式:", font=('Arial', 9, 'bold')).pack(anchor=tk.W, padx=20, pady=(5,0))
         ttk.Label(dialog, text="• USB设备: device_serial", font=('Arial', 9)).pack(anchor=tk.W, padx=40)
-        ttk.Label(dialog, text="• 网络设备: 192.168.1.100:5555", font=('Arial', 9)).pack(anchor=tk.W, padx=40)
+        ttk.Label(dialog, text="• 网络设备: IP:端口 (自动尝试两种连接方式)", font=('Arial', 9)).pack(anchor=tk.W, padx=40)
 
         def save_device():
             device_id = addr_var.get().strip()
@@ -451,11 +659,15 @@ class LLMTaskAutomationGUI:
                     # 更新所有下拉框的值
                     self.update_device_list([])
 
+                # 自动尝试连接
+                dialog.destroy()
+                self.connect_device(page)
+
         # 按钮框架
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=20)
 
-        ttk.Button(btn_frame, text="✅ 保存",
+        ttk.Button(btn_frame, text="✅ 保存并连接",
                   command=save_device, style='Security.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="❌ 取消",
                   command=dialog.destroy).pack(side=tk.LEFT, padx=5)
@@ -514,9 +726,14 @@ class LLMTaskAutomationGUI:
         threading.Thread(target=scan_thread, daemon=True).start()
     
     def update_device_list(self, devices: List[str]):
-        """更新设备列表，合并扫描结果和缓存"""
+        """更新设备列表，合并扫描结果和缓存，优先显示上次成功设备"""
         # 合并扫描到的设备和缓存设备，去重
         all_devices = list(dict.fromkeys(devices + self.device_cache))
+
+        # 如果存在上次成功设备，将其移到列表前面
+        if self.last_successful_device and self.last_successful_device in all_devices:
+            all_devices.remove(self.last_successful_device)
+            all_devices.insert(0, self.last_successful_device)
 
         # 更新所有页面的设备下拉框
         combos = []
@@ -530,8 +747,9 @@ class LLMTaskAutomationGUI:
         for combo in combos:
             # 设置下拉列表值
             combo['values'] = all_devices if all_devices else ["未检测到设备"]
-            # 允许手动输入
-            combo.config(state='normal')
+            # 如果上次成功设备存在，则默认选择它
+            if self.last_successful_device and self.last_successful_device in all_devices:
+                combo.set(self.last_successful_device)
 
         # 更新状态栏
         if all_devices:
@@ -545,7 +763,7 @@ class LLMTaskAutomationGUI:
             self.log_message("⚠️ 未找到可用设备", "all")
     
     def connect_device(self, page: str = "test"):
-        """连接设备，支持网络设备"""
+        """连接设备，先尝试USB连接，失败则尝试网络连接"""
         device_map = {
             "test": "test_device_combo",
             "designer": "designer_device_combo",
@@ -561,58 +779,65 @@ class LLMTaskAutomationGUI:
             messagebox.showwarning("警告", "请输入或选择有效设备ID")
             return
 
-        # 检查是否为网络设备格式
-        is_network_device = ':' in device_id and '.' in device_id.split(':')[0]
-
-        if is_network_device and device_id not in self.device_cache:
-            # 网络设备需要先尝试连接
-            self.log_message(f"🔌 尝试连接网络设备: {device_id}", page)
-            self.app_status.config(text="⏳ 连接中...", style='Status.Running.TLabel')
-
-            def connect_network():
-                try:
-                    # 先添加网络设备
-                    ip, port = device_id.split(':')
-                    success = add_network_device(ip, port)
-
-                    if success:
-                        # 等待设备出现
-                        time.sleep(2)
-                        # 更新设备列表
-                        self.root.after(0, self.scan_devices)
-                        # 添加到缓存
-                        self.device_cache.append(device_id)
-                        self.save_device_cache()
-                        self.log_message(f"✅ 网络设备添加成功: {device_id}", page)
-                        # 继续连接设备
-                        self.root.after(0, self.continue_connect_device, device_id, page)
-                    else:
-                        self.root.after(0, self.on_connect_failed, device_id, "网络设备连接失败", page)
-
-                except Exception as e:
-                    self.root.after(0, self.on_connect_failed, device_id, str(e), page)
-
-            threading.Thread(target=connect_network, daemon=True).start()
-            return
-
-        # 原有连接逻辑
-        if device_id not in self.device_cache:
-            self.device_cache.append(device_id)
-            self.save_device_cache()
-            self.log_message(f"📝 设备已添加到缓存: {device_id}", page)
-
-        self.log_message(f"🔌 正在连接: {device_id}", page)
+        # 记录当前尝试连接的设备
+        self.log_message(f"🔌 正在连接设备: {device_id}", page)
         self.app_status.config(text="⏳ 连接中...", style='Status.Running.TLabel')
+
+        # 首先尝试直接连接（USB方式）
+        self.log_message("  1. 尝试USB连接...", page)
 
         def connect_thread():
             try:
+                # 第一步：尝试USB连接
                 controller_id = connect_adb_device(device_id)
+
                 if controller_id and controller_id.strip():
-                    self.root.after(0, self.on_connect_success, controller_id, device_id, page)
+                    # USB连接成功
+                    self.root.after(0, self.on_connect_success, controller_id, device_id, page, "USB")
+                    return
+
+                # USB连接失败，检查是否为网络设备格式
+                is_network_format = ':' in device_id and '.' in device_id.split(':')[0]
+
+                if is_network_format:
+                    # 第二步：尝试网络连接
+                    self.root.after(0, self.log_message, "  2. USB连接失败，尝试网络连接...", page)
+
+                    try:
+                        # 解析IP和端口
+                        ip, port = device_id.split(':')
+
+                        # 添加网络设备
+                        self.root.after(0, self.log_message, f"   -> 添加网络设备 {ip}:{port}", page)
+                        success = add_network_device(ip, port)
+
+                        if success:
+                            # 等待设备出现
+                            time.sleep(2)
+
+                            # 重新尝试连接
+                            controller_id = connect_adb_device(device_id)
+
+                            if controller_id and controller_id.strip():
+                                # 网络连接成功
+                                self.root.after(0, self.on_connect_success, controller_id, device_id, page, "网络")
+                                return
+
+                        # 网络连接也失败
+                        error_msg = f"网络设备连接失败: {device_id}"
+                        self.root.after(0, self.on_connect_failed, device_id, error_msg, page)
+
+                    except Exception as net_e:
+                        error_msg = f"网络连接失败: {str(net_e)}"
+                        self.root.after(0, self.on_connect_failed, device_id, error_msg, page)
                 else:
-                    raise RuntimeError("设备连接返回空ID")
+                    # 不是网络格式，直接失败
+                    error_msg = "USB连接失败，设备ID不是网络格式"
+                    self.root.after(0, self.on_connect_failed, device_id, error_msg, page)
+
             except Exception as e:
-                self.root.after(0, self.on_connect_failed, device_id, str(e), page)
+                error_msg = f"连接过程异常: {str(e)}"
+                self.root.after(0, self.on_connect_failed, device_id, error_msg, page)
 
         threading.Thread(target=connect_thread, daemon=True).start()
 
@@ -624,7 +849,7 @@ class LLMTaskAutomationGUI:
             try:
                 controller_id = connect_adb_device(device_id)
                 if controller_id and controller_id.strip():
-                    self.root.after(0, self.on_connect_success, controller_id, device_id, page)
+                    self.root.after(0, self.on_connect_success, controller_id, device_id, page, "网络")
                 else:
                     raise RuntimeError("网络设备连接返回空ID")
             except Exception as e:
@@ -632,21 +857,30 @@ class LLMTaskAutomationGUI:
 
         threading.Thread(target=connect_thread, daemon=True).start()
     
-    def on_connect_success(self, controller_id: str, device_id: str, page: str):
+    def on_connect_success(self, controller_id: str, device_id: str, page: str, connection_type: str = "USB"):
         """连接成功"""
         self.controller_id = controller_id
         self.current_device = device_id
+
+        # 保存为上次成功设备
+        self.last_successful_device = device_id
+        self.save_last_successful_device(device_id)
+
+        # 添加到缓存（如果不存在）
+        if device_id not in self.device_cache:
+            self.device_cache.append(device_id)
+            self.save_device_cache()
+
         self.device_status.config(text=f"📱 {device_id}", style='Status.Ready.TLabel')
 
-        # 检查是否为网络设备
-        is_network_device = ':' in device_id and '.' in device_id.split(':')[0]
-        if is_network_device:
+        # 更新网络状态显示
+        if connection_type == "网络":
             self.network_status.config(text=f"🌐 {device_id}", style='Status.Ready.TLabel')
         else:
             self.network_status.config(text="🌐 USB设备", style='Status.Ready.TLabel')
 
         self.app_status.config(text="✅ 就绪", style='Status.Ready.TLabel')
-        self.log_message(f"✅ 连接成功: {device_id}", page)
+        self.log_message(f"✅ 连接成功 ({connection_type}): {device_id}", page)
 
         # 立即获取设备分辨率
         def get_resolution_after_connect():
@@ -692,31 +926,8 @@ class LLMTaskAutomationGUI:
             self.app_status.config(text="❌ 已断开", style='Status.Error.TLabel')
             self.log_message("🔌 设备状态已清除", "all")
 
-    def connect_network_device_dialog(self, page: str):
-        """连接网络设备对话框"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("连接网络设备")
-        dialog.geometry("400x250")
-        dialog.transient(self.root)
-        dialog.grab_set()
-
-        ttk.Label(dialog, text="📱 连接网络ADB设备", font=('Arial', 11, 'bold')).pack(pady=10)
-
-        # IP地址输入
-        ip_frame = ttk.Frame(dialog)
-        ip_frame.pack(fill='x', padx=20, pady=5)
-        ttk.Label(ip_frame, text="IP地址:").pack(side=tk.LEFT)
-        ip_var = tk.StringVar()
-        ttk.Entry(ip_frame, textvariable=ip_var, width=20).pack(side=tk.LEFT, padx=5)
-
-        # 端口输入
-        port_frame = ttk.Frame(dialog)
-        port_frame.pack(fill='x', padx=20, pady=5)
-        ttk.Label(port_frame, text="端口号:").pack(side=tk.LEFT)
-        port_var = tk.StringVar(value="5555")
-        ttk.Entry(port_frame, textvariable=port_var, width=10).pack(side=tk.LEFT, padx=5)
-
-        # 状态显示
+    # ==================== 基础测试页 ====================
+    def setup_test_page(self):
         status_label = ttk.Label(dialog, text="", font=('Arial', 9))
         status_label.pack(pady=10)
 
@@ -812,24 +1023,14 @@ class LLMTaskAutomationGUI:
         # 按钮框架
         btn_frame = ttk.Frame(device_frame)
         btn_frame.pack(fill='x')
-        ttk.Button(btn_frame, text="🔄 刷新", command=self.scan_devices,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(btn_frame, text="🔌 连接",
-                   command=lambda: self.connect_device("test"),
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="❌ 断开",
-                   command=self.disconnect_device,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=(5, 0))
-        ttk.Button(btn_frame, text="🗑️ 清除缓存",
-                   command=self.clear_device_cache,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        self.create_btn(btn_frame, "🔄 刷新", self.scan_devices, 'Action.TButton', tk.LEFT, padx=(0, 5))
+        self.create_btn(btn_frame, "🔌 连接", lambda: self.connect_device("test"), 'Action.TButton', tk.LEFT, padx=5)
+        self.create_btn(btn_frame, "❌ 断开", self.disconnect_device, 'Action.TButton', tk.LEFT, padx=(5, 0))
+        self.create_btn(btn_frame, "🗑️ 清除缓存", self.clear_device_cache, 'Action.TButton', tk.LEFT, padx=5)
 
         # 添加网络设备连接按钮
         network_btn_frame = ttk.Frame(device_frame)
         network_btn_frame.pack(fill='x', pady=(5, 0))
-        ttk.Button(network_btn_frame, text="🌐 连接网络设备",
-                  command=lambda: self.connect_network_device_dialog("test"),
-                  style='Action.TButton').pack(side=tk.LEFT, padx=(0, 5))
         
         # 操作控制（仅调试用）
         control_frame = ttk.LabelFrame(left_panel, text="👆 调试操作（仅开发）", padding="10")
@@ -1160,32 +1361,19 @@ class LLMTaskAutomationGUI:
         self.designer_device_combo.config(state='normal')
 
         # 手动输入按钮
-        ttk.Button(device_input_frame, text="✏️ 手动输入",
-                   command=lambda: self.manual_input_device("designer"),
-                   width=10).pack(side=tk.LEFT, padx=5)
+        self.create_btn(device_input_frame, "✏️ 手动输入", lambda: self.manual_input_device("designer"), None, tk.LEFT, padx=5, width=10)
 
         # 按钮框架
         device_btn_frame = ttk.Frame(device_frame)
         device_btn_frame.pack(fill='x')
 
         # 连接按钮
-        ttk.Button(device_btn_frame, text="🔄 刷新",
-                   command=self.scan_devices,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(device_btn_frame, text="🔌 连接",
-                   command=lambda: self.connect_device("designer"),
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(device_btn_frame, text="🗑️ 清除缓存",
-                   command=self.clear_device_cache,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(device_btn_frame, text="🌐 连接网络设备",
-                  command=lambda: self.connect_network_device_dialog("designer"),
-                  style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        self.create_btn(device_btn_frame, "🔄 刷新", self.scan_devices, 'Action.TButton', tk.LEFT, padx=(0, 5))
+        self.create_btn(device_btn_frame, "🔌 连接", lambda: self.connect_device("designer"), 'Action.TButton', tk.LEFT, padx=5)
+        self.create_btn(device_btn_frame, "🗑️ 清除缓存", self.clear_device_cache, 'Action.TButton', tk.LEFT, padx=5)
 
         # 测试执行按钮（右对齐）
-        ttk.Button(device_btn_frame, text="▶ 测试LLM执行",
-                   command=self.test_llm_execution,
-                   style='Security.TButton').pack(side=tk.RIGHT)
+        self.create_btn(device_btn_frame, "▶ 测试LLM执行", self.test_llm_execution, 'Security.TButton', tk.RIGHT)
     
     # ==================== 任务模板管理（安全增强）====================
     def load_task_templates(self) -> List[Dict]:
@@ -1980,14 +2168,6 @@ class LLMTaskAutomationGUI:
         control_frame = ttk.Frame(paned)
         paned.add(control_frame, weight=1)
 
-        # 安全参数显示
-        security_frame = ttk.LabelFrame(control_frame, text="🛡️ 安全参数", padding="10")
-        security_frame.pack(fill='x', pady=(0, 10))
-        self.security_display = ttk.Label(security_frame,
-            text=f"按压时长: {self.press_duration_ms}ms\n抖动范围: ±{self.press_jitter_px}px\n机制: 滑动模拟按压",
-            font=('Arial', 9), justify=tk.LEFT)
-        self.security_display.pack(anchor=tk.W)
-
         # === 任务队列管理（修改部分）===
         task_queue_frame = ttk.LabelFrame(control_frame, text="📋 任务队列", padding="10")
         task_queue_frame.pack(fill='x', pady=(0, 10))
@@ -2039,35 +2219,22 @@ class LLMTaskAutomationGUI:
         self.llm_device_combo.config(state='normal')
 
         # 手动输入按钮
-        ttk.Button(device_input_frame, text="✏️ 手动输入",
-                   command=lambda: self.manual_input_device("llm"),
-                   width=10).pack(side=tk.LEFT, padx=5)
+        self.create_btn(device_input_frame, "✏️ 手动输入", lambda: self.manual_input_device("llm"), None, tk.LEFT, padx=5, width=10)
 
         # 按钮框架
         device_btn_frame = ttk.Frame(device_frame)
         device_btn_frame.pack(fill='x')
 
-        ttk.Button(device_btn_frame, text="🔄 刷新", command=self.scan_devices,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=(0, 5))
-        ttk.Button(device_btn_frame, text="🔌 连接",
-                   command=lambda: self.connect_device("llm"),
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(device_btn_frame, text="🗑️ 清除缓存",
-                   command=self.clear_device_cache,
-                   style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(device_btn_frame, text="🌐 连接网络设备",
-                  command=lambda: self.connect_network_device_dialog("llm"),
-                  style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        self.create_btn(device_btn_frame, "🔄 刷新", self.scan_devices, 'Action.TButton', tk.LEFT, padx=(0, 5))
+        self.create_btn(device_btn_frame, "🔌 连接", lambda: self.connect_device("llm"), 'Action.TButton', tk.LEFT, padx=5)
+        self.create_btn(device_btn_frame, "🗑️ 清除缓存", self.clear_device_cache, 'Action.TButton', tk.LEFT, padx=5)
 
         # 执行控制
         exec_frame = ttk.LabelFrame(control_frame, text="⚡ 执行控制", padding="10")
         exec_frame.pack(fill='x', pady=(0, 10))
-        self.llm_start_btn = ttk.Button(exec_frame, text="▶ 启动LLM执行队列",
-                                       command=self.start_llm_execution, style='Security.TButton')
-        self.llm_start_btn.pack(fill='x', pady=(0, 5))
-        self.llm_stop_btn = ttk.Button(exec_frame, text="■ 停止执行",
-                                      command=self.stop_llm_execution, state='disabled', style='Stop.TButton')
-        self.llm_stop_btn.pack(fill='x', pady=(5, 0))
+        self.llm_start_btn = self.create_btn(exec_frame, "▶ 启动LLM执行队列", self.start_llm_execution, 'Security.TButton', tk.TOP, fill='x', pady=(0, 5))
+        self.llm_stop_btn = self.create_btn(exec_frame, "■ 停止执行", self.stop_llm_execution, 'Stop.TButton', tk.TOP, fill='x', pady=(5, 0))
+        self.llm_stop_btn.config(state='disabled')
 
         # 当前任务状态显示
         self.current_task_label = ttk.Label(exec_frame, text="当前: 无", font=('Arial', 9), justify=tk.LEFT)
@@ -3048,64 +3215,3 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
-# 添加分辨率验证和监控功能
-def verify_resolution_with_screenshot(self):
-    """通过截图验证当前分辨率是否正确"""
-    if not self.controller_id or not self.current_device:
-        return
-
-    try:
-        # 获取当前缓存的分辨率
-        cached_width, cached_height = self.get_device_resolution()
-
-        # 获取新截图
-        image_obj = screencap(self.controller_id)
-        if image_obj and hasattr(image_obj, 'data'):
-            # 解析截图获取实际分辨率
-            data_url = image_obj.data
-            b64_data = data_url.split(',', 1)[1] if ',' in data_url else data_url
-            image_data = base64.b64decode(b64_data)
-
-            # 使用PIL获取图像尺寸
-            from PIL import Image
-            import io
-            image = Image.open(io.BytesIO(image_data))
-            actual_width, actual_height = image.size
-
-            # 比较分辨率
-            if cached_width == actual_width and cached_height == actual_height:
-                self.log_message(f"✅ 分辨率验证通过: {cached_width}x{cached_height}", "all")
-            else:
-                error_msg = f"⚠️ 分辨率不一致！缓存: {cached_width}x{cached_height}, 实际: {actual_width}x{actual_height}"
-                self.log_message(error_msg, "all", "WARNING")
-                print(f"[控制台警告] {error_msg}")
-
-                # 更新缓存的分辨率
-                self.cached_resolution = (actual_width, actual_height)
-                self.log_message(f"📏 已更新分辨率为: {actual_width}x{actual_height}", "all")
-        else:
-            self.log_message("❌ 截图失败，无法验证分辨率", "all", "ERROR")
-
-    except Exception as e:
-        error_msg = f"❌ 分辨率验证失败: {str(e)}"
-        self.log_message(error_msg, "all", "ERROR")
-        print(f"[控制台错误] {error_msg}")
-
-
-def monitor_resolution_changes(self):
-    """监控分辨率变化（例如屏幕旋转）"""
-    if not self.controller_id:
-        return
-
-    # 每10秒检查一次分辨率
-    def check_thread():
-        while self.controller_id and not self.llm_stop_flag:
-            try:
-                time.sleep(10)
-                self.verify_resolution_with_screenshot()
-            except:
-                break
-
-    threading.Thread(target=check_thread, daemon=True).start()
