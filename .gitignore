@@ -1,5 +1,6 @@
 model/vision_llm/Qwen3-VL-8B-abliterated-v2.0
 3rd-part/llamacpp-cuda124
+3rd-part/Git
 cloud/
 screenshots/
 logs/
