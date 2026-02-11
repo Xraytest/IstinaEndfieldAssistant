@@ -154,6 +154,9 @@ class LLMTaskAutomationGUI:
         # --- 自动检测并部署模型 ---
         self._check_and_deploy_vlm_model()
 
+        # --- 自动检测并登录云服务 ---
+        self.root.after(1000, self.auto_check_and_login_cloud)
+
     def _create_btn(self, parent, text, cmd=None, style=None, side=tk.LEFT, **kwargs):
         """创建按钮的辅助函数"""
         # 分离 pack 参数和按钮参数
@@ -1911,12 +1914,134 @@ class LLMTaskAutomationGUI:
     def call_vlm(self, content_window: Dict) -> List[Dict]:
         """
         调用VLM服务器，返回解析后的工具调用列表
+        支持本地VLM和云VLM服务的互斥切换
         返回: [{"action": "safe_press", "params": {...}, "purpose": "..."}, ...]
         """
+        # 检查是否启用云VLM服务
+        if hasattr(self, 'use_cloud_var') and self.use_cloud_var.get():
+            if not self.cloud_client:
+                self.log_message("云VLM服务已启用但客户端未连接，回退到本地VLM", "llm", "WARNING")
+                # 回退到本地VLM检查
+                if not VLM_AVAILABLE:
+                    self.log_message("VLM不可用，无法执行任务", "llm", "ERROR")
+                    messagebox.showerror("VLM错误", "VLM服务器不可用！\n\n请确保：\n1. VLM服务器正在运行\n2. 配置文件正确\n\n程序无法在没有VLM的情况下执行任务。")
+                    return []
+                return self._call_local_vlm(content_window)
+            else:
+                self.log_message("🌐 使用云VLM服务处理请求", "llm")
+                return self._call_cloud_vlm(content_window)
+
+        # 使用本地VLM
         if not VLM_AVAILABLE:
             self.log_message("VLM不可用，无法执行任务", "llm", "ERROR")
             messagebox.showerror("VLM错误", "VLM服务器不可用！\n\n请确保：\n1. VLM服务器正在运行\n2. 配置文件正确\n\n程序无法在没有VLM的情况下执行任务。")
             return []
+
+        return self._call_local_vlm(content_window)
+
+    def _call_cloud_vlm(self, content_window: Dict) -> List[Dict]:
+        """调用云VLM服务"""
+        if not self.cloud_client:
+            self.log_message("云VLM服务客户端未连接", "llm", "ERROR")
+            return []
+
+        try:
+            self.log_message(f"🌐 调用云VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
+
+            # 构建云VLM请求
+            prompt = self.build_vlm_prompt(content_window)
+            img_path = content_window['device_vision']['screenshot_path']
+
+            # 读取图像并转换为base64
+            with open(img_path, 'rb') as f:
+                image_data = f.read()
+                image_b64 = base64.b64encode(image_data).decode('utf-8')
+
+            # 构建OpenAI格式请求 (模型将由服务器覆盖)
+            cloud_request = {
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "text",
+                                "text": prompt
+                            },
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{image_b64}"
+                                }
+                            }
+                        ]
+                    }
+                ],
+                "tools": self.tools,
+                "tool_choice": "required",
+                "temperature": 0.7,
+                "max_tokens": 2048
+            }
+
+            # 发送云VLM请求
+            response = self.cloud_client.chat_completion(cloud_request)
+
+            if not response or response.get('status') == 'error':
+                error_msg = response.get('msg', '云VLM服务无响应') if response else '云VLM服务无响应'
+                self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
+                return []
+
+            # 解析云VLM响应
+            choices = response.get('choices', [])
+            if not choices:
+                self.log_message("云VLM返回空响应", "llm", "WARNING")
+                return []
+
+            message = choices[0].get('message', {})
+            tool_calls = message.get('tool_calls', [])
+
+            if not tool_calls:
+                self.log_message("云VLM未返回工具调用", "llm", "WARNING")
+                # 尝试回退到等待操作
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            # 解析工具调用参数
+            parsed_tool_calls = []
+            for tc in tool_calls:
+                try:
+                    function = tc.get('function', {})
+                    tool_name = function.get('name')
+                    arguments = function.get('arguments', '{}')
+
+                    if tool_name:
+                        # 解析JSON参数
+                        args = json.loads(arguments) if isinstance(arguments, str) else arguments
+                        # 构建标准工具调用格式
+                        tool_call = {
+                            "action": tool_name,
+                            "params": args,
+                            "purpose": args.get('purpose', '未指定目的')
+                        }
+                        parsed_tool_calls.append(tool_call)
+                        self.log_message(f"🌐 云工具调用: {tool_name} | {tool_call['purpose']}", "llm")
+
+                except json.JSONDecodeError as e:
+                    self.log_message(f"云工具参数解析失败: {str(e)}", "llm", "WARNING")
+                except Exception as e:
+                    self.log_message(f"云工具调用处理异常: {str(e)}", "llm", "ERROR")
+
+            if not parsed_tool_calls:
+                self.log_message("云VLM未返回有效工具调用", "llm", "WARNING")
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            return parsed_tool_calls
+
+        except Exception as e:
+            error_msg = f"云VLM调用失败: {str(e)}"
+            self.log_message(error_msg, "llm", "ERROR")
+            return []
+
+    def _call_local_vlm(self, content_window: Dict) -> List[Dict]:
+        """调用本地VLM服务"""
 
         # 构建prompt和图像路径
         prompt = self.build_vlm_prompt(content_window)
@@ -1926,25 +2051,25 @@ class LLMTaskAutomationGUI:
         accumulated_text = ""  # 累积LLM思考文本
 
         try:
-            self.log_message(f"🧠 调用VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
+            self.log_message(f"🧠 调用本地VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
 
             # 流式调用VLM
             for chunk in llm_requests(prompt, img_path, tools=self.tools, tool_choice="required"):
                 if self.llm_stop_flag:
                     self.log_message("VLM调用被用户中断", "llm", "WARNING")
                     return []
-                
+
                 # 处理流式响应
                 if 'choices' in chunk and chunk['choices']:
                     delta = chunk['choices'][0].get('delta', {})
-                    
+
                     # 累积文本（用于显示思考过程）
                     if 'content' in delta and delta['content']:
                         accumulated_text += delta['content']
                         # 实时显示思考文本（每50字符更新一次）
                         if len(accumulated_text) % 50 == 0:
                             self.root.after(0, self.log_message, f"💭 {accumulated_text[-50:]}", "llm", "INFO")
-                    
+
                     # 处理tool_calls（OpenAI格式）
                     if 'tool_calls' in delta:
                         for tc_delta in delta['tool_calls']:
@@ -1956,7 +2081,7 @@ class LLMTaskAutomationGUI:
                                     "type": "function",
                                     "function": {"name": "", "arguments": ""}
                                 })
-                            
+
                             tc = tool_calls[index]
                             if 'id' in tc_delta:
                                 tc['id'] = tc_delta['id']
@@ -1966,12 +2091,12 @@ class LLMTaskAutomationGUI:
                                     tc['function']['name'] = func_delta['name']
                                 if 'arguments' in func_delta:
                                     tc['function']['arguments'] += func_delta['arguments']
-            
+
             # 显示完整思考文本（简化）
             if accumulated_text.strip():
                 preview = accumulated_text[:150] + "..." if len(accumulated_text) > 150 else accumulated_text
                 self.log_message(f"💭 LLM思考: {preview}", "llm")
-            
+
             # 解析tool_calls参数
             parsed_tool_calls = []
             for tc in tool_calls:
@@ -1990,16 +2115,16 @@ class LLMTaskAutomationGUI:
                     self.log_message(f"工具参数解析失败: {tc['function']['arguments'][:50]}... | 错误: {str(e)}", "llm", "WARNING")
                 except Exception as e:
                     self.log_message(f"工具调用处理异常: {str(e)}", "llm", "ERROR")
-            
+
             if not parsed_tool_calls:
                 self.log_message("VLM未返回有效工具调用", "llm", "WARNING")
                 # 尝试回退到等待操作
                 return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
-            
+
             return parsed_tool_calls
-            
+
         except Exception as e:
-            error_msg = f"VLM调用失败: {str(e)}"
+            error_msg = f"本地VLM调用失败: {str(e)}"
             self.log_message(error_msg, "llm", "ERROR")
             # 尝试提取关键错误信息
             if "Connection refused" in str(e):
@@ -3728,17 +3853,18 @@ class LLMTaskAutomationGUI:
         ttk.Checkbutton(key_frame, text="显示", variable=self.show_key_var,
                        command=self.toggle_key_visibility).pack(side=tk.LEFT, padx=5)
 
-        # 连接按钮
+        # 连接框架 - 只包含注册和登入按钮
         btn_frame = ttk.Frame(conn_frame)
         btn_frame.pack(fill='x')
-        self.cloud_connect_btn = self.create_btn(btn_frame, "连接", self.connect_cloud_service, 'Action.TButton')
-        self.cloud_disconnect_btn = self.create_btn(btn_frame, "断开", self.disconnect_cloud_service, 'Stop.TButton')
-        self.cloud_disconnect_btn.config(state='disabled')
-        self.cloud_register_btn = self.create_btn(btn_frame, "注册", self.register_cloud_user)
-        self.cloud_load_arkpass_btn = self.create_btn(btn_frame, "加载ArkPass", self.load_arkpass_file)
+        self.cloud_register_btn = self.create_btn(btn_frame, "注册", self.register_cloud_user, 'Action.TButton')
+        self.cloud_login_btn = self.create_btn(btn_frame, "登入", self.login_cloud_user, 'Action.TButton')
 
         # 连接状态
-        status_frame = ttk.LabelFrame(left_panel, text="连接状态", padding="10")
+        self.cloud_status_label = ttk.Label(btn_frame, text="未登录", foreground='gray')
+        self.cloud_status_label.pack(side=tk.RIGHT, padx=10)
+
+        # 连接状态
+        status_frame = ttk.LabelFrame(left_panel, text="用户信息", padding="10")
         status_frame.pack(fill='x', pady=(0, 10))
         self.cloud_status_text = scrolledtext.ScrolledText(status_frame, height=6, wrap=tk.WORD, font=('Consolas', 9))
         self.cloud_status_text.pack(fill='both', expand=True)
@@ -3767,17 +3893,6 @@ class LLMTaskAutomationGUI:
                        variable=self.use_cloud_var, command=self.toggle_cloud_vlm).pack(side=tk.LEFT)
         self.cloud_vlm_status = ttk.Label(cloud_enable_frame, text="未启用", foreground='gray')
         self.cloud_vlm_status.pack(side=tk.LEFT, padx=10)
-
-        # 模型选择
-        model_frame = ttk.Frame(vlm_frame)
-        model_frame.pack(fill='x', pady=(0, 10))
-        ttk.Label(model_frame, text="模型:").pack(side=tk.LEFT)
-        self.cloud_model_var = tk.StringVar(value="gpt-3.5-turbo")
-        self.cloud_model_combo = ttk.Combobox(model_frame, textvariable=self.cloud_model_var,
-                                            values=["gpt-3.5-turbo", "gpt-4", "claude-3-sonnet", "claude-3-opus"],
-                                            state='readonly', width=20)
-        self.cloud_model_combo.pack(side=tk.LEFT, padx=5)
-        self.refresh_models_btn = self.create_btn(model_frame, "刷新", self.refresh_cloud_models)
 
         # 测试区域
         test_frame = ttk.LabelFrame(right_panel, text="云服务测试", padding="10")
@@ -3894,8 +4009,12 @@ class LLMTaskAutomationGUI:
         self.update_cloud_ui_state()
         self.log_message("云服务已断开", "cloud")
 
-    def load_arkpass_file(self):
-        """加载ArkPass文件并自动登录"""
+    def login_cloud_user(self):
+        """登入功能 - 选择arkpass文件并执行登录"""
+        if not CLOUD_AVAILABLE:
+            messagebox.showerror("错误", "云服务客户端不可用")
+            return
+
         arkpass_file = filedialog.askopenfilename(
             title="选择ArkPass文件",
             filetypes=[("ArkPass文件", "*.arkpass"), ("所有文件", "*.*")]
@@ -3904,15 +4023,51 @@ class LLMTaskAutomationGUI:
         if not arkpass_file:
             return
 
-        # 从文件名提取用户ID
+        host = self.cloud_host_var.get().strip()
+        port_str = self.cloud_port_var.get().strip()
+
+        if not all([host, port_str]):
+            messagebox.showwarning("警告", "请填写服务器地址")
+            return
+
+        try:
+            port = int(port_str)
+        except ValueError:
+            messagebox.showerror("错误", "端口号必须是数字")
+            return
+
+        self.auto_login_with_arkpass(arkpass_file)
+
+    def auto_login_with_arkpass(self, arkpass_file):
+        """使用指定的arkpass文件自动登录"""
+        host = self.cloud_host_var.get().strip()
+        port_str = self.cloud_port_var.get().strip()
+
+        try:
+            port = int(port_str)
+        except ValueError:
+            return
+
         filename = os.path.basename(arkpass_file)
-        user_id = filename.replace('.arkpass', '')
+        self.log_message(f"正在使用 {filename} 登录...", "cloud")
 
-        # 更新用户ID输入框
-        self.cloud_user_var.set(user_id)
+        def login_thread():
+            try:
+                client = CloudClient(host, port)
+                success, layer = client.login_with_file(arkpass_file)
 
-        self.log_message(f"已加载ArkPass文件: {filename}", "cloud")
-        self.log_message("请点击'连接'按钮完成加密登录", "cloud")
+                if success:
+                    self.root.after(0, lambda: self.on_cloud_login_success(client, layer, filename))
+                else:
+                    self.root.after(0, lambda: self.log_message(f"登录失败: {layer}", "cloud", "ERROR"))
+                    self.root.after(0, lambda: messagebox.showerror("登录失败", layer))
+
+            except Exception as e:
+                error_message = str(e)
+                self.root.after(0, lambda: self.log_message(f"登录异常: {error_message}", "cloud", "ERROR"))
+                self.root.after(0, lambda: messagebox.showerror("登录失败", error_message))
+
+        threading.Thread(target=login_thread, daemon=True).start()
 
     def register_cloud_user(self):
         """注册新用户"""
@@ -3920,12 +4075,17 @@ class LLMTaskAutomationGUI:
             messagebox.showerror("错误", "云服务客户端不可用")
             return
 
+        # 弹窗获取用户名
+        user_id = simpledialog.askstring("注册用户", "请输入用户名:", parent=self.root)
+        if not user_id or not user_id.strip():
+            return
+
+        user_id = user_id.strip()
         host = self.cloud_host_var.get().strip()
         port_str = self.cloud_port_var.get().strip()
-        user_id = self.cloud_user_var.get().strip()
 
-        if not all([host, port_str, user_id]):
-            messagebox.showwarning("警告", "请填写服务器地址和用户ID")
+        if not all([host, port_str]):
+            messagebox.showwarning("警告", "请填写服务器地址")
             return
 
         try:
@@ -3945,7 +4105,10 @@ class LLMTaskAutomationGUI:
                     # 注册成功，ArkPass文件已自动保存
                     arkpass_file = f"{user_id}.arkpass"
                     self.root.after(0, lambda: self.log_message(f"注册成功，ArkPass文件已保存为 {arkpass_file}", "cloud"))
-                    self.root.after(0, lambda: messagebox.showinfo("注册成功", f"用户 {user_id} 注册成功\nArkPass文件: {arkpass_file}\n请使用'加载ArkPass文件'按钮登录"))
+                    self.root.after(0, lambda: messagebox.showinfo("注册成功", f"用户 {user_id} 注册成功\nArkPass文件: {arkpass_file}\n系统将自动登录"))
+
+                    # 自动登录
+                    self.root.after(1000, lambda: self.auto_login_with_arkpass(arkpass_file))
                 else:
                     error = "用户ID可能已存在"
                     self.root.after(0, lambda: self.log_message(f"注册失败: {error}", "cloud", "ERROR"))
@@ -3956,6 +4119,41 @@ class LLMTaskAutomationGUI:
                 self.root.after(0, lambda: messagebox.showerror("注册失败", str(e)))
 
         threading.Thread(target=register_thread, daemon=True).start()
+
+    def on_cloud_login_success(self, client, layer, filename):
+        """云服务登录成功回调"""
+        self.cloud_client = client
+
+        # 提取用户ID
+        user_id = filename.replace('.arkpass', '')
+
+        # 更新UI状态
+        self.cloud_status_label.config(text=f"已登录: {user_id}", foreground='green')
+        self.log_message(f"登录成功: {layer}", "cloud")
+        self.cloud_status_text.insert(tk.END, f"\n[{datetime.now().strftime('%H:%M:%S')}] 用户: {user_id}")
+        self.cloud_status_text.insert(tk.END, f"\n[{datetime.now().strftime('%H:%M:%S')}] 状态: {layer}")
+        self.cloud_status_text.see(tk.END)
+
+        # 更新用户信息
+        self.update_cloud_user_info()
+
+        # 启用云服务相关按钮
+        self.cloud_register_btn.config(state='disabled')
+        self.cloud_login_btn.config(state='disabled')
+
+    def auto_check_and_login_cloud(self):
+        """启动时自动检测并登录云服务"""
+        # 查找默认位置的arkpass文件
+        current_dir = os.getcwd()
+
+        # 查找所有的.arkpass文件
+        arkpass_files = [f for f in os.listdir(current_dir) if f.endswith('.arkpass')]
+
+        if arkpass_files:
+            # 如果有arkpass文件，使用第一个自动登录
+            arkpass_file = os.path.join(current_dir, arkpass_files[0])
+            self.log_message(f"检测到arkpass文件: {arkpass_files[0]}，正在自动登录...", "cloud")
+            self.auto_login_with_arkpass(arkpass_file)
 
     def update_cloud_user_info(self):
         """更新云服务用户信息"""
@@ -4006,13 +4204,8 @@ class LLMTaskAutomationGUI:
             self.log_message("VLM云服务已禁用", "cloud")
 
     def refresh_cloud_models(self):
-        """刷新可用模型列表"""
-        if not self.cloud_client:
-            messagebox.showwarning("警告", "请先连接云服务")
-            return
-
-        # TODO: 从云服务获取可用模型列表
-        self.log_message("刷新模型列表 (功能待实现)", "cloud", "INFO")
+        """模型现在由服务器分配，此方法已弃用"""
+        self.log_message("模型由服务器分配，无需手动刷新", "cloud", "INFO")
 
     def test_cloud_service(self):
         """测试云服务"""
@@ -4030,9 +4223,8 @@ class LLMTaskAutomationGUI:
 
         def test_thread():
             try:
-                # 构造测试请求
+                # 构造测试请求 (模型将由服务器覆盖)
                 payload = {
-                    "model": self.cloud_model_var.get(),
                     "messages": [{"role": "user", "content": test_msg}],
                     "temperature": 0.7
                 }
@@ -4057,9 +4249,8 @@ class LLMTaskAutomationGUI:
             messagebox.showwarning("警告", "请先连接云服务")
             return
 
-        # 模拟子任务测试
+        # 模拟子任务测试 (模型将由服务器覆盖)
         test_payload = {
-            "model": self.cloud_model_var.get(),
             "messages": [{"role": "user", "content": "请创建一个子任务：检查游戏状态"}],
             "temperature": 0.7
         }

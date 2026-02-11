@@ -29,17 +29,28 @@ class CloudClient:
 
     def _recv_secure(self, crypto):
         """使用传入的加密器接收包"""
-        header_data = self.sock.recv(4)
-        if not header_data: return None
-        length = struct.unpack('>I', header_data)[0]
+        try:
+            header_data = self.sock.recv(4)
+            if not header_data:
+                print("接收包头失败：连接已关闭")
+                return None
 
-        data = b''
-        while len(data) < length:
-            chunk = self.sock.recv(min(4096, length - len(data)))
-            if not chunk: break
-            data += chunk
+            length = struct.unpack('>I', header_data)[0]
+            print(f"准备接收 {length} 字节的加密数据")
 
-        return crypto.decrypt(data)
+            data = b''
+            while len(data) < length:
+                chunk = self.sock.recv(min(4096, length - len(data)))
+                if not chunk:
+                    print("接收包体失败：连接中断")
+                    return None
+                data += chunk
+
+            print(f"接收到 {len(data)} 字节，开始解密")
+            return crypto.decrypt(data)
+        except Exception as e:
+            print(f"接收解密失败: {e}")
+            return None
 
     def _send_secure(self, data, crypto):
         """使用加密器发送数据包"""
@@ -51,55 +62,83 @@ class CloudClient:
         if not self.connect():
             return None
 
-        self._send_raw({'cmd': 'REGISTER', 'user_id': user_id})
+        try:
+            self._send_raw({'cmd': 'REGISTER', 'user_id': user_id})
 
-        # 接收注册结果（明文）
-        header_data = self.sock.recv(4)
-        length = struct.unpack('>I', header_data)[0]
-        data = self.sock.recv(length)
-        response = json.loads(data.decode('utf-8'))
+            # 接收注册结果（明文）
+            header_data = self.sock.recv(4)
+            if not header_data:
+                print("注册响应接收失败：无数据")
+                return None
 
-        if response['status'] == 'success':
-            key = response['key']
-            # 保存为 .arkpass 文件
-            with open(f"{user_id}.arkpass", 'w') as f:
-                f.write(f"{user_id}:{key}")
-            return key
-        return None
+            length = struct.unpack('>I', header_data)[0]
+            data = b''
+            while len(data) < length:
+                chunk = self.sock.recv(min(4096, length - len(data)))
+                if not chunk:
+                    print("注册响应接收失败：连接中断")
+                    return None
+                data += chunk
+
+            response = json.loads(data.decode('utf-8'))
+            print(f"注册响应: {response}")
+
+            if response['status'] == 'success':
+                key = response['key']
+                # 保存为 .arkpass 文件
+                with open(f"{user_id}.arkpass", 'w') as f:
+                    f.write(f"{user_id}:{key}")
+                return key
+            else:
+                print(f"注册失败: {response.get('msg', '未知错误')}")
+                return None
+        except Exception as e:
+            print(f"注册异常: {e}")
+            return None
+        finally:
+            self.close()
 
     def login_with_file(self, filepath):
         """使用 .arkpass 文件登录"""
         if not self.connect():
             return False, "连接失败"
 
-        # 1. 读取文件内容获取 key
-        with open(filepath, 'r') as f:
-            uid, key = f.read().strip().split(':')
+        try:
+            # 1. 读取文件内容获取 key
+            with open(filepath, 'r') as f:
+                uid, key = f.read().strip().split(':')
 
-        # 2. 发送明文登录请求
-        self._send_raw({'cmd': 'LOGIN', 'user_id': uid, 'key': key})
+            # 2. 发送明文登录请求
+            self._send_raw({'cmd': 'LOGIN', 'user_id': uid, 'key': key})
 
-        # 3. 登录包发出后，立即预设加密器准备接收加密的回包
-        temp_crypto = SecureTransport(key)
-        resp = self._recv_secure(temp_crypto)
+            # 3. 登录包发出后，立即预设加密器准备接收加密的回包
+            temp_crypto = SecureTransport(key)
+            resp = self._recv_secure(temp_crypto)
 
-        if resp['status'] == 'success':
-            self.crypto = temp_crypto  # 正式启用加密
-            self.user_id = uid
-            return True, resp['layer']
-        return False, "认证失败"
+            if resp and resp['status'] == 'success':
+                self.crypto = temp_crypto  # 正式启用加密
+                self.user_id = uid
+                return True, resp['layer']
+            else:
+                error_msg = resp.get('msg', '认证失败') if resp else '无响应'
+                print(f"登录失败: {error_msg}")
+                return False, error_msg
+        except Exception as e:
+            print(f"登录异常: {e}")
+            return False, f"登录异常: {str(e)}"
+        finally:
+            if not (self.crypto and self.user_id):
+                self.close()
 
-    def send_chat_request(self, messages, model="gpt-4o-mini"):
-        """发送聊天请求（加密）"""
+    def chat_completion(self, payload):
+        """
+        发送聊天请求（加密）
+        :param payload: 包含 model, messages 等的完整字典
+        """
         if not self.crypto or not self.user_id:
             return {'status': 'error', 'msg': '未登录'}
 
-        payload = {
-            'model': model,
-            'messages': messages,
-            'temperature': 0.7
-        }
-
+        # 直接发送 payload，不再在此处重新封装，因为 gui.py 已经组装好了
         self._send_secure({'cmd': 'CHAT', 'payload': payload}, self.crypto)
 
         # 接收响应（加密）
@@ -121,3 +160,7 @@ class CloudClient:
         """关闭连接"""
         if self.sock:
             self.sock.close()
+
+    def disconnect(self):
+        """关闭连接（close的别名）"""
+        self.close()
