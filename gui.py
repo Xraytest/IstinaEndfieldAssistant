@@ -532,7 +532,8 @@ class LLMTaskAutomationGUI:
         """手动输入设备ID"""
         dialog = tk.Toplevel(self.root)
         dialog.title("手动输入设备")
-        dialog.geometry("500x200")
+        dialog.geometry("600x250")
+        dialog.resizable(True, True)
         dialog.transient(self.root)
         dialog.grab_set()
 
@@ -560,8 +561,11 @@ class LLMTaskAutomationGUI:
             combo_map = {
                 "test": self.test_device_combo,
                 "designer": self.designer_device_combo,
-                "llm": self.llm_device_combo
             }
+
+            # 只有当llm_device_combo存在时才添加到映射中
+            if hasattr(self, 'llm_device_combo'):
+                combo_map["llm"] = self.llm_device_combo
 
             combo = combo_map.get(page)
             if combo:
@@ -682,9 +686,12 @@ class LLMTaskAutomationGUI:
         """连接设备，先尝试USB连接，失败则尝试网络连接"""
         device_map = {
             "test": "test_device_combo",
-            "designer": "designer_device_combo",
-            "llm": "llm_device_combo"
+            "designer": "designer_device_combo"
         }
+
+        # 只有当llm_device_combo存在时才添加到映射中
+        if hasattr(self, 'llm_device_combo'):
+            device_map["llm"] = "llm_device_combo"
         combo_attr = device_map.get(page)
         if not combo_attr or not hasattr(self, combo_attr):
             return
@@ -876,8 +883,11 @@ class LLMTaskAutomationGUI:
         self.test_device_combo['values'] = ["未检测到设备"] if not self.device_cache else self.device_cache
         self.test_device_combo.config(state='normal')
 
-        # 添加手动输入按钮
+        # 手动输入按钮
         self.create_btn(device_input_frame, "手动输入", lambda: self.manual_input_device("test"), width=10)
+
+        # 连接测试按钮
+        self.create_btn(device_input_frame, "连接测试", lambda: self.connect_device("test"), 'Action.TButton', width=10)
 
         # 按钮框架
         btn_frame = ttk.Frame(device_frame)
@@ -1919,16 +1929,30 @@ class LLMTaskAutomationGUI:
         """
         # 检查是否启用云VLM服务
         if hasattr(self, 'use_cloud_var') and self.use_cloud_var.get():
-            if not self.cloud_client:
-                self.log_message("云VLM服务已启用但客户端未连接，回退到本地VLM", "llm", "WARNING")
-                # 回退到本地VLM检查
-                if not VLM_AVAILABLE:
-                    self.log_message("VLM不可用，无法执行任务", "llm", "ERROR")
-                    messagebox.showerror("VLM错误", "VLM服务器不可用！\n\n请确保：\n1. VLM服务器正在运行\n2. 配置文件正确\n\n程序无法在没有VLM的情况下执行任务。")
-                    return []
-                return self._call_local_vlm(content_window)
+            # 详细记录云服务检查过程
+            self.log_message("🌐 检查云VLM服务可用性...", "llm", "INFO")
+
+            # 增强云客户端状态检查
+            cloud_client_status = self._check_cloud_client_status()
+            if not cloud_client_status['is_connected']:
+                error_msg = cloud_client_status['error_msg']
+                self.log_message(f"云VLM服务状态异常: {error_msg}", "llm", "WARNING")
+
+                # 尝试重新连接
+                if self._try_reconnect_cloud_client():
+                    self.log_message("云VLM服务重新连接成功，使用云服务", "llm", "INFO")
+                    return self._call_cloud_vlm(content_window)
+                else:
+                    self.log_message("云VLM服务不可用，尝试回退到本地VLM", "llm", "WARNING")
+
+                    # 回退到本地VLM检查
+                    if not VLM_AVAILABLE:
+                        self.log_message("本地VLM也不可用，无法执行任务", "llm", "ERROR")
+                        messagebox.showerror("VLM错误", "云VLM服务和本地VLM都不可用！\n\n请确保：\n1. 云服务连接正常，或\n2. 本地VLM服务器正在运行\n\n程序无法在没有VLM的情况下执行任务。")
+                        return []
+                    return self._call_local_vlm(content_window)
             else:
-                self.log_message("🌐 使用云VLM服务处理请求", "llm")
+                self.log_message("🌐 云VLM服务状态正常，使用云服务处理请求", "llm", "INFO")
                 return self._call_cloud_vlm(content_window)
 
         # 使用本地VLM
@@ -1941,9 +1965,22 @@ class LLMTaskAutomationGUI:
 
     def _call_cloud_vlm(self, content_window: Dict) -> List[Dict]:
         """调用云VLM服务"""
-        if not self.cloud_client:
-            self.log_message("云VLM服务客户端未连接", "llm", "ERROR")
-            return []
+        # 增强云客户端状态检查
+        cloud_client_status = self._check_cloud_client_status()
+        if not cloud_client_status['is_connected']:
+            error_msg = cloud_client_status['error_msg']
+            self.log_message(f"云VLM服务客户端状态异常: {error_msg}", "llm", "ERROR")
+
+            # 尝试重新连接一次
+            if self._try_reconnect_cloud_client():
+                self.log_message("云VLM服务重新连接成功，继续执行", "llm", "INFO")
+            else:
+                self.log_message("云VLM服务重新连接失败，回退到本地VLM", "llm", "WARNING")
+                if VLM_AVAILABLE:
+                    return self._call_local_vlm(content_window)
+                else:
+                    self.log_message("本地VLM也不可用，无法执行任务", "llm", "ERROR")
+                    return []
 
         try:
             self.log_message(f"🌐 调用云VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
@@ -2038,7 +2075,59 @@ class LLMTaskAutomationGUI:
         except Exception as e:
             error_msg = f"云VLM调用失败: {str(e)}"
             self.log_message(error_msg, "llm", "ERROR")
-            return []
+            # 云服务调用失败，尝试回退到本地VLM
+            self.log_message("云VLM服务调用异常，回退到本地VLM", "llm", "WARNING")
+            if VLM_AVAILABLE:
+                return self._call_local_vlm(content_window)
+            else:
+                self.log_message("本地VLM不可用，无法执行任务", "llm", "ERROR")
+                return []
+
+    def _check_cloud_client_status(self) -> Dict:
+        """检查云客户端连接状态"""
+        status = {
+            'is_connected': False,
+            'error_msg': '',
+            'details': {}
+        }
+
+        # 检查客户端对象是否存在
+        if not hasattr(self, 'cloud_client') or not self.cloud_client:
+            status['error_msg'] = '云客户端对象不存在'
+            return status
+
+        # 检查客户端是否连接
+        try:
+            if hasattr(self.cloud_client, 'is_connected'):
+                if self.cloud_client.is_connected():
+                    status['is_connected'] = True
+                    status['details']['connection_method'] = 'is_connected method'
+                else:
+                    status['error_msg'] = '云客户端对象存在但连接已断开'
+            else:
+                # 没有is_connected方法，尝试其他方法检查连接
+                status['error_msg'] = '云客户端缺少is_connected方法，无法确认连接状态'
+        except Exception as e:
+            status['error_msg'] = f'检查云客户端状态时发生异常: {str(e)}'
+
+        return status
+
+    def _try_reconnect_cloud_client(self) -> bool:
+        """尝试重新连接云客户端"""
+        try:
+            if hasattr(self, 'cloud_client') and self.cloud_client:
+                # 检查是否有重连方法
+                if hasattr(self.cloud_client, 'reconnect'):
+                    success = self.cloud_client.reconnect()
+                    if success:
+                        self.log_message("云VLM服务重连成功", "llm", "INFO")
+                        return True
+                else:
+                    self.log_message("云客户端不支持重连方法", "llm", "WARNING")
+            return False
+        except Exception as e:
+            self.log_message(f"云VLM服务重连过程中发生异常: {str(e)}", "llm", "ERROR")
+            return False
 
     def _call_local_vlm(self, content_window: Dict) -> List[Dict]:
         """调用本地VLM服务"""
@@ -3212,6 +3301,7 @@ class LLMTaskAutomationGUI:
         """停止LLM执行"""
         def _update():
             self.llm_stop_flag = True
+            self.llm_running = False  # 🔧 重置运行状态
             self.log_message("■ 停止请求已发送", "llm")
             if self.llm_thread and self.llm_thread.is_alive():
                 self.llm_thread.join(timeout=3.0)
@@ -3825,15 +3915,14 @@ class LLMTaskAutomationGUI:
         conn_frame = ttk.LabelFrame(left_panel, text="云服务连接", padding="10")
         conn_frame.pack(fill='x', pady=(0, 10))
 
-        # 服务器配置
+        # 服务器配置（硬编码，不可修改）
         server_frame = ttk.Frame(conn_frame)
         server_frame.pack(fill='x', pady=(0, 10))
-        ttk.Label(server_frame, text="服务器:").pack(side=tk.LEFT)
-        self.cloud_host_var = tk.StringVar(value="localhost")
-        ttk.Entry(server_frame, textvariable=self.cloud_host_var, width=15).pack(side=tk.LEFT, padx=5)
-        ttk.Label(server_frame, text=":").pack(side=tk.LEFT)
-        self.cloud_port_var = tk.StringVar(value="9999")
-        ttk.Entry(server_frame, textvariable=self.cloud_port_var, width=6).pack(side=tk.LEFT, padx=5)
+        ttk.Label(server_frame, text="服务器: 已配置", foreground='green').pack(side=tk.LEFT)
+
+        # 固定服务器地址配置
+        self.cloud_host = "localhost"
+        self.cloud_port = 9999
 
         # 用户认证
         auth_frame = ttk.Frame(conn_frame)
@@ -3934,17 +4023,17 @@ class LLMTaskAutomationGUI:
             messagebox.showerror("错误", "云服务客户端不可用")
             return
 
-        host = self.cloud_host_var.get().strip()
-        port_str = self.cloud_port_var.get().strip()
+        host = self.cloud_host
+        port = self.cloud_port
         user_id = self.cloud_user_var.get().strip()
         api_key = self.cloud_key_var.get().strip()
 
-        if not all([host, port_str, user_id, api_key]):
-            messagebox.showwarning("警告", "请填写完整的连接信息")
+        if not all([user_id, api_key]):
+            messagebox.showwarning("警告", "请填写用户ID和API密钥")
             return
 
         try:
-            port = int(port_str)
+            port = int(port)
         except ValueError:
             messagebox.showerror("错误", "端口号必须是数字")
             return
@@ -4023,15 +4112,11 @@ class LLMTaskAutomationGUI:
         if not arkpass_file:
             return
 
-        host = self.cloud_host_var.get().strip()
-        port_str = self.cloud_port_var.get().strip()
-
-        if not all([host, port_str]):
-            messagebox.showwarning("警告", "请填写服务器地址")
-            return
+        host = self.cloud_host
+        port = self.cloud_port
 
         try:
-            port = int(port_str)
+            port = int(port)
         except ValueError:
             messagebox.showerror("错误", "端口号必须是数字")
             return
@@ -4040,13 +4125,8 @@ class LLMTaskAutomationGUI:
 
     def auto_login_with_arkpass(self, arkpass_file):
         """使用指定的arkpass文件自动登录"""
-        host = self.cloud_host_var.get().strip()
-        port_str = self.cloud_port_var.get().strip()
-
-        try:
-            port = int(port_str)
-        except ValueError:
-            return
+        host = self.cloud_host
+        port = self.cloud_port
 
         filename = os.path.basename(arkpass_file)
         self.log_message(f"正在使用 {filename} 登录...", "cloud")
@@ -4081,18 +4161,8 @@ class LLMTaskAutomationGUI:
             return
 
         user_id = user_id.strip()
-        host = self.cloud_host_var.get().strip()
-        port_str = self.cloud_port_var.get().strip()
-
-        if not all([host, port_str]):
-            messagebox.showwarning("警告", "请填写服务器地址")
-            return
-
-        try:
-            port = int(port_str)
-        except ValueError:
-            messagebox.showerror("错误", "端口号必须是数字")
-            return
+        host = self.cloud_host
+        port = self.cloud_port
 
         self.log_message(f"正在注册用户 {user_id}...", "cloud")
 
@@ -4292,14 +4362,46 @@ class LLMTaskAutomationGUI:
             self.use_cloud_var.set(False)
 
     def on_closing(self):
+        # 🔧 改进的退出逻辑：先调用停止LLM执行，等待状态同步
         self.stop_llm_execution()
+
+    def _confirm_exit(self):
+        """确认退出 - 确保LLM状态正确同步"""
+        # 检查LLM状态是否已正确同步
+        if not self.llm_running:
+            # LLM已停止，继续退出流程
+            self._cleanup_and_exit()
+        else:
+            # LLM仍在运行，再次尝试停止
+            self.log_message("⚠️ 检测到LLM状态不一致，尝试强制停止", "llm", "WARNING")
+            self.llm_running = False
+            self.llm_stop_flag = True
+
+            # 再次等待同步
+            self.root.after(100, lambda: self._cleanup_and_exit())
+
+    def _cleanup_and_exit(self):
+        """清理资源并退出"""
         # 断开云服务连接
         if hasattr(self, 'cloud_client') and self.cloud_client:
             self.cloud_client.disconnect()
-        if self.llm_running:
-            if not messagebox.askyesno("确认退出", "LLM正在运行，确定退出？"):
-                return
+
+        # 断开ADB设备连接
+        if self.controller_id:
+            try:
+                success = disconnect_device(self.controller_id)
+                if success:
+                    self.log_message("设备已正常断开", "all")
+                self.controller_id = None
+                self.current_device = None
+            except Exception as e:
+                self.log_message(f"断开设备时出错: {str(e)}", "all", "WARNING")
+
+        # 保存知识库
         self.save_knowledge_base()
+
+        # 最终状态确认
+        self.log_message("程序即将退出", "all")
         self.root.destroy()
 
     def update_resolution_display(self, width: int, height: int, page: str):
