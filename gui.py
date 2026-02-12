@@ -2112,8 +2112,8 @@ class LLMTaskAutomationGUI:
                 ],
                 "tools": self.tools,
                 "tool_choice": "required",
-                "temperature": 0.7,
-                "max_tokens": 2048
+                "temperature": 0.7
+                # 移除max_tokens限制，让模型使用默认值
             }
 
             # 发送云VLM请求
@@ -2203,8 +2203,8 @@ class LLMTaskAutomationGUI:
                     ],
                     "tools": self.tools,
                     "tool_choice": "required",
-                    "temperature": 0.7,
-                    "max_tokens": 2048
+                    "temperature": 0.7
+                    # 移除max_tokens限制，让模型使用默认值
                 }
 
                 # 发送请求并处理响应
@@ -3368,21 +3368,35 @@ class LLMTaskAutomationGUI:
         total_tasks = len(self.task_queue)
 
         while self.current_task_index < total_tasks and not self.llm_stop_flag:
-            task_template = self.task_queue[self.current_task_index]
+            task_item = self.task_queue[self.current_task_index]
+
+            # 确保任务启用
+            if not task_item.get("enabled", True):
+                self.log_message(f"⏭️ 跳过已禁用的任务: [{self.current_task_index+1}/{total_tasks}]")
+                self.current_task_index += 1
+                continue
+
+            # 应用变量覆盖到深拷贝的模板
+            task_template = self.apply_variables_to_template(task_item)
 
             # 更新当前任务显示
             self.root.after(0, self.update_current_task_display)
             self.root.after(0, self.refresh_task_queue_display)
 
             # 获取任务名称，支持两种格式
-            if 'template_copy' in task_template and 'name' in task_template['template_copy']:
-                task_name = task_template['template_copy']['name']
-            elif 'name' in task_template:
-                task_name = task_template['name']
+            if 'template_copy' in task_item and 'name' in task_item['template_copy']:
+                task_name = task_item['template_copy']['name']
+            elif 'name' in task_item:
+                task_name = task_item['name']
             else:
                 task_name = '未知任务'
 
             self.log_message(f"📋 开始执行任务 [{self.current_task_index+1}/{total_tasks}]: {task_name}", "llm")
+
+            # 显示变量覆盖信息
+            overrides = task_item.get("variables_override", {})
+            if overrides:
+                self.log_message(f"   🔧 应用变量覆盖: {overrides}", "llm", "INFO")
 
             # 初始化当前任务的子任务
             self.current_subtasks = [
@@ -3530,6 +3544,59 @@ class LLMTaskAutomationGUI:
             self.current_task_label.config(text="当前: 无")
 
         self.root.after(0, _update)
+
+    def apply_variables_to_template(self, task_item: Dict) -> Dict:
+        """将变量覆盖应用到深拷贝的模板上"""
+        import copy
+
+        # 获取深拷贝的模板
+        template_copy = task_item.get("template_copy", {})
+        if not template_copy:
+            return task_item
+
+        # 再次深拷贝以确保执行时的隔离
+        final_template = copy.deepcopy(template_copy)
+
+        # 获取变量覆盖
+        variables_override = task_item.get("variables_override", {})
+
+        # 应用变量覆盖到模板的各个字段
+        if variables_override:
+            # 1. 更新模板中的变量定义
+            template_variables = final_template.get("variables", [])
+            for var_def in template_variables:
+                var_name = var_def.get("name")
+                if var_name in variables_override:
+                    var_def["default"] = variables_override[var_name]
+
+            # 2. 更新描述字段中的变量占位符
+            description = final_template.get("description", "")
+            for var_name, var_value in variables_override.items():
+                description = description.replace(f"{{{var_name}}}", str(var_value))
+            final_template["description"] = description
+
+            # 3. 更新任务步骤中的变量占位符
+            task_steps = final_template.get("task_steps", [])
+            updated_steps = []
+            for step in task_steps:
+                updated_step = step
+                for var_name, var_value in variables_override.items():
+                    updated_step = updated_step.replace(f"{{{var_name}}}", str(var_value))
+                updated_steps.append(updated_step)
+            final_template["task_steps"] = updated_steps
+
+            # 4. 更新成功指标中的变量占位符
+            success_indicators = final_template.get("success_indicators", [])
+            updated_indicators = []
+            for indicator in success_indicators:
+                updated_indicator = indicator
+                for var_name, var_value in variables_override.items():
+                    updated_indicator = updated_indicator.replace(f"{{{var_name}}}", str(var_value))
+                updated_indicators.append(updated_indicator)
+            final_template["success_indicators"] = updated_indicators
+
+        self.log_message(f"🔧 应用 {len(variables_override)} 个变量覆盖到模板", "llm", "DEBUG")
+        return final_template
 
     # 2. 在 build_content_window 方法中，确保使用正确的任务模板
     def build_content_window(self, task_template: Dict, timestamp: str, screenshot_path: str) -> Dict:
