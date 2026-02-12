@@ -8,8 +8,12 @@ import urllib3
 # 禁用SSL警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
+# 由于服务器使用了自签名证书，我们需要使用 pyopenssl 来支持 HTTPS 请求
+from urllib3.contrib import pyopenssl
+pyopenssl.inject_into_urllib3()
+
 class CloudClient:
-    def __init__(self, host='0.0.0.0', port=9999):
+    def __init__(self, host='api.r54134544.nyat.app', port=57460):
         self.host = host
         self.port = port
         self.base_url = f"https://{host}:{port}"
@@ -19,7 +23,7 @@ class CloudClient:
         """HTTPS连接（总是返回True，因为这里使用HTTP requests）"""
         try:
             # 测试连接
-            response = requests.get(f"{self.base_url}/api/health", verify=False, timeout=5)
+            response = requests.get(f"{self.base_url}/api/health", verify=True, timeout=5)
             return response.status_code == 200
         except Exception as e:
             print(f"连接失败: {e}")
@@ -34,37 +38,39 @@ class CloudClient:
     def _send_request(self, endpoint, data):
         """发送HTTP请求"""
         try:
+            print(f"发送请求到: {self.base_url}{endpoint}")
             response = requests.post(
                 f"{self.base_url}{endpoint}",
-                data=data,
-                verify=False,
+                json=data,
+                verify=True,
                 timeout=30
             )
+            print(f"响应状态码: {response.status_code}")
+            if response.status_code != 200:
+                print(f"响应内容: {response.text[:200]}")
             return response.content
         except Exception as e:
             print(f"请求失败: {e}")
             return None
 
     def _recv_plain(self, response_data):
-        """解包未加密的响应"""
+        """处理HTTP响应"""
         try:
-            if not response_data or len(response_data) < 4:
-                print("接收响应失败：数据不足")
+            if not response_data:
+                print("接收响应失败：无响应")
                 return None
 
-            length = int.from_bytes(response_data[:4], 'big')
-
-            # 提取数据体
-            buffer = response_data[4:4+length]
-            if len(buffer) < length:
-                print(f"接收数据不完整: 需要{length}字节，实际{len(buffer)}字节")
+            # 直接解析JSON响应（不处理长度头）
+            try:
+                response_text = response_data.decode('utf-8')
+                return json.loads(response_text)
+            except json.JSONDecodeError as e:
+                print(f"JSON解析失败: {e}")
+                print(f"响应内容: {response_data[:200]}...")
                 return None
-
-            print(f"接收到 {len(buffer)} 字节")
-            return json.loads(buffer.decode('utf-8'))
 
         except Exception as e:
-            print(f"解包过程中发生异常: {e}")
+            print(f"处理响应时发生异常: {e}")
             return None
 
     def _send_plain(self, data):
@@ -77,23 +83,18 @@ class CloudClient:
         """用户注册，返回密钥"""
         try:
             # 发送注册请求
-            packet = self._send_plain({'cmd': 'REGISTER', 'user_id': user_id})
-            response_data = self._send_request('/api/register', packet)
+            data = {'cmd': 'REGISTER', 'user_id': user_id}
+            response_data = self._send_request('/api/register', data)
 
             if not response_data:
                 print("注册响应接收失败：无响应")
                 return None
 
-            if len(response_data) < 4:
-                print("注册响应接收失败：数据不足")
+            response = self._recv_plain(response_data)
+            if not response:
+                print("注册响应解析失败")
                 return None
 
-            length = int.from_bytes(response_data[:4], 'big')
-            if len(response_data) - 4 < length:
-                print("注册响应接收失败：数据不完整")
-                return None
-
-            response = json.loads(response_data[4:4+length].decode('utf-8'))
             print(f"注册响应: {response}")
 
             if response['status'] == 'success':
@@ -116,14 +117,16 @@ class CloudClient:
             with open(filepath, 'r') as f:
                 uid, key = f.read().strip().split(':')
 
+            print(f"尝试登录用户: {uid}")
+
             # 2. 发送登录请求
-            packet = self._send_plain({'cmd': 'LOGIN', 'user_id': uid, 'key': key})
-            response_data = self._send_request('/api/login', packet)
+            data = {'cmd': 'LOGIN', 'user_id': uid, 'key': key}
+            response_data = self._send_request('/api/login', data)
 
             if not response_data:
                 return False, "登录失败: 无响应"
 
-            # 3. 接收明文响应
+            # 3. 处理响应
             resp = self._recv_plain(response_data)
 
             if resp and resp['status'] == 'success':
@@ -139,16 +142,16 @@ class CloudClient:
 
     def chat_completion(self, payload):
         """
-        发送聊天请求（明文）
+        发送聊天请求
         :param payload: 包含 model, messages 等的完整字典
         """
         if not self.user_id:
             return {'status': 'error', 'msg': '未登录'}
 
-        packet = self._send_plain({'cmd': 'CHAT', 'user_id': self.user_id, 'payload': payload})
-        response_data = self._send_request('/api/command', packet)
+        data = {'cmd': 'CHAT', 'user_id': self.user_id, 'payload': payload}
+        response_data = self._send_request('/api/command', data)
 
-        # 接收明文响应
+        # 处理响应
         resp = self._recv_plain(response_data)
         return resp
 
@@ -157,10 +160,10 @@ class CloudClient:
         if not self.user_id:
             return {'status': 'error', 'msg': '未登录'}
 
-        packet = self._send_plain({'cmd': 'STATS', 'user_id': self.user_id})
-        response_data = self._send_request('/api/command', packet)
+        data = {'cmd': 'STATS', 'user_id': self.user_id}
+        response_data = self._send_request('/api/command', data)
 
-        # 接收明文响应
+        # 处理响应
         resp = self._recv_plain(response_data)
         return resp
 

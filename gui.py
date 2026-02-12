@@ -1,14 +1,5 @@
 #gui.py
-"""
-LLM驱动的任务自动化GUI - VLM集成完整版
-核心特性：
-1. 所有操作由VLM决策（无脚本化点击）
-2. 安全按压模拟：点击→滑动转换（100ms + ±2px抖动）
-3. 完整Content Window六大模块
-4. 8种安全工具调用（含子任务/知识库管理）
-5. 流式VLM响应处理
-6. 任务编辑器滚动修复（背景色安全获取）
-"""
+
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, simpledialog, filedialog
 import threading
@@ -49,48 +40,27 @@ try:
     )
     IMPORT_SUCCESS = True
 except ImportError as e:
-    # 使用专门的错误日志方法而不是print
-    # 在LLMTaskAutomationGUI实例化后替换为日志记录
-    def log_import_error(msg):
-        if hasattr(LLMTaskAutomationGUI, '_temp_log'):
-            LLMTaskAutomationGUI._temp_log.append(msg)
-        else:
-            LLMTaskAutomationGUI._temp_log = [msg]
-
-    log_import_error(f"导入错误: {e}")
+    # 使用临时列表存储导入错误
+    _temp_log = []
+    _temp_log.append(f"导入错误: {e}")
     IMPORT_SUCCESS = False
 
 # 导入VLM客户端
-        # [修复] 先定义为None
+# 先定义为None
 llm_requests = None
 try:
     from utils.vlm_transportation.to_llama_server import llm_requests
     VLM_AVAILABLE = True
 except ImportError as e:
-    # 使用临时日志记录VLM导入错误
-    def log_import_error(msg):
-        if hasattr(LLMTaskAutomationGUI, '_temp_vlog'):
-            LLMTaskAutomationGUI._temp_vlog.append(msg)
-        else:
-            LLMTaskAutomationGUI._temp_vlog = [msg]
-
-    log_import_error(f"VLM导入错误: {e}")
+    _temp_log.append(f"VLM导入错误: {e}")
     VLM_AVAILABLE = False
 
 # 导入云服务客户端
 try:
     from utils.tcp_client import CloudClient
-    from utils.crypto_tool import SecureTransport
     CLOUD_AVAILABLE = True
 except ImportError as e:
-    # 使用临时日志记录云服务导入错误
-    def log_import_error(msg):
-        if hasattr(LLMTaskAutomationGUI, '_temp_clog'):
-            LLMTaskAutomationGUI._temp_clog.append(msg)
-        else:
-            LLMTaskAutomationGUI._temp_clog = [msg]
-
-    log_import_error(f"云服务导入错误: {e}")
+    _temp_log.append(f"云服务导入错误: {e}")
     CLOUD_AVAILABLE = False
 
 
@@ -100,28 +70,23 @@ class LLMTaskAutomationGUI:
         self.root.title("LLM Task Automation v2.3 - 任务队列支持")
         self.root.geometry("1600x950")
         self.root.minsize(1400, 900)
-        
+
         # 处理导入错误的临时日志
-        if hasattr(LLMTaskAutomationGUI, '_temp_log'):
-            for msg in LLMTaskAutomationGUI._temp_log:
+        if globals().get('_temp_log'):
+            for msg in globals()['_temp_log']:
                 self.log_message(f"模块导入: {msg}", "system", "Error")
-        if hasattr(LLMTaskAutomationGUI, '_temp_vlog'):
-            for msg in LLMTaskAutomationGUI._temp_vlog:
-                self.log_message(f"VLM模块: {msg}", "system", "Error")
-        if hasattr(LLMTaskAutomationGUI, '_temp_clog'):
-            for msg in LLMTaskAutomationGUI._temp_clog:
-                self.log_message(f"云服务模块: {msg}", "system", "Error")
+
         if not IMPORT_SUCCESS:
             messagebox.showerror("导入错误", "无法导入android_control模块，请检查utils目录")
             self.root.destroy()
             return
-        
+
         if not VLM_AVAILABLE:
             messagebox.showwarning("VLM警告", "VLM服务器客户端不可用，将使用模拟模式")
 
         if not CLOUD_AVAILABLE:
             messagebox.showwarning("云服务警告", "云服务客户端不可用，云功能将被禁用")
-        
+
         # 状态变量
         self.controller_id = None
         self.current_device = None
@@ -544,6 +509,25 @@ class LLMTaskAutomationGUI:
             # 文件不存在、权限问题或JSON格式错误时返回None
             pass
         return None
+
+    def load_device_address(self) -> Optional[str]:
+        """加载上次成功连接的设备地址"""
+        return self.load_last_successful_device()
+
+    def connect_device_by_address(self, device_address: str) -> bool:
+        """通过地址连接设备"""
+        try:
+            # 使用connect_adb_device方法连接设备
+            controller_id = connect_adb_device(device_address)
+            if controller_id:
+                self.controller_id = controller_id
+                self.current_device = device_address
+                self.save_last_successful_device(device_address)
+                return True
+            return False
+        except Exception as e:
+            self.log_message(f"连接设备失败: {str(e)}", "llm", "ERROR")
+            return False
 
     def save_last_successful_device(self, device_id: str):
         """保存上次成功连接的设备"""
@@ -1752,8 +1736,9 @@ class LLMTaskAutomationGUI:
             return (1080, 1920)
 
         try:
-            # [修复] 直接使用顶部导入的函数，不再进行局部导入
-            width, height = get_device_resolution(self.current_device)
+            # [修复] 直接使用顶部导入的函数，注意函数名冲突
+            from android_control import get_device_resolution as adb_get_resolution
+            width, height = adb_get_resolution(self.current_device)
 
             if width and height:
                 self.cached_resolution = (width, height)
@@ -2168,113 +2153,6 @@ class LLMTaskAutomationGUI:
                 self.log_message("本地VLM不可用，无法执行任务", "llm", "ERROR")
                 return []
 
-    def _call_cloud_vlm_with_retry(self, content_window: Dict) -> List[Dict]:
-        """调用云VLM服务，包含重试机制"""
-        max_retries = 2
-        retry_count = 0
-
-        while retry_count < max_retries:
-            try:
-                # 检查云客户端状态
-                cloud_client_status = self._check_cloud_client_status()
-                if not cloud_client_status['is_connected']:
-                    error_msg = cloud_client_status['error_msg']
-                    self.log_message(f"云VLM服务客户端状态异常: {error_msg}", "llm", "ERROR")
-
-                    # 尝试重新连接
-                    if self._try_reconnect_cloud_client():
-                        self.log_message("云VLM服务重新连接成功，继续执行", "llm", "INFO")
-                    else:
-                        self.log_message("云VLM服务重新连接失败，回退到本地VLM", "llm", "WARNING")
-                        if VLM_AVAILABLE:
-                            return self._call_local_vlm(content_window)
-                        else:
-                            self.log_message("本地VLM也不可用，无法执行任务", "llm", "ERROR")
-                            return []
-
-                self.log_message(f"🌐 调用云VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
-
-                # 构建云VLM请求
-                prompt = self.build_vlm_prompt(content_window)
-                img_path = content_window['device_vision']['screenshot_path']
-
-                # 读取图像并转换为base64
-                with open(img_path, 'rb') as f:
-                    image_data = f.read()
-                    image_b64 = base64.b64encode(image_data).decode('utf-8')
-
-                # 构建OpenAI格式请求
-                cloud_request = {
-                    "messages": [
-                        {
-                            "role": "user",
-                            "content": [
-                                {
-                                    "type": "text",
-                                    "text": prompt
-                                },
-                                {
-                                    "type": "image_url",
-                                    "image_url": {
-                                        "url": f"data:image/jpeg;base64,{image_b64}"
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    "tools": self.tools,
-                    "tool_choice": "required",
-                    "temperature": 0.7,
-                    "max_tokens": 2048
-                }
-
-                # 发送云VLM请求
-                response = self.cloud_client.chat_completion(cloud_request)
-
-                if not response or response.get('status') == 'error':
-                    error_msg = response.get('msg', '云VLM服务无响应') if response else '云VLM服务无响应'
-                    self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
-
-                    # 如果是连接错误且还有重试次数，再试一次
-                    if retry_count < max_retries - 1 and ("连接" in error_msg or "10053" in error_msg or "10054" in error_msg):
-                        retry_count += 1
-                        self.log_message(f"🔄 检测到连接问题，第 {retry_count} 次重试...", "llm", "INFO")
-                        time.sleep(1)  # 等待1秒后重试
-                        continue
-                    else:
-                        return []
-
-                # 处理响应
-                return self._process_cloud_response(response)
-
-            except Exception as e:
-                error_msg = f"云VLM调用失败: {str(e)}"
-                self.log_message(error_msg, "llm", "ERROR")
-
-                # 如果是连接错误且还有重试次数，再试一次
-                if retry_count < max_retries - 1 and ("10053" in str(e) or "ConnectionAbortedError" in str(e) or "连接被中止" in str(e)):
-                    retry_count += 1
-                    self.log_message(f"🔄 检测到连接中断，第 {retry_count} 次重试...", "llm", "INFO")
-
-                    # 尝试重新连接
-                    if self._try_reconnect_cloud_client():
-                        self.log_message("重连成功，准备重试", "llm", "INFO")
-                        time.sleep(2)  # 等待2秒后重试
-                        continue
-                    else:
-                        self.log_message("重连失败，不再重试", "llm", "ERROR")
-                        break
-                else:
-                    # 非连接错误或已达到最大重试次数，不再重试
-                    break
-
-        # 所有重试都失败了，回退到本地VLM
-        self.log_message("云VLM服务调用失败，已达到最大重试次数，回退到本地VLM", "llm", "WARNING")
-        if VLM_AVAILABLE:
-            return self._call_local_vlm(content_window)
-        else:
-            self.log_message("本地VLM不可用，无法执行任务", "llm", "ERROR")
-            return []
 
     def _call_cloud_vlm_with_retry(self, content_window: Dict, max_retries: int = 2) -> List[Dict]:
         """带重试机制的云VLM调用"""
@@ -2348,6 +2226,40 @@ class LLMTaskAutomationGUI:
                     return self._call_local_vlm(content_window) if VLM_AVAILABLE else []
 
         return []
+
+    def _check_cloud_client_status(self) -> Dict:
+        """检查云客户端状态"""
+        try:
+            if not hasattr(self, 'cloud_client') or not self.cloud_client:
+                return {
+                    'is_connected': False,
+                    'error_msg': '云客户端未初始化'
+                }
+
+            # 检查连接状态
+            if hasattr(self.cloud_client, 'is_connected'):
+                is_connected = self.cloud_client.is_connected
+                if is_connected:
+                    return {
+                        'is_connected': True,
+                        'error_msg': ''
+                    }
+                else:
+                    return {
+                        'is_connected': False,
+                        'error_msg': '云客户端未连接'
+                    }
+
+            # 如果没有is_connected属性，假设已连接
+            return {
+                'is_connected': True,
+                'error_msg': ''
+            }
+        except Exception as e:
+            return {
+                'is_connected': False,
+                'error_msg': f'检查云客户端状态时出错: {str(e)}'
+            }
 
     def _try_reconnect_cloud_client(self) -> bool:
         """尝试重新连接云客户端"""
@@ -2502,7 +2414,6 @@ class LLMTaskAutomationGUI:
         row1_frame.pack(fill='x', pady=(0, 5))
 
         self.create_btn(row1_frame, "添加任务", self.add_task_to_queue, None, tk.LEFT, padx=2, width=15)
-        self.create_btn(row1_frame, "📝 编辑任务", self.open_task_editor_tab, None, tk.LEFT, padx=2, width=15)
         self.create_btn(row1_frame, "⚙️ 任务设置", self.open_selected_task_settings, None, tk.LEFT, padx=2, width=15)
         self.create_btn(row1_frame, "➖ 移除选中", self.remove_task_from_queue, None, tk.LEFT, padx=2, width=15)
 
@@ -2968,13 +2879,14 @@ class LLMTaskAutomationGUI:
         task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
         task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
 
-        # 初始化设备列表
+            # 初始化设备列表
         all_devices = list(dict.fromkeys(self.device_cache))
         if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
             all_devices.remove(self.last_successful_device)
             all_devices.insert(0, self.last_successful_device)
         task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
-        if hasattr(self, 'last_successful_device') and self.last_successful_device:
+        # 默认选中最近一个连接成功的设备
+        if self.last_successful_device:
             task_settings_device_combo.set(self.last_successful_device)
 
         # 刷新按钮
@@ -3180,36 +3092,72 @@ class LLMTaskAutomationGUI:
         ttk.Button(btn_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
 
     def connect_device_from_settings(self, combo: ttk.Combobox, status_label: ttk.Label):
-        """从任务设置连接设备"""
-        device_name = combo.get()
+        """从任务设置连接设备 (已修复)"""
+        device_name = combo.get().strip()
         if not device_name or device_name == "未检测到设备":
             messagebox.showwarning("警告", "请先选择或输入设备名称")
             return
 
-        # 更新LLM执行控制台的设备选择
-        self.device_combo.set(device_name)
+        # 更新UI状态为连接中
+        status_label.config(text=f"正在连接 {device_name}...", foreground='orange')
+        self.log_message(f"正在从设置页连接设备: {device_name}", "llm")
 
-        # 连接设备
-        try:
-            connection_response = self.controller.set_device(device_name)
-            if connection_response.get('success'):
-                self.controller_id = connection_response.get('controller_id')
-                connected_device = connection_response.get('device')
+        def connect_thread():
+            try:
+                # 1. 尝试连接 (使用 android_control 中的函数)
+                # 注意：如果 device_name 是 IP:Port 格式，可能需要先 add_network_device
+                if ':' in device_name and '.' in device_name:
+                    try:
+                        ip, port = device_name.split(':')
+                        add_network_device(ip, port)
+                    except:
+                        pass # 忽略格式解析错误，直接尝试连接
 
-                if not self.last_successful_device or self.last_successful_device != connected_device:
-                    self.last_successful_device = connected_device
-                    self.scan_devices()
+                controller_id = connect_adb_device(device_name)
 
-                self.log_message(f"设备已连接: {connected_device} (ID: {self.controller_id})", "llm")
-                status_label.config(text=f"设备状态: 已连接 - {connected_device}", foreground='green')
-            else:
-                error_msg = connection_response.get('error', '未知错误')
-                self.log_message(f"连接失败: {error_msg}", "llm", "ERROR")
-                status_label.config(text=f"设备状态: 连接失败 - {error_msg}", foreground='red')
-        except Exception as e:
-            error_msg = str(e)
-            self.log_message(f"连接异常: {error_msg}", "llm", "ERROR")
-            status_label.config(text=f"设备状态: 连接异常 - {error_msg}", foreground='red')
+                # 2. 处理连接结果
+                if controller_id:
+                    def _on_success():
+                        self.controller_id = controller_id
+                        self.current_device = device_name
+
+                        # 更新上次成功设备
+                        self.last_successful_device = device_name
+                        self.save_last_successful_device(device_name)
+
+                        # 刷新设备列表缓存
+                        if device_name not in self.device_cache:
+                            self.device_cache.insert(0, device_name)
+                            self.save_device_cache()
+
+                        self.log_message(f"设备已连接: {device_name} (ID: {self.controller_id})", "llm")
+                        status_label.config(text=f"设备状态: 已连接", foreground='green')
+
+                        # 同步更新其他页面的设备状态（如果存在）
+                        if hasattr(self, 'device_status'):
+                            self.device_status.config(text=f"{device_name}", style='Status.Ready.TLabel')
+                        if hasattr(self, 'app_status'):
+                            self.app_status.config(text="就绪", style='Status.Ready.TLabel')
+
+                        # 尝试获取分辨率
+                        threading.Thread(target=lambda: self.get_device_resolution(), daemon=True).start()
+
+                    self.root.after(0, _on_success)
+                else:
+                    def _on_fail():
+                        error_msg = "ADB返回空ID"
+                        self.log_message(f"连接失败: {error_msg}", "llm", "ERROR")
+                        status_label.config(text=f"连接失败", foreground='red')
+                    self.root.after(0, _on_fail)
+
+            except Exception as e:
+                def _on_error(err_msg):
+                    self.log_message(f"连接异常: {err_msg}", "llm", "ERROR")
+                    status_label.config(text=f"连接异常", foreground='red')
+                self.root.after(0, _on_error, str(e))
+
+        # 启动后台线程
+        threading.Thread(target=connect_thread, daemon=True).start()
 
     def open_task_editor_tab(self, task_index: Optional[int] = None, create_new: bool = False):
         """
@@ -3366,9 +3314,6 @@ class LLMTaskAutomationGUI:
 
     def start_llm_execution(self):
         """启动LLM执行队列"""
-        if not self.controller_id:
-            messagebox.showwarning("警告", "请先连接设备")
-            return
         if not self.task_queue:
             messagebox.showwarning("警告", "任务队列为空，请添加任务")
             return
@@ -3404,8 +3349,16 @@ class LLMTaskAutomationGUI:
         """更新当前任务显示"""
         if self.current_task_index < len(self.task_queue):
             current_task = self.task_queue[self.current_task_index]
+            # 获取任务名称，支持两种格式
+            if 'template_copy' in current_task and 'name' in current_task['template_copy']:
+                task_name = current_task['template_copy']['name']
+            elif 'name' in current_task:
+                task_name = current_task['name']
+            else:
+                task_name = '未知任务'
+
             self.current_task_label.config(
-                text=f"当前: {current_task['name']} ({self.current_task_index+1}/{len(self.task_queue)})"
+                text=f"当前: {task_name} ({self.current_task_index+1}/{len(self.task_queue)})"
             )
         else:
             self.current_task_label.config(text="当前: 已完成")
@@ -3421,7 +3374,15 @@ class LLMTaskAutomationGUI:
             self.root.after(0, self.update_current_task_display)
             self.root.after(0, self.refresh_task_queue_display)
 
-            self.log_message(f"📋 开始执行任务 [{self.current_task_index+1}/{total_tasks}]: {task_template['name']}", "llm")
+            # 获取任务名称，支持两种格式
+            if 'template_copy' in task_template and 'name' in task_template['template_copy']:
+                task_name = task_template['template_copy']['name']
+            elif 'name' in task_template:
+                task_name = task_template['name']
+            else:
+                task_name = '未知任务'
+
+            self.log_message(f"📋 开始执行任务 [{self.current_task_index+1}/{total_tasks}]: {task_name}", "llm")
 
             # 初始化当前任务的子任务
             self.current_subtasks = [
@@ -3439,15 +3400,15 @@ class LLMTaskAutomationGUI:
             task_completed = self.execute_single_task(task_template)
 
             if task_completed:
-                self.log_message(f"✅ 任务完成: {task_template['name']}", "llm")
+                self.log_message(f"✅ 任务完成: {task_name}", "llm")
                 self.current_task_index += 1
 
                 # 任务间暂停
                 if self.current_task_index < total_tasks and not self.llm_stop_flag:
-                    self.log_message("⏸️ 任务间暂停 2秒...", "llm")
-                    time.sleep(2.0)
+                    self.log_message("⏸️ 准备下一个任务...", "llm")
+                    # time.sleep(2.0)  # 移除延迟，提高执行效率
             else:
-                self.log_message(f"❌ 任务失败或中断: {task_template['name']}", "llm", "ERROR")
+                self.log_message(f"❌ 任务失败或中断: {task_name}", "llm", "ERROR")
                 break
 
         # 执行完成处理
@@ -3457,6 +3418,25 @@ class LLMTaskAutomationGUI:
         """执行单个任务"""
         max_iterations = 30  # 最大迭代次数（防无限循环）
         iteration = 0
+
+        # 如果是设备连接任务，先尝试连接设备
+        if task_template.get('template_id') == '__device_setup__':
+            self.root.after(0, self.log_message, "📱 正在连接设备...", "llm")
+
+            # 从任务设置中获取设备地址
+            device_address = self.load_device_address()
+            if device_address:
+                success = self.connect_device_by_address(device_address)
+                if not success:
+                    self.root.after(0, self.log_message, "❌ 设备连接失败", "llm", "ERROR")
+                    return False
+                self.root.after(0, self.log_message, "✅ 设备连接成功", "llm")
+            else:
+                self.root.after(0, self.log_message, "⚠️ 未找到设备地址配置", "llm", "ERROR")
+                return False
+
+            # 设备连接任务标记为完成
+            return True
 
         while iteration < max_iterations and not self.llm_stop_flag:
             iteration += 1
@@ -3477,8 +3457,8 @@ class LLMTaskAutomationGUI:
             tool_calls = self.call_vlm(content_window)
 
             if not tool_calls:
-                self.root.after(0, self.log_message, "⚠️ 无有效工具调用，等待2秒后重试", "llm", "WARNING")
-                time.sleep(2.0)
+                self.root.after(0, self.log_message, "⚠️ 无有效工具调用，等待0.5秒后重试", "llm", "WARNING")
+                time.sleep(0.5)  # 减少重试延迟，提高响应速度
                 continue
 
             # 5. 顺序执行工具调用
@@ -3574,7 +3554,7 @@ class LLMTaskAutomationGUI:
                 "screenshot_path": screenshot_path,
                 "resolution": "1080x1920"
             },
-            "global_goal": task_template['description'],
+            "global_goal": task_template.get('description', '无描述'),
             "task_list": task_template.get('task_steps', []),
             "splited_task": [
                 {
@@ -3591,6 +3571,10 @@ class LLMTaskAutomationGUI:
     def capture_device_vision(self) -> tuple:
         """捕获设备视觉（截图+timestamp）"""
         try:
+            if not self.controller_id:
+                self.log_message("⚠️ 设备未连接，无法截图", "llm", "ERROR")
+                return None, None
+
             image_obj = screencap(self.controller_id)
             if not image_obj or not hasattr(image_obj, 'data'):
                 return None, None
@@ -4039,6 +4023,10 @@ class LLMTaskAutomationGUI:
         # 首次使用，延迟显示模式选择对话框（确保主窗口完全加载）
         self.root.after(500, self._show_first_run_dialog)
 
+        # 定义模型部署所需的变量（修复作用域问题）
+        repo_url = "https://www.modelscope.cn/xray4668/Qwen3vl8b_finetune_q6k.git"
+        target_path = os.path.normpath("model/vision_llm/Qwen3-VL-8B-abliterated-v2.0")
+
         def deploy_task():
             git_executable = os.path.normpath("3rd-part/Git/bin/git.exe")
             temp_dir = os.path.normpath("model/vision_llm/qwen_clone_temp")
@@ -4170,18 +4158,18 @@ class LLMTaskAutomationGUI:
         dialog.destroy()
 
     def _check_model_exists(self):
-        """检查模型是否存在，如果本地模型缺失且已登录云服务，则自动启用云服务"""
+        """检查模型是否存在，如果已登录云服务则自动启用云服务"""
         target_path = os.path.normpath("model/vision_llm/Qwen3-VL-8B-abliterated-v2.0")
         if os.path.exists(target_path) and os.listdir(target_path):
             self.log_message(f"✅ VLM 模型目录检查通过", "llm")
         else:
             self.log_message("⚠️ 本地VLM模型文件缺失，建议下载模型或使用云服务", "llm", "WARNING")
 
-            # 🔧 检查是否已登录云服务，如果已登录则自动启用云服务
-            if hasattr(self, 'cloud_client') and self.cloud_client and not self.use_cloud_var.get():
-                self.use_cloud_var.set(True)
-                self.toggle_cloud_vlm()
-                self.log_message("🌐 检测到本地模型缺失且云服务已登录，已自动启用云VLM服务", "llm", "INFO")
+        # 🔧 检查是否已登录云服务，如果已登录则自动启用云服务
+        if hasattr(self, 'cloud_client') and self.cloud_client and not self.use_cloud_var.get():
+            self.use_cloud_var.set(True)
+            self.toggle_cloud_vlm()
+            self.log_message("🌐 检测到云服务已登录，已自动启用云VLM服务", "llm", "INFO")
 
     def _deploy_vlm_model(self):
         """部署VLM模型"""
@@ -4304,8 +4292,8 @@ class LLMTaskAutomationGUI:
         ttk.Label(server_frame, text="服务器: 已配置", foreground='green').pack(side=tk.LEFT)
 
         # 固定服务器地址配置
-        self.cloud_host = "localhost"
-        self.cloud_port = 9999
+        self.cloud_host = "api.r54134544.nyat.app"
+        self.cloud_port = 57460
 
         # 用户认证
         auth_frame = ttk.Frame(conn_frame)
@@ -4545,6 +4533,9 @@ class LLMTaskAutomationGUI:
         self.cloud_register_btn.config(state='disabled')
         self.cloud_login_btn.config(state='disabled')
 
+        # 🔧 登录成功后检查是否需要自动启用云服务
+        self._check_model_exists()
+
     def auto_check_and_login_cloud(self):
         """启动时自动检测并登录云服务"""
         # 查找默认位置的arkpass文件
@@ -4577,16 +4568,29 @@ class LLMTaskAutomationGUI:
                         text=f"当前层级: {tier.upper()}\n到期时间: {time.ctime(expiry) if expiry > 0 else '永久'}"))
 
                     # 显示最近使用统计
-                    if recent_stats:
-                        stats_text = f"最近使用记录 (最近{len(recent_stats)}次):\n"
-                        for i, (ts, tokens, duration) in enumerate(recent_stats[:5]):
-                            stats_text += f"  {i+1}. 时间: {time.ctime(ts)}, 令牌: {tokens}, 耗时: {duration:.2f}s\n"
-                        self.root.after(0, lambda: self.cloud_stats_label.config(text=stats_text))
+                    if recent_stats and len(recent_stats) > 0:
+                        # 确保recent_stats是可迭代的列表
+                        if isinstance(recent_stats, list):
+                            stats_list = recent_stats[:5]  # 取前5条记录
+                            if stats_list:
+                                stats_text = f"最近使用记录 (最近{len(stats_list)}次):\n"
+                                for i, record in enumerate(stats_list):
+                                    if isinstance(record, (list, tuple)) and len(record) >= 3:
+                                        ts, tokens, duration = record[:3]
+                                        stats_text += f"  {i+1}. 时间: {time.ctime(ts)}, 令牌: {tokens}, 耗时: {duration:.2f}s\n"
+                                self.root.after(0, lambda: self.cloud_stats_label.config(text=stats_text))
+                            else:
+                                self.root.after(0, lambda: self.cloud_stats_label.config(text="暂无使用记录"))
+                        else:
+                            self.root.after(0, lambda: self.cloud_stats_label.config(text="统计格式错误"))
                     else:
                         self.root.after(0, lambda: self.cloud_stats_label.config(text="暂无使用记录"))
+                else:
+                    self.root.after(0, lambda: self.cloud_stats_label.config(text="无法获取统计信息"))
 
             except Exception as e:
-                self.root.after(0, lambda: self.log_message(f"获取用户信息失败: {str(e)}", "cloud", "ERROR"))
+                error_msg = str(e)
+                self.root.after(0, lambda: self.log_message(f"获取用户信息失败: {error_msg}", "cloud", "ERROR"))
 
         threading.Thread(target=update_thread, daemon=True).start()
 
@@ -4714,6 +4718,14 @@ class LLMTaskAutomationGUI:
 
         # 直接销毁窗口，不等待任何异步操作
         self.root.destroy()
+
+        # 强制退出程序，确保所有线程和资源都被正确释放
+        import sys
+        import os
+        if sys.platform == "win32":
+            os._exit(0)
+        else:
+            sys.exit(0)
 
     def _disconnect_adb_async(self):
         """异步断开ADB连接 - 不阻塞任何步骤"""
