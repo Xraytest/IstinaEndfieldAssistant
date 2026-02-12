@@ -2,22 +2,25 @@ import socket
 import json
 import struct
 import time
-from crypto_tool import SecureTransport
+import requests
+import urllib3
+
+# 禁用SSL警告
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class CloudClient:
-    def __init__(self, host='localhost', port=9999):
+    def __init__(self, host='0.0.0.0', port=9999):
         self.host = host
         self.port = port
-        self.sock = None
-        self.crypto = None
+        self.base_url = f"https://{host}:{port}"
         self.user_id = None
 
     def connect(self):
-        """建立 TCP 连接"""
+        """HTTPS连接（总是返回True，因为这里使用HTTP requests）"""
         try:
-            self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            self.sock.connect((self.host, self.port))
-            return True
+            # 测试连接
+            response = requests.get(f"{self.base_url}/api/health", verify=False, timeout=5)
+            return response.status_code == 200
         except Exception as e:
             print(f"连接失败: {e}")
             return False
@@ -25,62 +28,72 @@ class CloudClient:
     def _send_raw(self, data):
         """发送未加密的原始包 (仅限登录/注册)"""
         payload = json.dumps(data).encode('utf-8')
-        self.sock.sendall(struct.pack('>I', len(payload)) + payload)
+        packet = len(payload).to_bytes(4, 'big') + payload
+        return packet
 
-    def _recv_secure(self, crypto):
-        """使用传入的加密器接收包"""
+    def _send_request(self, endpoint, data):
+        """发送HTTP请求"""
         try:
-            header_data = self.sock.recv(4)
-            if not header_data:
-                print("接收包头失败：连接已关闭")
-                return None
-
-            length = struct.unpack('>I', header_data)[0]
-            print(f"准备接收 {length} 字节的加密数据")
-
-            data = b''
-            while len(data) < length:
-                chunk = self.sock.recv(min(4096, length - len(data)))
-                if not chunk:
-                    print("接收包体失败：连接中断")
-                    return None
-                data += chunk
-
-            print(f"接收到 {len(data)} 字节，开始解密")
-            return crypto.decrypt(data)
+            response = requests.post(
+                f"{self.base_url}{endpoint}",
+                data=data,
+                verify=False,
+                timeout=30
+            )
+            return response.content
         except Exception as e:
-            print(f"接收解密失败: {e}")
+            print(f"请求失败: {e}")
             return None
 
-    def _send_secure(self, data, crypto):
-        """使用加密器发送数据包"""
-        payload = crypto.encrypt(data)
-        self.sock.sendall(struct.pack('>I', len(payload)) + payload)
+    def _recv_plain(self, response_data):
+        """解包未加密的响应"""
+        try:
+            if not response_data or len(response_data) < 4:
+                print("接收响应失败：数据不足")
+                return None
+
+            length = int.from_bytes(response_data[:4], 'big')
+
+            # 提取数据体
+            buffer = response_data[4:4+length]
+            if len(buffer) < length:
+                print(f"接收数据不完整: 需要{length}字节，实际{len(buffer)}字节")
+                return None
+
+            print(f"接收到 {len(buffer)} 字节")
+            return json.loads(buffer.decode('utf-8'))
+
+        except Exception as e:
+            print(f"解包过程中发生异常: {e}")
+            return None
+
+    def _send_plain(self, data):
+        """发送未加密的数据包"""
+        payload = json.dumps(data).encode('utf-8')
+        packet = len(payload).to_bytes(4, 'big') + payload
+        return packet
 
     def register(self, user_id):
         """用户注册，返回密钥"""
-        if not self.connect():
-            return None
-
         try:
-            self._send_raw({'cmd': 'REGISTER', 'user_id': user_id})
+            # 发送注册请求
+            packet = self._send_plain({'cmd': 'REGISTER', 'user_id': user_id})
+            response_data = self._send_request('/api/register', packet)
 
-            # 接收注册结果（明文）
-            header_data = self.sock.recv(4)
-            if not header_data:
-                print("注册响应接收失败：无数据")
+            if not response_data:
+                print("注册响应接收失败：无响应")
                 return None
 
-            length = struct.unpack('>I', header_data)[0]
-            data = b''
-            while len(data) < length:
-                chunk = self.sock.recv(min(4096, length - len(data)))
-                if not chunk:
-                    print("注册响应接收失败：连接中断")
-                    return None
-                data += chunk
+            if len(response_data) < 4:
+                print("注册响应接收失败：数据不足")
+                return None
 
-            response = json.loads(data.decode('utf-8'))
+            length = int.from_bytes(response_data[:4], 'big')
+            if len(response_data) - 4 < length:
+                print("注册响应接收失败：数据不完整")
+                return None
+
+            response = json.loads(response_data[4:4+length].decode('utf-8'))
             print(f"注册响应: {response}")
 
             if response['status'] == 'success':
@@ -95,30 +108,27 @@ class CloudClient:
         except Exception as e:
             print(f"注册异常: {e}")
             return None
-        finally:
-            self.close()
 
     def login_with_file(self, filepath):
         """使用 .arkpass 文件登录"""
-        if not self.connect():
-            return False, "连接失败"
-
         try:
             # 1. 读取文件内容获取 key
             with open(filepath, 'r') as f:
                 uid, key = f.read().strip().split(':')
 
-            # 2. 发送明文登录请求
-            self._send_raw({'cmd': 'LOGIN', 'user_id': uid, 'key': key})
+            # 2. 发送登录请求
+            packet = self._send_plain({'cmd': 'LOGIN', 'user_id': uid, 'key': key})
+            response_data = self._send_request('/api/login', packet)
 
-            # 3. 登录包发出后，立即预设加密器准备接收加密的回包
-            temp_crypto = SecureTransport(key)
-            resp = self._recv_secure(temp_crypto)
+            if not response_data:
+                return False, "登录失败: 无响应"
+
+            # 3. 接收明文响应
+            resp = self._recv_plain(response_data)
 
             if resp and resp['status'] == 'success':
-                self.crypto = temp_crypto  # 正式启用加密
                 self.user_id = uid
-                return True, resp['layer']
+                return True, resp.get('layer', 'cloud')
             else:
                 error_msg = resp.get('msg', '认证失败') if resp else '无响应'
                 print(f"登录失败: {error_msg}")
@@ -126,40 +136,37 @@ class CloudClient:
         except Exception as e:
             print(f"登录异常: {e}")
             return False, f"登录异常: {str(e)}"
-        finally:
-            if not (self.crypto and self.user_id):
-                self.close()
 
     def chat_completion(self, payload):
         """
-        发送聊天请求（加密）
+        发送聊天请求（明文）
         :param payload: 包含 model, messages 等的完整字典
         """
-        if not self.crypto or not self.user_id:
+        if not self.user_id:
             return {'status': 'error', 'msg': '未登录'}
 
-        # 直接发送 payload，不再在此处重新封装，因为 gui.py 已经组装好了
-        self._send_secure({'cmd': 'CHAT', 'payload': payload}, self.crypto)
+        packet = self._send_plain({'cmd': 'CHAT', 'user_id': self.user_id, 'payload': payload})
+        response_data = self._send_request('/api/command', packet)
 
-        # 接收响应（加密）
-        resp = self._recv_secure(self.crypto)
+        # 接收明文响应
+        resp = self._recv_plain(response_data)
         return resp
 
     def get_stats(self):
         """获取用户统计信息"""
-        if not self.crypto or not self.user_id:
+        if not self.user_id:
             return {'status': 'error', 'msg': '未登录'}
 
-        self._send_secure({'cmd': 'STATS'}, self.crypto)
+        packet = self._send_plain({'cmd': 'STATS', 'user_id': self.user_id})
+        response_data = self._send_request('/api/command', packet)
 
-        # 接收响应（加密）
-        resp = self._recv_secure(self.crypto)
+        # 接收明文响应
+        resp = self._recv_plain(response_data)
         return resp
 
     def close(self):
-        """关闭连接"""
-        if self.sock:
-            self.sock.close()
+        """关闭连接（HTTPS无需显式关闭）"""
+        pass
 
     def disconnect(self):
         """关闭连接（close的别名）"""

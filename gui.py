@@ -49,7 +49,15 @@ try:
     )
     IMPORT_SUCCESS = True
 except ImportError as e:
-    print(f"导入错误: {e}")
+    # 使用专门的错误日志方法而不是print
+    # 在LLMTaskAutomationGUI实例化后替换为日志记录
+    def log_import_error(msg):
+        if hasattr(LLMTaskAutomationGUI, '_temp_log'):
+            LLMTaskAutomationGUI._temp_log.append(msg)
+        else:
+            LLMTaskAutomationGUI._temp_log = [msg]
+
+    log_import_error(f"导入错误: {e}")
     IMPORT_SUCCESS = False
 
 # 导入VLM客户端
@@ -59,7 +67,14 @@ try:
     from utils.vlm_transportation.to_llama_server import llm_requests
     VLM_AVAILABLE = True
 except ImportError as e:
-    print(f"VLM导入错误: {e}")
+    # 使用临时日志记录VLM导入错误
+    def log_import_error(msg):
+        if hasattr(LLMTaskAutomationGUI, '_temp_vlog'):
+            LLMTaskAutomationGUI._temp_vlog.append(msg)
+        else:
+            LLMTaskAutomationGUI._temp_vlog = [msg]
+
+    log_import_error(f"VLM导入错误: {e}")
     VLM_AVAILABLE = False
 
 # 导入云服务客户端
@@ -68,7 +83,14 @@ try:
     from utils.crypto_tool import SecureTransport
     CLOUD_AVAILABLE = True
 except ImportError as e:
-    print(f"云服务导入错误: {e}")
+    # 使用临时日志记录云服务导入错误
+    def log_import_error(msg):
+        if hasattr(LLMTaskAutomationGUI, '_temp_clog'):
+            LLMTaskAutomationGUI._temp_clog.append(msg)
+        else:
+            LLMTaskAutomationGUI._temp_clog = [msg]
+
+    log_import_error(f"云服务导入错误: {e}")
     CLOUD_AVAILABLE = False
 
 
@@ -79,7 +101,16 @@ class LLMTaskAutomationGUI:
         self.root.geometry("1600x950")
         self.root.minsize(1400, 900)
         
-        # 检查导入
+        # 处理导入错误的临时日志
+        if hasattr(LLMTaskAutomationGUI, '_temp_log'):
+            for msg in LLMTaskAutomationGUI._temp_log:
+                self.log_message(f"模块导入: {msg}", "system", "Error")
+        if hasattr(LLMTaskAutomationGUI, '_temp_vlog'):
+            for msg in LLMTaskAutomationGUI._temp_vlog:
+                self.log_message(f"VLM模块: {msg}", "system", "Error")
+        if hasattr(LLMTaskAutomationGUI, '_temp_clog'):
+            for msg in LLMTaskAutomationGUI._temp_clog:
+                self.log_message(f"云服务模块: {msg}", "system", "Error")
         if not IMPORT_SUCCESS:
             messagebox.showerror("导入错误", "无法导入android_control模块，请检查utils目录")
             self.root.destroy()
@@ -380,7 +411,8 @@ class LLMTaskAutomationGUI:
         style = ttk.Style()
         try:
             style.theme_use('clam')
-        except:
+        except tk.TclError:
+            # 如果clam主题不可用，忽略并使用默认主题
             pass
         
         # 按钮样式
@@ -456,7 +488,8 @@ class LLMTaskAutomationGUI:
         try:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.time_label.config(text=f"🕒 {current_time}")
-        except:
+        except (AttributeError, tk.TclError):
+            # 忽略时间更新错误（可能GUI还未完全初始化）
             pass
         self.root.after(1000, self.update_time)
     
@@ -467,9 +500,10 @@ class LLMTaskAutomationGUI:
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted = f"[{timestamp}] [{level}] {message}\n"
 
-        # ERROR级别消息同时输出到控制台
+        # ERROR级别消息同时输出到控制台 - 使用标准error输出
         if level == "ERROR":
-            print(f"[控制台错误] {message}")
+            import sys
+            print(f"[控制台错误] {message}", file=sys.stderr)
 
         def _update():
             # 这部分代码最终会在主线程执行
@@ -493,7 +527,8 @@ class LLMTaskAutomationGUI:
             if os.path.exists(cache_path):
                 with open(cache_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
-        except:
+        except (OSError, json.JSONDecodeError):
+            # 文件不存在、权限问题或JSON格式错误时返回空列表
             pass
         return []
 
@@ -505,7 +540,8 @@ class LLMTaskAutomationGUI:
                 with open(cache_path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
                     return data.get('device_id')
-        except:
+        except (OSError, json.JSONDecodeError):
+            # 文件不存在、权限问题或JSON格式错误时返回None
             pass
         return None
 
@@ -516,8 +552,13 @@ class LLMTaskAutomationGUI:
             with open("config/last_device.json", 'w', encoding='utf-8') as f:
                 json.dump({'device_id': device_id, 'timestamp': datetime.now().isoformat()},
                          f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存上次成功设备失败: {e}")
+        except (OSError, json.JSONEncodeError) as e:
+            # 处理文件系统和JSON序列化错误
+            import sys
+            print(f"[配置错误] 保存上次成功设备失败: {e}", file=sys.stderr)
+            # 同时记录到GUI日志系统（如果实例已存在）
+            if hasattr(self, 'log_message'):
+                self.log_message(f"保存设备配置失败: {str(e)}", "system", "ERROR")
 
     def save_device_cache(self):
         """保存设备缓存"""
@@ -525,8 +566,13 @@ class LLMTaskAutomationGUI:
             os.makedirs("config", exist_ok=True)
             with open("config/device_cache.json", 'w', encoding='utf-8') as f:
                 json.dump(self.device_cache, f, ensure_ascii=False, indent=2)
-        except Exception as e:
-            print(f"保存设备缓存失败: {e}")
+        except (OSError, json.JSONEncodeError) as e:
+            # 处理文件系统和JSON序列化错误
+            import sys
+            print(f"[配置错误] 保存设备缓存失败: {e}", file=sys.stderr)
+            # 同时记录到GUI日志系统（如果实例已存在）
+            if hasattr(self, 'log_message'):
+                self.log_message(f"保存设备缓存失败: {str(e)}", "system", "ERROR")
 
     def manual_input_device(self, page: str):
         """手动输入设备ID"""
@@ -619,7 +665,9 @@ class LLMTaskAutomationGUI:
                     network_devices = list_network_devices()
                     if network_devices:
                         devices.extend(network_devices)
-                except:
+                except Exception as e:
+                    # 网络设备列表获取失败，忽略具体错误
+                    self.log_message(f"网络设备扫描失败，继续本地设备扫描: {str(e)}", "all", "INFO")
                     pass
 
                 normalized_devices = []
@@ -641,7 +689,12 @@ class LLMTaskAutomationGUI:
                 error_msg = f"设备扫描失败: {str(e)}"
                 self.root.after(0, self.log_message, error_msg, "all", "ERROR")
                 self.root.after(0, self.update_device_list, [])
-                print(f"设备扫描异常堆栈:\n{traceback.format_exc()}")
+
+                # 记录详细错误到调试文件而不是控制台
+                import sys
+                with open("device_scan_error.log", "a", encoding="utf-8") as f:
+                    f.write(f"\n[{datetime.now().isoformat()}] 设备扫描异常:\n{traceback.format_exc()}\n")
+                print(f"[设备错误] 设备扫描失败，详情请查看device_scan_error.log", file=sys.stderr)
 
         threading.Thread(target=scan_thread, daemon=True).start()
     
@@ -820,7 +873,7 @@ class LLMTaskAutomationGUI:
             except Exception as e:
                 error_msg = f"连接后获取分辨率失败: {str(e)}"
                 self.log_message(error_msg, page, "ERROR")
-                print(f"[控制台错误] {error_msg}")
+                # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
         # 在新线程中获取分辨率
         threading.Thread(target=get_resolution_after_connect, daemon=True).start()
@@ -1095,7 +1148,8 @@ class LLMTaskAutomationGUI:
         # === 创建可滚动容器（修复背景色问题）===
         try:
             bg_color = ttk.Style().lookup('TFrame', 'background') or '#f0f0f0'
-        except:
+        except (tk.TclError, AttributeError):
+            # 主题样式获取失败时使用默认背景色
             bg_color = '#f0f0f0'
         
         canvas = tk.Canvas(editor_frame, highlightthickness=0, bg=bg_color)
@@ -1418,8 +1472,9 @@ class LLMTaskAutomationGUI:
             if tags:
                 try:
                     var_def = json.loads(tags[0])
-                except:
-                    pass
+                except (json.JSONDecodeError, TypeError):
+                    # JSON解析失败时使用空字典
+                    var_def = {}
 
             name = simpledialog.askstring("编辑任务变量", "修改变量名:", initialvalue=values[0] if values else "")
             if not name:
@@ -1499,7 +1554,8 @@ class LLMTaskAutomationGUI:
                     try:
                         var_def = json.loads(tags[0])
                         task_def["variables"].append(var_def)
-                    except:
+                    except (json.JSONDecodeError, TypeError):
+                        # JSON解析失败时回退到手动构建变量定义
                         values = self.var_tree.item(item_id, 'values')
                         if values:
                             name, var_type, default_val, desc = values
@@ -1551,7 +1607,6 @@ class LLMTaskAutomationGUI:
             # 备份现有文件（如果存在）
             if os.path.exists(template_path):
                 backup_path = f"{template_path}.backup_{int(time.time())}"
-                import shutil
                 shutil.copy2(template_path, backup_path)
                 self.log_message(f"📦 已创建备份: {backup_path}", "designer", "INFO")
 
@@ -1624,7 +1679,7 @@ class LLMTaskAutomationGUI:
             if device_width <= 0 or device_height <= 0:
                 error_msg = f"无效的设备分辨率: {device_width}x{device_height}"
                 self.log_message(error_msg, "all", "ERROR")
-                print(f"[控制台错误] {error_msg}")
+                # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
                 raise ValueError(error_msg)
 
             self.log_message(f"📐 使用分辨率: {device_width}x{device_height} 进行坐标转换", "llm")
@@ -1649,7 +1704,7 @@ class LLMTaskAutomationGUI:
                     if not (0 <= actual_x < device_width and 0 <= actual_y < device_height):
                         error_msg = f"转换后坐标超出范围: ({actual_x}, {actual_y}) 范围: 0-{device_width-1}, 0-{device_height-1}"
                         self.log_message(error_msg, "llm", "ERROR")
-                        print(f"[控制台错误] {error_msg}")
+                        # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
                         # 强制修正到范围内
                         actual_x = max(0, min(device_width - 1, actual_x))
@@ -1667,7 +1722,7 @@ class LLMTaskAutomationGUI:
             if not (0 <= actual_x < device_width and 0 <= actual_y < device_height):
                 error_msg = f"像素坐标超出范围: ({actual_x}, {actual_y}) 设备范围: 0-{device_width-1}, 0-{device_height-1}"
                 self.log_message(error_msg, "llm", "ERROR")
-                print(f"[控制台错误] {error_msg}")
+                # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
                 # 强制修正到范围内
                 actual_x = max(0, min(device_width - 1, actual_x))
@@ -1682,7 +1737,7 @@ class LLMTaskAutomationGUI:
         except Exception as e:
             error_msg = f"坐标转换发生未知错误: {str(e)}"
             self.log_message(error_msg, "all", "ERROR")
-            print(f"[控制台错误] {error_msg}")
+            # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
             # 返回安全默认值（屏幕中心）
             device_width, device_height = self.get_device_resolution()
@@ -1711,7 +1766,7 @@ class LLMTaskAutomationGUI:
         except Exception as e:
             error_msg = f"获取设备分辨率时发生错误: {str(e)}"
             self.log_message(error_msg, "all", "ERROR")
-            print(f"[控制台错误] {error_msg}")
+            # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
             # 根据设备名称猜测分辨率
             return self.guess_resolution_by_device_name()
@@ -1941,7 +1996,7 @@ class LLMTaskAutomationGUI:
                 # 尝试重新连接
                 if self._try_reconnect_cloud_client():
                     self.log_message("云VLM服务重新连接成功，使用云服务", "llm", "INFO")
-                    return self._call_cloud_vlm(content_window)
+                    return self._call_cloud_vlm_with_retry(content_window)
                 else:
                     self.log_message("云VLM服务不可用，尝试回退到本地VLM", "llm", "WARNING")
 
@@ -1953,7 +2008,7 @@ class LLMTaskAutomationGUI:
                     return self._call_local_vlm(content_window)
             else:
                 self.log_message("🌐 云VLM服务状态正常，使用云服务处理请求", "llm", "INFO")
-                return self._call_cloud_vlm(content_window)
+                return self._call_cloud_vlm_with_retry(content_window)
 
         # 使用本地VLM
         if not VLM_AVAILABLE:
@@ -1962,6 +2017,63 @@ class LLMTaskAutomationGUI:
             return []
 
         return self._call_local_vlm(content_window)
+
+    def _process_cloud_response(self, response: Dict) -> List[Dict]:
+        """处理云VLM响应的通用逻辑"""
+        try:
+            if not response or response.get('status') == 'error':
+                error_msg = response.get('msg', '云VLM服务无响应') if response else '云VLM服务无响应'
+                self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
+                return []
+
+            # 解析云VLM响应
+            choices = response.get('choices', [])
+            if not choices:
+                self.log_message("云VLM返回空响应", "llm", "WARNING")
+                return []
+
+            message = choices[0].get('message', {})
+            tool_calls = message.get('tool_calls', [])
+
+            if not tool_calls:
+                self.log_message("云VLM未返回工具调用", "llm", "WARNING")
+                # 尝试回退到等待操作
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            # 解析工具调用参数
+            parsed_tool_calls = []
+            for tc in tool_calls:
+                try:
+                    function = tc.get('function', {})
+                    tool_name = function.get('name')
+                    arguments = function.get('arguments', '{}')
+
+                    if tool_name:
+                        # 解析JSON参数
+                        args = json.loads(arguments) if isinstance(arguments, str) else arguments
+                        # 构建标准工具调用格式
+                        tool_call = {
+                            "action": tool_name,
+                            "params": args,
+                            "purpose": args.get('purpose', '未指定目的')
+                        }
+                        parsed_tool_calls.append(tool_call)
+                        self.log_message(f"🌐 云工具调用: {tool_name} | {tool_call['purpose']}", "llm")
+
+                except json.JSONDecodeError as e:
+                    self.log_message(f"云工具参数解析失败: {str(e)}", "llm", "WARNING")
+                except Exception as e:
+                    self.log_message(f"云工具调用处理异常: {str(e)}", "llm", "ERROR")
+
+            if not parsed_tool_calls:
+                self.log_message("云VLM未返回有效工具调用", "llm", "WARNING")
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            return parsed_tool_calls
+
+        except Exception as e:
+            self.log_message(f"处理云VLM响应时发生异常: {str(e)}", "llm", "ERROR")
+            return []
 
     def _call_cloud_vlm(self, content_window: Dict) -> List[Dict]:
         """调用云VLM服务"""
@@ -2027,54 +2139,27 @@ class LLMTaskAutomationGUI:
                 self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
                 return []
 
-            # 解析云VLM响应
-            choices = response.get('choices', [])
-            if not choices:
-                self.log_message("云VLM返回空响应", "llm", "WARNING")
-                return []
-
-            message = choices[0].get('message', {})
-            tool_calls = message.get('tool_calls', [])
-
-            if not tool_calls:
-                self.log_message("云VLM未返回工具调用", "llm", "WARNING")
-                # 尝试回退到等待操作
-                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
-
-            # 解析工具调用参数
-            parsed_tool_calls = []
-            for tc in tool_calls:
-                try:
-                    function = tc.get('function', {})
-                    tool_name = function.get('name')
-                    arguments = function.get('arguments', '{}')
-
-                    if tool_name:
-                        # 解析JSON参数
-                        args = json.loads(arguments) if isinstance(arguments, str) else arguments
-                        # 构建标准工具调用格式
-                        tool_call = {
-                            "action": tool_name,
-                            "params": args,
-                            "purpose": args.get('purpose', '未指定目的')
-                        }
-                        parsed_tool_calls.append(tool_call)
-                        self.log_message(f"🌐 云工具调用: {tool_name} | {tool_call['purpose']}", "llm")
-
-                except json.JSONDecodeError as e:
-                    self.log_message(f"云工具参数解析失败: {str(e)}", "llm", "WARNING")
-                except Exception as e:
-                    self.log_message(f"云工具调用处理异常: {str(e)}", "llm", "ERROR")
-
-            if not parsed_tool_calls:
-                self.log_message("云VLM未返回有效工具调用", "llm", "WARNING")
-                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
-
-            return parsed_tool_calls
+            # 处理响应
+            return self._process_cloud_response(response)
 
         except Exception as e:
             error_msg = f"云VLM调用失败: {str(e)}"
             self.log_message(error_msg, "llm", "ERROR")
+
+            # 🔧 增强错误处理：针对连接错误尝试重连
+            if "10053" in str(e) or "连接被中止" in str(e) or "ConnectionAbortedError" in str(e):
+                self.log_message("🔄 检测到连接中断，尝试自动重连", "llm", "INFO")
+                if self._try_reconnect_cloud_client():
+                    self.log_message("🌐 重连成功，重试云VLM调用", "llm", "INFO")
+                    # 重试一次（避免无限递归）
+                    try:
+                        response = self.cloud_client.chat_completion(cloud_request)
+                        if response and response.get('status') != 'error':
+                            self.log_message("🌐 重连后调用成功，处理响应", "llm", "INFO")
+                            return self._process_cloud_response(response)
+                    except Exception as retry_e:
+                        self.log_message(f"⚠️ 重连后仍失败: {str(retry_e)}", "llm", "ERROR")
+
             # 云服务调用失败，尝试回退到本地VLM
             self.log_message("云VLM服务调用异常，回退到本地VLM", "llm", "WARNING")
             if VLM_AVAILABLE:
@@ -2083,34 +2168,186 @@ class LLMTaskAutomationGUI:
                 self.log_message("本地VLM不可用，无法执行任务", "llm", "ERROR")
                 return []
 
-    def _check_cloud_client_status(self) -> Dict:
-        """检查云客户端连接状态"""
-        status = {
-            'is_connected': False,
-            'error_msg': '',
-            'details': {}
-        }
+    def _call_cloud_vlm_with_retry(self, content_window: Dict) -> List[Dict]:
+        """调用云VLM服务，包含重试机制"""
+        max_retries = 2
+        retry_count = 0
 
-        # 检查客户端对象是否存在
-        if not hasattr(self, 'cloud_client') or not self.cloud_client:
-            status['error_msg'] = '云客户端对象不存在'
-            return status
+        while retry_count < max_retries:
+            try:
+                # 检查云客户端状态
+                cloud_client_status = self._check_cloud_client_status()
+                if not cloud_client_status['is_connected']:
+                    error_msg = cloud_client_status['error_msg']
+                    self.log_message(f"云VLM服务客户端状态异常: {error_msg}", "llm", "ERROR")
 
-        # 检查客户端是否连接
-        try:
-            if hasattr(self.cloud_client, 'is_connected'):
-                if self.cloud_client.is_connected():
-                    status['is_connected'] = True
-                    status['details']['connection_method'] = 'is_connected method'
+                    # 尝试重新连接
+                    if self._try_reconnect_cloud_client():
+                        self.log_message("云VLM服务重新连接成功，继续执行", "llm", "INFO")
+                    else:
+                        self.log_message("云VLM服务重新连接失败，回退到本地VLM", "llm", "WARNING")
+                        if VLM_AVAILABLE:
+                            return self._call_local_vlm(content_window)
+                        else:
+                            self.log_message("本地VLM也不可用，无法执行任务", "llm", "ERROR")
+                            return []
+
+                self.log_message(f"🌐 调用云VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
+
+                # 构建云VLM请求
+                prompt = self.build_vlm_prompt(content_window)
+                img_path = content_window['device_vision']['screenshot_path']
+
+                # 读取图像并转换为base64
+                with open(img_path, 'rb') as f:
+                    image_data = f.read()
+                    image_b64 = base64.b64encode(image_data).decode('utf-8')
+
+                # 构建OpenAI格式请求
+                cloud_request = {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": prompt
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{image_b64}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "tools": self.tools,
+                    "tool_choice": "required",
+                    "temperature": 0.7,
+                    "max_tokens": 2048
+                }
+
+                # 发送云VLM请求
+                response = self.cloud_client.chat_completion(cloud_request)
+
+                if not response or response.get('status') == 'error':
+                    error_msg = response.get('msg', '云VLM服务无响应') if response else '云VLM服务无响应'
+                    self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
+
+                    # 如果是连接错误且还有重试次数，再试一次
+                    if retry_count < max_retries - 1 and ("连接" in error_msg or "10053" in error_msg or "10054" in error_msg):
+                        retry_count += 1
+                        self.log_message(f"🔄 检测到连接问题，第 {retry_count} 次重试...", "llm", "INFO")
+                        time.sleep(1)  # 等待1秒后重试
+                        continue
+                    else:
+                        return []
+
+                # 处理响应
+                return self._process_cloud_response(response)
+
+            except Exception as e:
+                error_msg = f"云VLM调用失败: {str(e)}"
+                self.log_message(error_msg, "llm", "ERROR")
+
+                # 如果是连接错误且还有重试次数，再试一次
+                if retry_count < max_retries - 1 and ("10053" in str(e) or "ConnectionAbortedError" in str(e) or "连接被中止" in str(e)):
+                    retry_count += 1
+                    self.log_message(f"🔄 检测到连接中断，第 {retry_count} 次重试...", "llm", "INFO")
+
+                    # 尝试重新连接
+                    if self._try_reconnect_cloud_client():
+                        self.log_message("重连成功，准备重试", "llm", "INFO")
+                        time.sleep(2)  # 等待2秒后重试
+                        continue
+                    else:
+                        self.log_message("重连失败，不再重试", "llm", "ERROR")
+                        break
                 else:
-                    status['error_msg'] = '云客户端对象存在但连接已断开'
-            else:
-                # 没有is_connected方法，尝试其他方法检查连接
-                status['error_msg'] = '云客户端缺少is_connected方法，无法确认连接状态'
-        except Exception as e:
-            status['error_msg'] = f'检查云客户端状态时发生异常: {str(e)}'
+                    # 非连接错误或已达到最大重试次数，不再重试
+                    break
 
-        return status
+        # 所有重试都失败了，回退到本地VLM
+        self.log_message("云VLM服务调用失败，已达到最大重试次数，回退到本地VLM", "llm", "WARNING")
+        if VLM_AVAILABLE:
+            return self._call_local_vlm(content_window)
+        else:
+            self.log_message("本地VLM不可用，无法执行任务", "llm", "ERROR")
+            return []
+
+    def _call_cloud_vlm_with_retry(self, content_window: Dict, max_retries: int = 2) -> List[Dict]:
+        """带重试机制的云VLM调用"""
+        for attempt in range(max_retries + 1):
+            try:
+                # 直接执行调用，不再依赖不存在的方法
+                cloud_client_status = self._check_cloud_client_status()
+                if not cloud_client_status['is_connected']:
+                    self.log_message(f"云服务连接异常，尝试重新连接 {attempt + 1}/{max_retries + 1}", "llm", "WARNING")
+
+                    # 尝试重新连接
+                    if self._try_reconnect_cloud_client():
+                        self.log_message("云服务重新连接成功", "llm", "INFO")
+                    else:
+                        if attempt < max_retries:
+                            time.sleep(1.0)
+                            continue
+                        else:
+                            self.log_message("云服务重连失败，回退到本地VLM", "llm", "ERROR")
+                            return self._call_local_vlm(content_window) if VLM_AVAILABLE else []
+
+                # 构建云VLM请求
+                prompt = self.build_vlm_prompt(content_window)
+                img_path = content_window['device_vision']['screenshot_path']
+
+                # 读取图像并转换为base64
+                with open(img_path, 'rb') as f:
+                    image_data = f.read()
+                    image_b64 = base64.b64encode(image_data).decode('utf-8')
+
+                cloud_request = {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": [
+                                {
+                                    "type": "text",
+                                    "text": prompt
+                                },
+                                {
+                                    "type": "image_url",
+                                    "image_url": {
+                                        "url": f"data:image/jpeg;base64,{image_b64}"
+                                    }
+                                }
+                            ]
+                        }
+                    ],
+                    "tools": self.tools,
+                    "tool_choice": "required",
+                    "temperature": 0.7,
+                    "max_tokens": 2048
+                }
+
+                # 发送请求并处理响应
+                response = self.cloud_client.chat_completion(cloud_request)
+                return self._process_cloud_response(response)
+
+            except Exception as e:
+                self.log_message(f"云VLM调用第 {attempt + 1} 次尝试失败: {str(e)}", "llm", "WARNING")
+
+                # 特定错误处理
+                if "10053" in str(e) or "连接被中止" in str(e):
+                    self.log_message("检测到连接中断，强制重连", "llm", "INFO")
+                    self._try_reconnect_cloud_client()
+
+                if attempt < max_retries:
+                    time.sleep(2.0)
+                else:
+                    self.log_message("所有重试均失败，回退到本地VLM", "llm", "ERROR")
+                    return self._call_local_vlm(content_window) if VLM_AVAILABLE else []
+
+        return []
 
     def _try_reconnect_cloud_client(self) -> bool:
         """尝试重新连接云客户端"""
@@ -2911,7 +3148,7 @@ class LLMTaskAutomationGUI:
 
     def manual_input_device_for_settings(self, combo: ttk.Combobox):
         """为任务设置手动输入设备"""
-        dialog = tk.Toplevel(self)
+        dialog = tk.Toplevel(self.root)  # 🔧 修复：使用self.root而不是self
         dialog.title("手动输入设备")
         dialog.geometry("300x120")
         dialog.resizable(False, False)
@@ -3127,12 +3364,6 @@ class LLMTaskAutomationGUI:
             messagebox.showerror("错误", f"保存失败: {str(e)}")
             self.log_message(f"保存任务失败: {str(e)}", "llm", "ERROR")
 
-    def refresh_llm_task_list(self):
-        """[已废弃] 刷新LLM任务列表（从内存中加载）"""
-        # 此方法已被任务队列系统替代，保留此方法仅为兼容性
-        self.log_message("ℹ️ 任务列表管理已改为任务队列系统", "llm", "INFO")
-        self.refresh_task_queue_display()
-
     def start_llm_execution(self):
         """启动LLM执行队列"""
         if not self.controller_id:
@@ -3292,6 +3523,10 @@ class LLMTaskAutomationGUI:
 
         # 刷新队列显示
         self.refresh_task_queue_display()
+        self.current_task_label.config(text="当前: 无")
+
+        # 🔧 任务完成后异步断开ADB连接（不阻塞任何操作）
+        self._disconnect_adb_async()
 
     # ... [后面的代码保持不变，只需确保其他方法兼容] ...
 
@@ -3396,7 +3631,8 @@ class LLMTaskAutomationGUI:
                 y = (canvas_height - new_height) // 2
                 self.vision_canvas.create_image(x, y, anchor=tk.NW, image=photo)
                 self.vision_canvas.image = photo
-            except:
+            except (tk.TclError, ValueError, IOError):
+                # 图像加载失败时忽略错误，保持画布空白
                 pass
 
         self.root.after(0, _update)
@@ -3626,7 +3862,7 @@ class LLMTaskAutomationGUI:
             if os.path.exists(path):
                 with open(path, 'r', encoding='utf-8') as f:
                     data = json.load(f)
-                # 修复：为缺失的键提供默认值
+                # 确保必要字段存在
                 if "tasks" not in data:
                     data["tasks"] = []
                 if "global_settings" not in data:
@@ -3659,7 +3895,8 @@ class LLMTaskAutomationGUI:
                 with open(path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             return []
-        except:
+        except (OSError, json.JSONDecodeError):
+            # 文件不存在、权限问题或JSON格式错误时返回空列表
             return []
     
     def save_knowledge_base(self):
@@ -3789,28 +4026,21 @@ class LLMTaskAutomationGUI:
     
     def _check_and_deploy_vlm_model(self):
         """
-        启动时检测模型是否存在，若不存在则提示克隆部署
+        启动时检测是否首次使用，根据arkpass文件判断是否需要提示模型选择
         """
-        target_path = os.path.normpath("model/vision_llm/Qwen3-VL-8B-abliterated-v2.0")
-        git_executable = os.path.normpath("3rd-part/Git/bin/git.exe")
-        repo_url = "https://www.modelscope.cn/xray4668/Qwen3vl8b_finetune_q6k.git"
-
-        # 1. 检测文件夹是否存在且包含文件
-        if os.path.exists(target_path) and os.listdir(target_path):
-            self.log_message(f"✅ VLM 模型目录检查通过", "llm")
+        # 🔧 检查是否已有arkpass文件（判断是否为首次使用）
+        import glob
+        arkpass_files = glob.glob("*.arkpass")
+        if arkpass_files:
+            # 已存在arkpass文件，说明不是首次使用，直接检查模型
+            self._check_model_exists()
             return
 
-        # 2. 预留跳过按钮：通过对话框询问
-        msg = ("本地 VLM 模型文件缺失，是否立即启动自动部署？\n\n"
-               "注意：模型文件较大，克隆过程可能需要较长时间。\n"
-               "点击【是】：开始克隆部署\n"
-               "点击【否】：跳过部署 (稍后手动配置)")
-
-        if not messagebox.askyesno("模型部署确认", msg):
-            self.log_message("⚠️ 用户选择了跳过模型自动部署", "llm", "WARNING")
-            return
+        # 首次使用，延迟显示模式选择对话框（确保主窗口完全加载）
+        self.root.after(500, self._show_first_run_dialog)
 
         def deploy_task():
+            git_executable = os.path.normpath("3rd-part/Git/bin/git.exe")
             temp_dir = os.path.normpath("model/vision_llm/qwen_clone_temp")
             try:
                 self.log_message("🚨 正在启动本地模型部署流程...", "llm", "WARNING")
@@ -3843,8 +4073,10 @@ class LLMTaskAutomationGUI:
                     dst = os.path.join(target_path, item)
                     # 覆盖式移动
                     if os.path.exists(dst):
-                        if os.path.isdir(dst): shutil.rmtree(dst)
-                        else: os.remove(dst)
+                        if os.path.isdir(dst):
+                            shutil.rmtree(dst)
+                        else:
+                            os.remove(dst)
                     shutil.move(src, dst)
 
                 # 5. 清理残留
@@ -3853,13 +4085,164 @@ class LLMTaskAutomationGUI:
 
                 self.log_message("✨ 本地模型部署成功！", "llm")
                 self.root.after(0, lambda: messagebox.showinfo("部署完成", "模型已成功克隆至本地目录。"))
+                self.root.after(10000, lambda: messagebox.showinfo("提示", "模型部署完成，请重启程序以确保所有功能正常。"))
 
             except Exception as e:
-                self.log_message(f"❌ 部署失败: {str(e)}", "llm", "ERROR")
+                error_msg = str(e)
+                self.log_message(f"❌ 部署失败: {error_msg}", "llm", "ERROR")
                 if os.path.exists(temp_dir):
                     shutil.rmtree(temp_dir, ignore_errors=True)
+                self.root.after(0, lambda msg=error_msg: messagebox.showerror("部署失败", f"模型部署过程中出现错误:\n{msg}"))
 
-        # 启动异步线程，防止 UI 卡死
+        threading.Thread(target=deploy_task, daemon=True).start()
+
+    def _show_first_run_dialog(self):
+        """显示首次运行对话框，让用户选择使用模式"""
+        # 确保主窗口已完全显示且可操作
+        if not self.root.winfo_exists():
+            return
+
+        # 创建自定义对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("欢迎使用ArkStudio")
+        dialog.geometry("550x220")  # 增加高度以确保按钮可见
+        dialog.resizable(False, False)
+
+        # 设置为模态对话框
+        dialog.transient(self.root)
+        dialog.grab_set()
+        dialog.focus_set()
+
+        # 确保对话框显示在最前面
+        dialog.lift()
+        dialog.attributes('-topmost', True)
+        dialog.after(100, lambda: dialog.attributes('-topmost', False))
+
+        # 居中显示
+        dialog.update_idletasks()
+        width = dialog.winfo_width()
+        height = dialog.winfo_height()
+        x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+        y = (dialog.winfo_screenheight() // 2) - (height // 2)
+        dialog.geometry(f"{width}x{height}+{x}+{y}")
+
+        # 主容器
+        main_frame = ttk.Frame(dialog, padding="20")
+        main_frame.pack(fill='both', expand=True)
+
+        # 标题
+        title_label = ttk.Label(main_frame, text="你希望使用本地模型推理模式吗？", font=('Arial', 12, 'bold'))
+        title_label.pack(pady=(10, 10))
+
+        # 说明文字
+        desc_label = ttk.Label(main_frame, text="如使用，请点击下载模型\n如希望使用我们提供的运算服务，点击跳过", justify=tk.CENTER)
+        desc_label.pack(pady=(5, 20))
+
+        # 按钮框架 - 使用更大的填充
+        btn_frame = ttk.Frame(main_frame)
+        btn_frame.pack(pady=10, fill='x')
+
+        # 下载模型按钮 - 不使用样式避免样式问题
+        download_btn = ttk.Button(btn_frame, text="下载模型",
+                                  command=lambda: self._start_download_and_close(dialog))
+        download_btn.pack(side=tk.LEFT, padx=20, pady=5)
+
+        # 跳过按钮
+        skip_btn = ttk.Button(btn_frame, text="跳过",
+                              command=lambda: self._skip_model_download_and_close(dialog))
+        skip_btn.pack(side=tk.LEFT, padx=20, pady=5)
+
+        # 禁止关闭对话框（必须选择一个选项）
+        dialog.protocol("WM_DELETE_WINDOW", lambda: None)
+
+        # 强制刷新布局
+        dialog.update_idletasks()
+        dialog.update()
+
+    def _start_download_and_close(self, dialog):
+        """开始下载模型并关闭对话框"""
+        dialog.destroy()
+        self._deploy_vlm_model()
+
+    def _skip_model_download_and_close(self, dialog):
+        """跳过模型下载并关闭对话框"""
+        self.log_message("⚠️ 用户选择跳过本地模型，将使用云服务", "llm", "INFO")
+        dialog.destroy()
+
+    def _check_model_exists(self):
+        """检查模型是否存在，如果本地模型缺失且已登录云服务，则自动启用云服务"""
+        target_path = os.path.normpath("model/vision_llm/Qwen3-VL-8B-abliterated-v2.0")
+        if os.path.exists(target_path) and os.listdir(target_path):
+            self.log_message(f"✅ VLM 模型目录检查通过", "llm")
+        else:
+            self.log_message("⚠️ 本地VLM模型文件缺失，建议下载模型或使用云服务", "llm", "WARNING")
+
+            # 🔧 检查是否已登录云服务，如果已登录则自动启用云服务
+            if hasattr(self, 'cloud_client') and self.cloud_client and not self.use_cloud_var.get():
+                self.use_cloud_var.set(True)
+                self.toggle_cloud_vlm()
+                self.log_message("🌐 检测到本地模型缺失且云服务已登录，已自动启用云VLM服务", "llm", "INFO")
+
+    def _deploy_vlm_model(self):
+        """部署VLM模型"""
+        target_path = os.path.normpath("model/vision_llm/Qwen3-VL-8B-abliterated-v2.0")
+        git_executable = os.path.normpath("3rd-part/Git/bin/git.exe")
+        repo_url = "https://www.modelscope.cn/xray4668/Qwen3vl8b_finetune_q6k.git"
+
+        def deploy_task():
+            temp_dir = os.path.normpath("model/vision_llm/qwen_clone_temp")
+            try:
+                self.log_message("🚨 正在启动本地模型部署流程...", "llm", "WARNING")
+
+                # 校验 Git 路径
+                if not os.path.exists(git_executable):
+                    self.log_message(f"❌ 错误: 未找到 Git 执行文件 {git_executable}", "llm", "ERROR")
+                    return
+
+                # 清理并准备临时目录
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+                os.makedirs(os.path.dirname(temp_dir), exist_ok=True)
+
+                # 执行 Git 克隆
+                self.log_message(f"📥 正在克隆模型仓库，请耐心等待...", "llm")
+                result = subprocess.run(
+                    [git_executable, "clone", repo_url, temp_dir],
+                    capture_output=True, text=True, encoding='utf-8'
+                )
+
+                if result.returncode != 0:
+                    raise RuntimeError(f"Git 克隆异常: {result.stderr}")
+
+                # 转移文件内容
+                self.log_message("🚚 正在整理并转移模型文件...", "llm")
+                os.makedirs(target_path, exist_ok=True)
+                for item in os.listdir(temp_dir):
+                    src = os.path.join(temp_dir, item)
+                    dst = os.path.join(target_path, item)
+                    # 覆盖式移动
+                    if os.path.exists(dst):
+                        if os.path.isdir(dst):
+                            shutil.rmtree(dst)
+                        else:
+                            os.remove(dst)
+                    shutil.move(src, dst)
+
+                # 清理残留
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+
+                self.log_message("✨ 本地模型部署成功！", "llm")
+                self.root.after(0, lambda: messagebox.showinfo("部署完成", "模型已成功克隆至本地目录。"))
+                self.root.after(10000, lambda: messagebox.showinfo("提示", "模型部署完成，请重启程序以确保所有功能正常。"))
+
+            except Exception as e:
+                error_msg = str(e)
+                self.log_message(f"❌ 部署失败: {error_msg}", "llm", "ERROR")
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir, ignore_errors=True)
+                self.root.after(0, lambda msg=error_msg: messagebox.showerror("部署失败", f"模型部署过程中出现错误:\n{msg}"))
+
         threading.Thread(target=deploy_task, daemon=True).start()
 
     # ==================== 辅助方法 ====================
@@ -4018,85 +4401,36 @@ class LLMTaskAutomationGUI:
             self.cloud_key_entry.config(show="*")
 
     def connect_cloud_service(self):
-        """连接云服务"""
-        if not CLOUD_AVAILABLE:
-            messagebox.showerror("错误", "云服务客户端不可用")
-            return
-
-        host = self.cloud_host
-        port = self.cloud_port
-        user_id = self.cloud_user_var.get().strip()
-        api_key = self.cloud_key_var.get().strip()
-
-        if not all([user_id, api_key]):
-            messagebox.showwarning("警告", "请填写用户ID和API密钥")
-            return
-
-        try:
-            port = int(port)
-        except ValueError:
-            messagebox.showerror("错误", "端口号必须是数字")
-            return
-
-        self.log_message(f"正在连接云服务 {host}:{port}...", "cloud")
-        self.cloud_connect_btn.config(state='disabled')
-
-        def connect_thread():
-            try:
-                # 创建客户端
-                client = CloudClient(host, port)
-
-                # 检查是否有.arkpass文件，优先使用文件登录
-                arkpass_file = f"{user_id}.arkpass"
-                if os.path.exists(arkpass_file):
-                    success, layer = client.login_with_file(arkpass_file)
-                    if success:
-                        self.cloud_client = client
-                        self.root.after(0, self.on_cloud_connect_success)
-                        self.root.after(0, lambda: self.log_message(f"已使用ArkPass文件登录，当前层级: {layer}", "cloud"))
-                    else:
-                        self.root.after(0, self.on_cloud_connect_failed, "ArkPass文件登录失败")
-                else:
-                    # 回退到手动输入密钥方式（已弃用）
-                    self.root.after(0, self.on_cloud_connect_failed, "请先加载ArkPass文件或注册新用户")
-
-            except Exception as e:
-                self.root.after(0, self.on_cloud_connect_failed, f"连接失败: {str(e)}")
-
-        threading.Thread(target=connect_thread, daemon=True).start()
+        """已弃用：该方法已不再使用，由login_cloud_user替代"""
+        messagebox.showwarning("提示", "请使用 登入 按钮进行云服务连接")
 
     def on_cloud_connect_success(self):
         """云服务连接成功"""
-        self.cloud_connect_btn.config(state='disabled')
-        self.cloud_disconnect_btn.config(state='normal')
         self.cloud_register_btn.config(state='disabled')
+        self.cloud_login_btn.config(state='disabled')
 
         # 获取用户信息
         self.update_cloud_user_info()
 
+        # 🔧 登入后默认启用云服务
+        if not self.use_cloud_var.get():
+            self.use_cloud_var.set(True)
+            self.toggle_cloud_vlm()
+
         self.log_message("云服务连接成功", "cloud")
-        messagebox.showinfo("成功", "云服务连接成功")
+        messagebox.showinfo("成功", "云服务连接成功\n\n已自动启用云VLM服务")
 
     def on_cloud_connect_failed(self, error_msg):
         """云服务连接失败"""
-        self.cloud_connect_btn.config(state='normal')
-        self.cloud_disconnect_btn.config(state='disabled')
+        self.cloud_register_btn.config(state='normal')
+        self.cloud_login_btn.config(state='normal')
 
         self.log_message(f"云服务连接失败: {error_msg}", "cloud", "ERROR")
         messagebox.showerror("连接失败", error_msg)
 
     def disconnect_cloud_service(self):
-        """断开云服务连接"""
-        if self.cloud_client:
-            self.cloud_client.disconnect()
-            self.cloud_client = None
-
-        self.cloud_connect_btn.config(state='normal')
-        self.cloud_disconnect_btn.config(state='disabled')
-        self.cloud_register_btn.config(state='normal')
-
-        self.update_cloud_ui_state()
-        self.log_message("云服务已断开", "cloud")
+        """已弃用：该方法已不再使用"""
+        messagebox.showwarning("提示", "使用ArkPass文件登录时无需手动断开")
 
     def login_cloud_user(self):
         """登入功能 - 选择arkpass文件并执行登录"""
@@ -4267,14 +4601,13 @@ class LLMTaskAutomationGUI:
             self.cloud_vlm_status.config(text="已启用", foreground='green')
             self.log_message("VLM云服务已启用", "cloud")
 
-            # TODO: 这里应该修改VLM调用逻辑以使用云服务
-            # 实际实现中需要修改 call_vlm 方法
+            # 云服务VLM调用逻辑已在call_vlm方法中实现，支持自动回退机制
         else:
             self.cloud_vlm_status.config(text="未启用", foreground='gray')
             self.log_message("VLM云服务已禁用", "cloud")
 
     def refresh_cloud_models(self):
-        """模型现在由服务器分配，此方法已弃用"""
+        """模型现在由服务器自动分配"""
         self.log_message("模型由服务器分配，无需手动刷新", "cloud", "INFO")
 
     def test_cloud_service(self):
@@ -4353,7 +4686,7 @@ class LLMTaskAutomationGUI:
 
     def update_cloud_ui_state(self):
         """更新云服务UI状态"""
-        if self.cloud_client and self.cloud_client.is_connected():
+        if self.cloud_client and hasattr(self.cloud_client, 'is_connected') and self.cloud_client.is_connected():
             self.cloud_tier_label.config(text="已连接")
         else:
             self.cloud_tier_label.config(text="未连接")
@@ -4362,47 +4695,61 @@ class LLMTaskAutomationGUI:
             self.use_cloud_var.set(False)
 
     def on_closing(self):
-        # 🔧 改进的退出逻辑：先调用停止LLM执行，等待状态同步
-        self.stop_llm_execution()
-
-    def _confirm_exit(self):
-        """确认退出 - 确保LLM状态正确同步"""
-        # 检查LLM状态是否已正确同步
-        if not self.llm_running:
-            # LLM已停止，继续退出流程
-            self._cleanup_and_exit()
-        else:
-            # LLM仍在运行，再次尝试停止
-            self.log_message("⚠️ 检测到LLM状态不一致，尝试强制停止", "llm", "WARNING")
-            self.llm_running = False
+        """简化的关闭窗口逻辑 - 不处理ADB断开"""
+        # 尝试停止LLM执行但不阻塞
+        if self.llm_running:
             self.llm_stop_flag = True
+            self.llm_running = False
+            self.log_message("■ 发送停止信号，正在关闭窗口", "llm")
 
-            # 再次等待同步
-            self.root.after(100, lambda: self._cleanup_and_exit())
-
-    def _cleanup_and_exit(self):
-        """清理资源并退出"""
         # 断开云服务连接
         if hasattr(self, 'cloud_client') and self.cloud_client:
-            self.cloud_client.disconnect()
-
-        # 断开ADB设备连接
-        if self.controller_id:
             try:
-                success = disconnect_device(self.controller_id)
-                if success:
-                    self.log_message("设备已正常断开", "all")
-                self.controller_id = None
-                self.current_device = None
+                self.cloud_client.disconnect()
             except Exception as e:
-                self.log_message(f"断开设备时出错: {str(e)}", "all", "WARNING")
+                self.log_message(f"断开云服务时出错: {str(e)}", "cloud", "WARNING")
 
         # 保存知识库
         self.save_knowledge_base()
 
-        # 最终状态确认
-        self.log_message("程序即将退出", "all")
+        # 直接销毁窗口，不等待任何异步操作
         self.root.destroy()
+
+    def _disconnect_adb_async(self):
+        """异步断开ADB连接 - 不阻塞任何步骤"""
+        def disconnect_thread():
+            if self.controller_id:
+                try:
+                    # 在后台线程中执行ADB断开，避免阻塞主线程
+                    success = disconnect_device(self.controller_id)
+                    if success:
+                        self.root.after(0, lambda: self.log_message("设备已自动断开", "all"))
+                    else:
+                        self.root.after(0, lambda: self.log_message("设备断开失败", "all", "WARNING"))
+
+                    # 重置设备状态
+                    self.controller_id = None
+                    self.current_device = None
+
+                    # 更新UI状态（如果窗口还存在）
+                    self.root.after(0, self._update_device_ui_disconnected)
+
+                except Exception as e:
+                    self.root.after(0, lambda: self.log_message(f"自动断开设备时出错: {str(e)}", "all", "WARNING"))
+
+        # 启动后台线程执行ADB断开
+        threading.Thread(target=disconnect_thread, daemon=True).start()
+
+    def _update_device_ui_disconnected(self):
+        """更新设备UI为断开状态"""
+        try:
+            # 检查窗口是否仍然存在
+            if self.root.winfo_exists():
+                self.device_status.config(text="无设备", style='Status.Error.TLabel')
+                self.app_status.config(text="设备已断开", style='Status.Ready.TLabel')
+        except (AttributeError, tk.TclError):
+            # 窗口已经关闭或组件未初始化，忽略更新
+            pass
 
     def update_resolution_display(self, width: int, height: int, page: str):
         """
