@@ -28,9 +28,12 @@
     "variables": [
       {
         "name": "难民暂居处交易物资",
-        "type": "string",
+        "type": "select",
         "default": "晶体外壳",
-        "desc": ""
+        "desc": "",
+        "multi_values": [
+          "晶体外壳"
+        ]
       }
     ],
     "task_steps": [
@@ -50,6 +53,6 @@
       "press_jitter_px": 2
     },
     "created_at": "2026-02-13T00:22:40.801781",
-    "updated_at": "2026-02-13T18:15:49.195168"
+    "updated_at": "2026-02-13T20:02:35.132177"
   }
 ]

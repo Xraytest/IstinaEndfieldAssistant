@@ -66,7 +66,7 @@ except ImportError as e:
 class LLMTaskAutomationGUI:
     def __init__(self, root):
         self.root = root
-        self.root.title("LLM Task Automation v2.3 - 任务队列支持")
+        self.root.title("IstinaEndfieldAssistant - ver alpha_2_4_3")
         self.root.geometry("1600x950")
         self.root.minsize(1400, 900)
 
@@ -593,6 +593,12 @@ class LLMTaskAutomationGUI:
         if new_count != self.execution_count:
             self.execution_count = new_count
             self.save_execution_count()
+
+    def get_next_instance_name(self, template_id):
+        """获取任务的下一个实例名称"""
+        # 统计该模板已存在的实例数量
+        existing_count = sum(1 for task in self.task_queue if task["template_id"] == template_id)
+        return f"实例{existing_count + 1}"
 
     def on_continuous_loop_changed(self):
         """当持续循环选项改变时处理"""
@@ -2891,10 +2897,12 @@ class LLMTaskAutomationGUI:
                 "task_steps": ["自动连接设备并确保屏幕已解锁"],
                 "success_indicators": ["设备已连接"]
             },
+            "display_name": "📱 设备连接",
             "task_settings": {
                 "retry_count": 3,
                 "timeout": 10,
-                "continue_on_failure": False
+                "continue_on_failure": False,
+                "execute_once": True  # 设备连接任务默认仅执行一次
             },
             "variables_override": {},
             "enabled": True,
@@ -3043,43 +3051,42 @@ class LLMTaskAutomationGUI:
                 template = self.task_templates[selected_index]
                 template_id = template['id']
 
-                # 检查是否已在队列中
-                if template_id in [task['template_copy']['id'] for task in self.task_queue]:
-                    messagebox.showinfo("提示", "该任务已在队列中")
-                else:
-                    # 创建深拷贝
-                    import copy
-                    template_copy = copy.deepcopy(template)
+                # 移除重复检查，允许同一个任务模板多次添加
+                # 创建深拷贝
+                import copy
+                template_copy = copy.deepcopy(template)
 
-                    # 创建任务项
-                    task_item = {
-                        "template_id": template_id,
-                        "template_copy": template_copy,
-                        "task_settings": {
-                            "retry_count": 3,
-                            "timeout": 300,
-                            "continue_on_failure": False
-                        },
-                        "variables_override": {},  # 初始无覆盖，用户可在任务设置中配置
-                        "enabled": True,
-                        "order": len(self.task_queue)
-                    }
+                # 创建任务项
+                task_item = {
+                    "template_id": template_id,
+                    "template_copy": template_copy,
+                    "display_name": f"{template['name']} - {self.get_next_instance_name(template_id)}",
+                    "task_settings": {
+                        "retry_count": 3,
+                        "timeout": 300,
+                        "continue_on_failure": False,
+                        "execute_once": False  # 是否仅在第一轮执行
+                    },
+                    "variables_override": {},  # 初始无覆盖，用户可在任务设置中配置
+                    "enabled": True,
+                    "order": len(self.task_queue)
+                }
 
-                    self.task_queue.append(task_item)
+                self.task_queue.append(task_item)
 
-                    # 确保设备连接任务始终是第一个
-                    has_device_task = any(item["template_id"] == "__device_setup__" for item in self.task_queue)
-                    if not has_device_task:
-                        # 插入设备连接任务到开始
-                        device_task = self.create_device_task_item()
-                        self.task_queue.insert(0, device_task)
-                        # 更新所有任务的order
-                        for i, task in enumerate(self.task_queue):
-                            task["order"] = i
+                # 确保设备连接任务始终是第一个
+                has_device_task = any(item["template_id"] == "__device_setup__" for item in self.task_queue)
+                if not has_device_task:
+                    # 插入设备连接任务到开始
+                    device_task = self.create_device_task_item()
+                    self.task_queue.insert(0, device_task)
+                    # 更新所有任务的order
+                    for i, task in enumerate(self.task_queue):
+                        task["order"] = i
 
-                    self.save_task_queue()  # 立即保存
-                    self.refresh_task_queue_display()
-                    self.log_message(f"已添加任务到队列: {template['name']}", "llm")
+                self.save_task_queue()  # 立即保存
+                self.refresh_task_queue_display()
+                self.log_message(f"已添加任务到队列: {task_item['display_name']}", "llm")
 
             dialog.destroy()
 
@@ -3285,14 +3292,17 @@ class LLMTaskAutomationGUI:
                 task = task_item["template_copy"]
                 status_prefix = "▶ " if i == self.current_task_index else f"{i+1}. "
 
+                # 使用display_name而不是task['name']
+                display_name = task_item.get("display_name", task["name"])
+
                 # 添加设置图标标记
                 settings_mark = " ⚙" if task_item.get("variables_override") else ""
 
                 # 对于设备连接任务特殊标记
                 if task_item.get("template_id") == "__device_setup__":
-                    display_text = f"{status_prefix}📱 {task['name']}{settings_mark}"
+                    display_text = f"{status_prefix}{display_name}{settings_mark}"
                 else:
-                    display_text = f"{status_prefix}{task['name']}{settings_mark}"
+                    display_text = f"{status_prefix}{display_name}{settings_mark}"
 
                 self.task_queue_listbox.insert(tk.END, display_text)
 
@@ -3365,6 +3375,25 @@ class LLMTaskAutomationGUI:
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+
+        # 4. 任务名称设置
+        name_frame = ttk.LabelFrame(scrollable_frame, text="任务名称", padding="10")
+        name_frame.pack(fill='x', pady=(10, 5))
+
+        ttk.Label(name_frame, text="显示名称:").pack(side=tk.LEFT, padx=5)
+        display_name_var = tk.StringVar(value=task_item.get("display_name", task_template["name"]))
+        display_name_entry = ttk.Entry(name_frame, textvariable=display_name_var, width=40)
+        display_name_entry.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
+
+        def update_display_name(event=None):
+            new_name = display_name_var.get().strip()
+            if new_name:
+                task_item["display_name"] = new_name
+                # 更新标签页名称
+                self.content_notebook.tab(settings_tab, text=f"⚙️ {new_name} 设置")
+
+        display_name_entry.bind('<KeyRelease>', update_display_name)
+        display_name_entry.bind('<FocusOut>', update_display_name)
 
         # 4. 检查是否是设备连接任务
         is_device_setup_task = task_template.get('template_id') == '__device_setup__'
@@ -3592,6 +3621,19 @@ class LLMTaskAutomationGUI:
             ttk.Label(order_frame, text="执行顺序:").pack(side=tk.LEFT)
             ttk.Spinbox(order_frame, textvariable=order_var, from_=0, to=len(self.task_queue)-1, width=10).pack(side=tk.LEFT, padx=5)
 
+            # 执行次数控制（所有任务都可以设置，但设备连接任务强制为True）
+            execute_once_var = tk.BooleanVar(value=task_item.get("task_settings", {}).get("execute_once", False))
+            if is_device_setup_task:
+                execute_once_var.set(True)  # 设备连接任务强制设置为仅执行一次
+            execute_once_frame = ttk.Frame(scrollable_frame)
+            execute_once_frame.pack(fill='x', padx=10, pady=5)
+
+            # 设备连接任务显示禁用状态的复选框
+            if is_device_setup_task:
+                ttk.Label(execute_once_frame, text="✓ 仅在第一轮执行（设备连接任务固定）", foreground="green").pack(side=tk.LEFT)
+            else:
+                ttk.Checkbutton(execute_once_frame, text="仅在第一轮执行（多轮循环中", variable=execute_once_var).pack(side=tk.LEFT)
+
         # 7. 保存设置并关闭的函数
         def save_and_close():
             """保存任务特定设置并关闭标签页"""
@@ -3621,6 +3663,12 @@ class LLMTaskAutomationGUI:
                 task_item["variables_override"] = new_overrides
                 task_item["enabled"] = enabled_var.get() if 'enabled_var' in locals() else True
                 task_item["order"] = order_var.get() if 'order_var' in locals() else task_index
+                # 确保execute_once字段存在
+                if "execute_once" not in task_item["task_settings"]:
+                    task_item["task_settings"]["execute_once"] = False
+                # 非设备连接任务才更新execute_once设置
+                if not is_device_setup_task and 'execute_once_var' in locals():
+                    task_item["task_settings"]["execute_once"] = execute_once_var.get()
 
             # 保存到本地
             self.save_task_queue()
@@ -3628,7 +3676,7 @@ class LLMTaskAutomationGUI:
             # 更新UI显示
             self.refresh_task_queue_display()
 
-            self.log_message(f"已保存任务设置: {task_template['name']}", "llm")
+            self.log_message(f"已保存任务设置: {task_item.get('display_name', task_template['name'])}", "llm")
 
             # 关闭当前标签页
             self.content_notebook.forget(settings_tab)
@@ -3646,13 +3694,9 @@ class LLMTaskAutomationGUI:
             ttk.Button(btn_frame, text="退出", command=save_and_close,
                       style='Security.TButton').pack(side=tk.LEFT, padx=10)
         else:
-            # 普通任务显示完整按钮组
+            # 普通任务也只显示退出按钮
             ttk.Button(btn_frame, text="退出", command=save_and_close,
                       style='Security.TButton').pack(side=tk.LEFT, padx=10)
-            ttk.Button(btn_frame, text="❌ 取消",
-                      command=lambda: self.content_notebook.forget(settings_tab)).pack(side=tk.LEFT, padx=10)
-            ttk.Button(btn_frame, text="🗑️ 重置为默认",
-                      command=lambda: self.reset_task_settings(task_index, settings_tab)).pack(side=tk.LEFT, padx=10)
 
     def reset_task_settings(self, task_index: int, settings_tab: ttk.Frame):
         """重置任务设置为默认值（适配标签页模式）"""
@@ -3663,7 +3707,7 @@ class LLMTaskAutomationGUI:
             task_item["order"] = task_index
             self.save_task_queue()
             self.refresh_task_queue_display()
-            self.log_message(f"已重置任务设置: {task_item['template_copy']['name']}", "llm")
+            self.log_message(f"已重置任务设置: {task_item.get('display_name', task_item['template_copy']['name'])}", "llm")
 
             # 重新加载标签页内容以显示重置后的默认值
             # 1. 保存当前任务名称和标签页位置
@@ -4042,6 +4086,12 @@ class LLMTaskAutomationGUI:
                     self.current_task_index += 1
                     continue
 
+                # 检查是否在多轮循环中且任务设置为仅执行一次
+                if execution_round > 0 and task_item.get("task_settings", {}).get("execute_once", False):
+                    self.log_message(f"⏭️ 跳过标记为'仅第一次'的任务: {task_name}")
+                    self.current_task_index += 1
+                    continue
+
                 # 应用变量覆盖到深拷贝的模板
                 task_template = self.apply_variables_to_template(task_item)
 
@@ -4064,16 +4114,8 @@ class LLMTaskAutomationGUI:
                 if overrides:
                     self.log_message(f"   🔧 应用变量覆盖: {overrides}", "llm", "INFO")
 
-                # 初始化当前任务的子任务
-                self.current_subtasks = [
-                    {
-                        "id": f"st_{i+1}_{int(time.time())}",
-                        "desc": step.split('.', 1)[-1].strip() if '.' in step else step.strip(),
-                        "status": "pending",
-                        "subtasks": []
-                    }
-                    for i, step in enumerate(task_template.get('task_steps', []))
-                ]
+                # 初始化当前任务的子任务（移除默认分任务，让AI通过读取详细步骤描述来创建）
+                self.current_subtasks = []
                 self.root.after(0, self.refresh_subtask_ui)
 
                 # 执行单个任务
