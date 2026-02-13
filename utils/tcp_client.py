@@ -8,10 +8,6 @@ import urllib3
 # 禁用SSL警告
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# 由于服务器使用了自签名证书，我们需要使用 pyopenssl 来支持 HTTPS 请求
-from urllib3.contrib import pyopenssl
-pyopenssl.inject_into_urllib3()
-
 class CloudClient:
     def __init__(self, host='api.r54134544.nyat.app', port=57460):
         self.host = host
@@ -149,10 +145,26 @@ class CloudClient:
             return {'status': 'error', 'msg': '未登录'}
 
         data = {'cmd': 'CHAT', 'user_id': self.user_id, 'payload': payload}
-        response_data = self._send_request('/api/command', data)
 
-        # 处理响应
-        resp = self._recv_plain(response_data)
+        # 添加自动重试机制
+        max_retries = 3
+        for attempt in range(max_retries):
+            response_data = self._send_request('/api/command', data)
+
+            # 处理响应
+            resp = self._recv_plain(response_data)
+
+            if resp and resp.get('status') == 'error':
+                error_msg = resp.get('msg', '')
+                # 检查是否是请求过多或服务器繁忙的错误
+                if any(keyword in error_msg for keyword in ['请求过于频繁', '服务器繁忙', '速率限制中']) and attempt < max_retries - 1:
+                    print(f"请求受限，等待0.5秒后重试... (尝试 {attempt + 1}/{max_retries})")
+                    time.sleep(0.5)
+                    continue
+
+            return resp
+
+        # 所有重试都失败后返回最后一次响应
         return resp
 
     def get_stats(self):

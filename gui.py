@@ -15,7 +15,6 @@ from PIL import Image, ImageTk
 import io
 import random
 import sys
-import math
 import subprocess
 import shutil
 
@@ -133,6 +132,10 @@ class LLMTaskAutomationGUI:
         #     "order": int                 # 显示顺序
         # }
         self.current_task_index = 0  # 当前执行的任务索引
+
+        # 执行次数设置
+        self.execution_count = 1  # 默认执行次数
+        self.load_execution_count()  # 启动时读取
 
         # VLM工具定义（OpenAI格式）
         self.tools = self.define_vlm_tools()
@@ -433,11 +436,11 @@ class LLMTaskAutomationGUI:
         self.designer_page_frame = ttk.Frame(self.notebook)
         self.cloud_page_frame = ttk.Frame(self.notebook)
 
-        # 添加页面 - 修改顺序
-        self.notebook.add(self.llm_page_frame, text='LLM执行控制台')
+        # 添加页面 - 修改顺序，云服务移至第二位
+        self.notebook.add(self.llm_page_frame, text='开始代理')
+        self.notebook.add(self.cloud_page_frame, text='云服务')
         self.notebook.add(self.test_page_frame, text='基础测试')
         self.notebook.add(self.designer_page_frame, text='LLM任务设计器')
-        self.notebook.add(self.cloud_page_frame, text='云服务')
 
         # 设置页面
         self.setup_llm_page()  # 先设置LLM页面
@@ -467,8 +470,7 @@ class LLMTaskAutomationGUI:
 
         # ERROR级别消息同时输出到控制台 - 使用标准error输出
         if level == "ERROR":
-            import sys
-            print(f"[控制台错误] {message}", file=sys.stderr)
+            pass
 
         def _update():
             # 这部分代码最终会在主线程执行
@@ -537,10 +539,6 @@ class LLMTaskAutomationGUI:
                 json.dump({'device_id': device_id, 'timestamp': datetime.now().isoformat()},
                          f, ensure_ascii=False, indent=2)
         except (OSError, json.JSONEncodeError) as e:
-            # 处理文件系统和JSON序列化错误
-            import sys
-            print(f"[配置错误] 保存上次成功设备失败: {e}", file=sys.stderr)
-            # 同时记录到GUI日志系统（如果实例已存在）
             if hasattr(self, 'log_message'):
                 self.log_message(f"保存设备配置失败: {str(e)}", "system", "ERROR")
 
@@ -551,12 +549,61 @@ class LLMTaskAutomationGUI:
             with open("config/device_cache.json", 'w', encoding='utf-8') as f:
                 json.dump(self.device_cache, f, ensure_ascii=False, indent=2)
         except (OSError, json.JSONEncodeError) as e:
-            # 处理文件系统和JSON序列化错误
-            import sys
-            print(f"[配置错误] 保存设备缓存失败: {e}", file=sys.stderr)
-            # 同时记录到GUI日志系统（如果实例已存在）
             if hasattr(self, 'log_message'):
                 self.log_message(f"保存设备缓存失败: {str(e)}", "system", "ERROR")
+
+    def load_execution_count(self):
+        """加载执行次数配置"""
+        try:
+            config_path = "config/config.json"
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    self.execution_count = config.get('execution_count', 1)
+        except (OSError, json.JSONDecodeError):
+            # 文件不存在、权限问题或JSON格式错误时使用默认值
+            self.execution_count = 1
+
+    def save_execution_count(self):
+        """保存执行次数配置"""
+        try:
+            config_path = "config/config.json"
+            config = {}
+
+            # 读取现有配置
+            if os.path.exists(config_path):
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+
+            # 更新执行次数
+            config['execution_count'] = self.execution_count
+
+            # 保存配置
+            os.makedirs("config", exist_ok=True)
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(config, f, ensure_ascii=False, indent=2)
+
+        except (OSError, json.JSONEncodeError) as e:
+            if hasattr(self, 'log_message'):
+                self.log_message(f"保存执行次数配置失败: {str(e)}", "system", "ERROR")
+
+    def on_execution_count_changed(self):
+        """执行次数变化时的回调"""
+        new_count = self.execution_count_var.get()
+        if new_count != self.execution_count:
+            self.execution_count = new_count
+            self.save_execution_count()
+
+    def on_continuous_loop_changed(self):
+        """当持续循环选项改变时处理"""
+        if self.continuous_loop_var.get():
+            # 如果选中持续循环，禁用执行次数输入
+            self.execution_count_entry.config(state='disabled')
+            self.log_message("已启用持续循环模式", "system")
+        else:
+            # 如果取消持续循环，启用执行次数输入
+            self.execution_count_entry.config(state='normal')
+            self.log_message("已取消持续循环模式", "system")
 
     def manual_input_device(self, page: str):
         """手动输入设备ID"""
@@ -673,12 +720,6 @@ class LLMTaskAutomationGUI:
                 error_msg = f"设备扫描失败: {str(e)}"
                 self.root.after(0, self.log_message, error_msg, "all", "ERROR")
                 self.root.after(0, self.update_device_list, [])
-
-                # 记录详细错误到调试文件而不是控制台
-                import sys
-                with open("device_scan_error.log", "a", encoding="utf-8") as f:
-                    f.write(f"\n[{datetime.now().isoformat()}] 设备扫描异常:\n{traceback.format_exc()}\n")
-                print(f"[设备错误] 设备扫描失败，详情请查看device_scan_error.log", file=sys.stderr)
 
         threading.Thread(target=scan_thread, daemon=True).start()
     
@@ -972,11 +1013,10 @@ class LLMTaskAutomationGUI:
         self.test_coord_label = ttk.Label(right_panel, text="坐标: (0, 0)", font=('Arial', 9, 'bold'))
         self.test_coord_label.pack(pady=(5, 0))
         self.test_canvas.bind("<Motion>", self.on_canvas_motion)
-        # 调试点击（仅用于基础测试页）
         self.test_canvas.bind("<Button-1>", self.on_canvas_click_debug)
     
     def on_canvas_motion(self, event):
-        """显示坐标（调试用）"""
+        """显示坐标"""
         if not self.current_image:
             return
         canvas_x = self.test_canvas.canvasx(event.x)
@@ -986,7 +1026,7 @@ class LLMTaskAutomationGUI:
         self.test_coord_label.config(text=f"坐标: ({actual_x}, {actual_y})")
     
     def on_canvas_click_debug(self, event):
-        """调试用点击（仅用于基础测试页）"""
+        """点击测试页面的点击事件"""
         if not self.controller_id or not self.current_image:
             return
         canvas_x = self.test_canvas.canvasx(event.x)
@@ -995,10 +1035,8 @@ class LLMTaskAutomationGUI:
         actual_y = int(canvas_y * self.image_scale_y)
 
         self.log_message(f"调试点击 ({actual_x}, {actual_y})", "test", "INFO")
-        # 执行原始click（仅调试用）
         threading.Thread(target=lambda: click(self.controller_id, actual_x, actual_y, 50), daemon=True).start()
 
-        # 视觉反馈
         self.test_canvas.create_oval(
             canvas_x-8, canvas_y-8, canvas_x+8, canvas_y+8,
             outline="red", width=3, tags="debug_click"
@@ -1106,8 +1144,31 @@ class LLMTaskAutomationGUI:
         lib_frame = ttk.LabelFrame(designer_paned, text="任务模板库", padding="10")
         designer_paned.add(lib_frame, weight=1)
 
-        self.template_listbox = tk.Listbox(lib_frame, height=15, font=('Arial', 10))
-        self.template_listbox.pack(fill='both', expand=True, pady=(0, 5))
+        # 创建带有滚动条的模板列表
+        template_list_frame = ttk.Frame(lib_frame)
+        template_list_frame.pack(fill='both', expand=True, pady=(0, 5))
+
+        self.template_listbox = tk.Listbox(template_list_frame, height=15, font=('Arial', 10))
+        template_listbox_scrollbar = ttk.Scrollbar(template_list_frame, orient="vertical", command=self.template_listbox.yview)
+        self.template_listbox.configure(yscrollcommand=template_listbox_scrollbar.set)
+
+        self.template_listbox.pack(side="left", fill="both", expand=True)
+        template_listbox_scrollbar.pack(side="right", fill="y")
+
+        # 添加鼠标滚轮支持
+        def _on_template_mousewheel(event):
+            if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
+                delta = -1 * (event.delta // 120) if event.delta else 0
+                self.template_listbox.yview_scroll(delta, "units")
+            else:
+                if event.num == 4:
+                    self.template_listbox.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    self.template_listbox.yview_scroll(1, "units")
+
+        self.template_listbox.bind("<MouseWheel>", _on_template_mousewheel)
+        self.template_listbox.bind("<Button-4>", _on_template_mousewheel)
+        self.template_listbox.bind("<Button-5>", _on_template_mousewheel)
         # 模板列表初始化（修改后）
         self.template_listbox.delete(0, tk.END)
         if self.task_templates:
@@ -1163,10 +1224,22 @@ class LLMTaskAutomationGUI:
                     canvas.yview_scroll(-1, "units")
                 elif event.num == 5:
                     canvas.yview_scroll(1, "units")
-        
+
+        # 修复：为整个编辑器框架的子组件都绑定滚轮事件
+        def _bind_mousewheel_to_widget(widget):
+            widget.bind("<MouseWheel>", _on_mousewheel)
+            widget.bind("<Button-4>", _on_mousewheel)
+            widget.bind("<Button-5>", _on_mousewheel)
+            for child in widget.winfo_children():
+                _bind_mousewheel_to_widget(child)
+
+        # 为canvas绑定滚轮事件
         canvas.bind("<MouseWheel>", _on_mousewheel)
         canvas.bind("<Button-4>", _on_mousewheel)
         canvas.bind("<Button-5>", _on_mousewheel)
+
+        # 为scrollable_frame及其所有子组件绑定滚轮事件
+        _bind_mousewheel_to_widget(scrollable_frame)
         
         # === 任务基本信息 ===
         basic_frame = ttk.Frame(scrollable_frame)
@@ -1274,7 +1347,6 @@ class LLMTaskAutomationGUI:
         self.create_btn(device_btn_frame, "连接", lambda: self.connect_device("designer"), 'Action.TButton', tk.LEFT, padx=5)
         self.create_btn(device_btn_frame, "清除缓存", self.clear_device_cache, 'Action.TButton', tk.LEFT, padx=5)
 
-        # 测试执行按钮（右对齐）
         self.create_btn(device_btn_frame, "测试LLM执行", self.test_llm_execution, 'Security.TButton', tk.RIGHT)
 
         # ----- 日志面板添加到预览页面 -----
@@ -1364,8 +1436,6 @@ class LLMTaskAutomationGUI:
 
     def create_example_template_ui(self):
         """创建示例模板UI"""
-        # 生成唯一ID（基于时间戳和随机数）
-        import random
         timestamp = int(time.time())
         random_suffix = random.randint(1000, 9999)
 
@@ -1411,34 +1481,187 @@ class LLMTaskAutomationGUI:
     def add_task_variable(self):
         """添加新任务变量"""
         try:
-            # 使用简单对话框获取变量信息
-            name = simpledialog.askstring("添加任务变量", "输入变量名:")
-            if not name:
-                return
-            var_type = simpledialog.askstring("添加任务变量", "输入变量类型 (string/int/bool/float):", initialvalue="string")
-            default_val = simpledialog.askstring("添加任务变量", "输入默认值:")
-            desc = simpledialog.askstring("添加任务变量", "输入变量描述（可选）:")
+            # 创建变量设置对话框
+            dialog = tk.Toplevel(self.root)
+            dialog.title("添加任务变量")
+            dialog.geometry("500x500")
+            dialog.resizable(True, True)
+            dialog.transient(self.root)
+            dialog.grab_set()
 
-            var_def = {
-                "name": name,
-                "type": var_type,
-                "default": default_val,
-                "desc": desc if desc else ""
-            }
+            # 使用 notebooks 组织不同的设置
+            notebook = ttk.Notebook(dialog)
+            notebook.pack(fill='both', expand=True, padx=10, pady=10)
 
-            # 添加到树形列表
-            self.var_tree.insert("", "end", values=(
-                var_def["name"],
-                var_def["type"],
-                var_def["default"],
-                var_def["desc"]
-            ), tags=(json.dumps(var_def),))
+            # 基本设置页面
+            basic_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(basic_frame, text='基本设置')
 
-            self.log_message(f"已添加任务变量: {var_def['name']}", "designer")
+            # 输入字段
+            ttk.Label(basic_frame, text="变量名:").grid(row=0, column=0, sticky=tk.W, pady=5)
+            name_var = tk.StringVar()
+            name_entry = ttk.Entry(basic_frame, textvariable=name_var, width=30)
+            name_entry.grid(row=0, column=1, sticky='ew', padx=5, pady=5)
+
+            ttk.Label(basic_frame, text="变量类型:").grid(row=1, column=0, sticky=tk.W, pady=5)
+            type_var = tk.StringVar(value="string")
+            type_combo = ttk.Combobox(basic_frame, textvariable=type_var, width=27, state='readonly')
+            type_combo['values'] = ('string', 'int', 'bool', 'float', 'select')
+            type_combo.grid(row=1, column=1, sticky='ew', padx=5, pady=5)
+            type_combo.bind('<<ComboboxSelected>>', lambda e: self.update_multi_select_ui(select_frame, type_var.get()))
+
+            ttk.Label(basic_frame, text="默认值:").grid(row=2, column=0, sticky=tk.W, pady=5)
+            default_var = tk.StringVar()
+            default_entry = ttk.Entry(basic_frame, textvariable=default_var, width=30)
+            default_entry.grid(row=2, column=1, sticky='ew', padx=5, pady=5)
+
+            ttk.Label(basic_frame, text="变量描述:").grid(row=3, column=0, sticky=tk.W, pady=5)
+            desc_var = tk.StringVar()
+            desc_entry = ttk.Entry(basic_frame, textvariable=desc_var, width=30)
+            desc_entry.grid(row=3, column=1, sticky='ew', padx=5, pady=5)
+
+            basic_frame.grid_columnconfigure(1, weight=1)
+
+            # 多选值设置页面
+            select_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(select_frame, text='多选值设置')
+
+            ttk.Label(select_frame, text="可选值列表:", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=5)
+
+            # 可选值管理界面
+            values_frame = ttk.Frame(select_frame)
+            values_frame.pack(fill='both', expand=True, pady=5)
+
+            # 左侧：可选值列表
+            list_frame = ttk.Frame(values_frame)
+            list_frame.pack(side=tk.LEFT, fill='both', expand=True, padx=(0, 5))
+
+            self.multi_select_values = tk.Listbox(list_frame, height=12)
+            scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.multi_select_values.yview)
+            self.multi_select_values.configure(yscrollcommand=scrollbar.set)
+            self.multi_select_values.pack(side='left', fill='both', expand=True)
+            scrollbar.pack(side='right', fill='y')
+
+            # 右侧：操作按钮
+            btn_frame = ttk.Frame(values_frame)
+            btn_frame.pack(side=tk.RIGHT, fill='y')
+
+            value_entry_var = tk.StringVar()
+            ttk.Label(btn_frame, text="添加值:").pack(anchor=tk.W)
+            value_entry = ttk.Entry(btn_frame, textvariable=value_entry_var, width=20)
+            value_entry.pack(fill='x', pady=2)
+
+            def add_value():
+                value = value_entry_var.get().strip()
+                if value and value not in self.multi_select_values.get(0, tk.END):
+                    self.multi_select_values.insert(tk.END, value)
+                    value_entry_var.set("")
+
+            def remove_value():
+                selection = self.multi_select_values.curselection()
+                if selection:
+                    self.multi_select_values.delete(selection[0])
+
+            ttk.Button(btn_frame, text="添加", command=add_value).pack(fill='x', pady=2)
+            ttk.Button(btn_frame, text="删除", command=remove_value).pack(fill='x', pady=2)
+            ttk.Button(btn_frame, text="清空", command=lambda: self.multi_select_values.delete(0, tk.END)).pack(fill='x', pady=2)
+
+            # 预设值
+            ttk.Label(btn_frame, text="预设值:").pack(anchor=tk.W, pady=(10, 2))
+
+            def add_preset_values(values_list):
+                for value in values_list:
+                    if value and value not in self.multi_select_values.get(0, tk.END):
+                        self.multi_select_values.insert(tk.END, value)
+
+            ttk.Button(btn_frame, text="常用选项",
+                      command=lambda: add_preset_values(['选项1', '选项2', '选项3'])).pack(fill='x', pady=1)
+            ttk.Button(btn_frame, text="数字序列",
+                      command=lambda: add_preset_values([str(i) for i in range(1, 11)])).pack(fill='x', pady=1)
+            ttk.Button(btn_frame, text="True/False",
+                      command=lambda: add_preset_values(['true', 'false'])).pack(fill='x', pady=1)
+
+            # 初始状态隐藏多选值界面
+            self.update_multi_select_ui(select_frame, type_var.get())
+
+            # 对话框按钮
+            button_frame = ttk.Frame(dialog)
+            button_frame.pack(fill='x', padx=10, pady=10)
+
+            def save_variable():
+                name = name_var.get().strip()
+                if not name:
+                    messagebox.showwarning("警告", "请输入变量名")
+                    return
+
+                # 收集多选值
+                multi_values = list(self.multi_select_values.get(0, tk.END))
+
+                # 获取当前默认值并验证
+                current_default = default_var.get().strip()
+
+                var_def = {
+                    "name": name,
+                    "type": type_var.get(),
+                    "default": current_default,
+                    "desc": desc_var.get().strip(),
+                    "multi_values": multi_values if multi_values else []
+                }
+
+                # 更新默认值选择（类型为select时）
+                if type_var.get() == 'select' and multi_values:
+                    # 确保默认值在可选值中
+                    if current_default not in multi_values:
+                        if multi_values:
+                            var_def['default'] = multi_values[0]  # 默认选择第一个
+                        else:
+                            var_def['default'] = ''
+
+                # 添加到树形列表
+                display_default = var_def['default']
+                if var_def['type'] == 'select' and var_def['multi_values']:
+                    display_default = f"{var_def['default']} (可选: {', '.join(var_def['multi_values'])})"
+
+                self.var_tree.insert("", "end", values=(
+                    var_def["name"],
+                    var_def["type"],
+                    display_default,
+                    var_def["desc"]
+                ), tags=(json.dumps(var_def),))
+
+                self.log_message(f"已添加任务变量: {var_def['name']}", "designer")
+                dialog.destroy()
+
+            ttk.Button(button_frame, text="保存", command=save_variable).pack(side=tk.RIGHT, padx=5)
+            ttk.Button(button_frame, text="取消", command=dialog.destroy).pack(side=tk.RIGHT)
+
+            name_entry.focus()
 
         except Exception as e:
             self.log_message(f"添加变量失败: {str(e)}", "designer")
             messagebox.showerror("错误", f"添加变量失败:\n{str(e)}")
+
+    def update_multi_select_ui(self, frame, var_type):
+        """根据变量类型更新多选值界面"""
+        # 查找并启用/禁用多选值相关的控件
+        for widget in frame.winfo_children():
+            if isinstance(widget, ttk.Frame):
+                # 递归处理子控件
+                for child in widget.winfo_children():
+                    try:
+                        if var_type == 'select':
+                            # 大多数控件支持state选项
+                            if isinstance(child, (ttk.Button, ttk.Entry, ttk.Label, ttk.Scrollbar)):
+                                child.configure(state='normal')
+                            elif isinstance(child, tk.Listbox):
+                                child.configure(state='normal')
+                        else:
+                            if isinstance(child, (ttk.Button, ttk.Entry, ttk.Label, ttk.Scrollbar)):
+                                child.configure(state='disabled')
+                            elif isinstance(child, tk.Listbox):
+                                child.configure(state='disabled')
+                    except tk.TclError:
+                        pass  # 某些控件不支持state配置，忽略错误
 
     def edit_task_variable(self):
         """编辑选中的任务变量"""
@@ -1460,32 +1683,166 @@ class LLMTaskAutomationGUI:
                     # JSON解析失败时使用空字典
                     var_def = {}
 
-            name = simpledialog.askstring("编辑任务变量", "修改变量名:", initialvalue=values[0] if values else "")
-            if not name:
-                return
-            var_type = simpledialog.askstring("编辑任务变量", "修改变量类型 (string/int/bool/float):",
-                                            initialvalue=values[1] if values else "string")
-            default_val = simpledialog.askstring("编辑任务变量", "修改默认值:",
-                                               initialvalue=values[2] if values else "")
-            desc = simpledialog.askstring("编辑任务变量", "修改变量描述（可选）:",
-                                         initialvalue=values[3] if values else "")
+            # 创建变量编辑对话框
+            dialog = tk.Toplevel(self.root)
+            dialog.title("编辑任务变量")
+            dialog.geometry("500x500")
+            dialog.resizable(True, True)
+            dialog.transient(self.root)
+            dialog.grab_set()
 
-            new_def = {
-                "name": name,
-                "type": var_type,
-                "default": default_val,
-                "desc": desc if desc else ""
-            }
+            # 使用 notebooks 组织不同的设置
+            notebook = ttk.Notebook(dialog)
+            notebook.pack(fill='both', expand=True, padx=10, pady=10)
 
-            # 更新树形列表显示
-            self.var_tree.item(item_id, values=(
-                new_def["name"],
-                new_def["type"],
-                new_def["default"],
-                new_def["desc"]
-            ), tags=(json.dumps(new_def),))
+            # 基本设置页面
+            basic_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(basic_frame, text='基本设置')
 
-            self.log_message(f"已更新任务变量: {new_def['name']}", "designer")
+            # 输入字段
+            ttk.Label(basic_frame, text="变量名:").grid(row=0, column=0, sticky=tk.W, pady=5)
+            name_var = tk.StringVar(value=values[0] if values else "")
+            name_entry = ttk.Entry(basic_frame, textvariable=name_var, width=30)
+            name_entry.grid(row=0, column=1, sticky='ew', padx=5, pady=5)
+
+            ttk.Label(basic_frame, text="变量类型:").grid(row=1, column=0, sticky=tk.W, pady=5)
+            type_var = tk.StringVar(value=var_def.get('type', values[1] if len(values) > 1 else "string"))
+            type_combo = ttk.Combobox(basic_frame, textvariable=type_var, width=27, state='readonly')
+            type_combo['values'] = ('string', 'int', 'bool', 'float', 'select')
+            type_combo.grid(row=1, column=1, sticky='ew', padx=5, pady=5)
+            type_combo.bind('<<ComboboxSelected>>', lambda e: self.update_multi_select_ui(select_frame, type_var.get()))
+
+            ttk.Label(basic_frame, text="默认值:").grid(row=2, column=0, sticky=tk.W, pady=5)
+            default_var = tk.StringVar(value=var_def.get('default', values[2] if len(values) > 2 else ""))
+            default_entry = ttk.Entry(basic_frame, textvariable=default_var, width=30)
+            default_entry.grid(row=2, column=1, sticky='ew', padx=5, pady=5)
+
+            ttk.Label(basic_frame, text="变量描述:").grid(row=3, column=0, sticky=tk.W, pady=5)
+            desc_var = tk.StringVar(value=var_def.get('desc', values[3] if len(values) > 3 else ""))
+            desc_entry = ttk.Entry(basic_frame, textvariable=desc_var, width=30)
+            desc_entry.grid(row=3, column=1, sticky='ew', padx=5, pady=5)
+
+            basic_frame.grid_columnconfigure(1, weight=1)
+
+            # 多选值设置页面
+            select_frame = ttk.Frame(notebook, padding="10")
+            notebook.add(select_frame, text='多选值设置')
+
+            ttk.Label(select_frame, text="可选值列表:", font=('Arial', 10, 'bold')).pack(anchor=tk.W, pady=5)
+
+            # 可选值管理界面
+            values_frame = ttk.Frame(select_frame)
+            values_frame.pack(fill='both', expand=True, pady=5)
+
+            # 左侧：可选值列表
+            list_frame = ttk.Frame(values_frame)
+            list_frame.pack(side=tk.LEFT, fill='both', expand=True, padx=(0, 5))
+
+            self.multi_select_values = tk.Listbox(list_frame, height=12)
+            scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=self.multi_select_values.yview)
+            self.multi_select_values.configure(yscrollcommand=scrollbar.set)
+            self.multi_select_values.pack(side='left', fill='both', expand=True)
+            scrollbar.pack(side='right', fill='y')
+
+            # 加载现有的多选值
+            existing_values = var_def.get('multi_values', [])
+            for value in existing_values:
+                self.multi_select_values.insert(tk.END, value)
+
+            # 右侧：操作按钮
+            btn_frame = ttk.Frame(values_frame)
+            btn_frame.pack(side=tk.RIGHT, fill='y')
+
+            value_entry_var = tk.StringVar()
+            ttk.Label(btn_frame, text="添加值:").pack(anchor=tk.W)
+            value_entry = ttk.Entry(btn_frame, textvariable=value_entry_var, width=20)
+            value_entry.pack(fill='x', pady=2)
+
+            def add_value():
+                value = value_entry_var.get().strip()
+                if value and value not in self.multi_select_values.get(0, tk.END):
+                    self.multi_select_values.insert(tk.END, value)
+                    value_entry_var.set("")
+
+            def remove_value():
+                selection = self.multi_select_values.curselection()
+                if selection:
+                    self.multi_select_values.delete(selection[0])
+
+            ttk.Button(btn_frame, text="添加", command=add_value).pack(fill='x', pady=2)
+            ttk.Button(btn_frame, text="删除", command=remove_value).pack(fill='x', pady=2)
+            ttk.Button(btn_frame, text="清空", command=lambda: self.multi_select_values.delete(0, tk.END)).pack(fill='x', pady=2)
+
+            # 预设值
+            ttk.Label(btn_frame, text="预设值:").pack(anchor=tk.W, pady=(10, 2))
+
+            def add_preset_values(values_list):
+                for value in values_list:
+                    if value and value not in self.multi_select_values.get(0, tk.END):
+                        self.multi_select_values.insert(tk.END, value)
+
+            ttk.Button(btn_frame, text="常用选项",
+                      command=lambda: add_preset_values(['选项1', '选项2', '选项3'])).pack(fill='x', pady=1)
+            ttk.Button(btn_frame, text="数字序列",
+                      command=lambda: add_preset_values([str(i) for i in range(1, 11)])).pack(fill='x', pady=1)
+            ttk.Button(btn_frame, text="True/False",
+                      command=lambda: add_preset_values(['true', 'false'])).pack(fill='x', pady=1)
+
+            # 初始状态隐藏多选值界面
+            self.update_multi_select_ui(select_frame, type_var.get())
+
+            # 对话框按钮
+            button_frame = ttk.Frame(dialog)
+            button_frame.pack(fill='x', padx=10, pady=10)
+
+            def save_variable():
+                name = name_var.get().strip()
+                if not name:
+                    messagebox.showwarning("警告", "请输入变量名")
+                    return
+
+                # 收集多选值
+                multi_values = list(self.multi_select_values.get(0, tk.END))
+
+                # 获取当前默认值并验证
+                current_default = default_var.get().strip()
+
+                var_def = {
+                    "name": name,
+                    "type": type_var.get(),
+                    "default": current_default,
+                    "desc": desc_var.get().strip(),
+                    "multi_values": multi_values if multi_values else []
+                }
+
+                # 更新默认值选择（类型为select时）
+                if type_var.get() == 'select' and multi_values:
+                    # 确保默认值在可选值中
+                    if current_default not in multi_values:
+                        if multi_values:
+                            var_def['default'] = multi_values[0]  # 默认选择第一个
+                        else:
+                            var_def['default'] = ''
+
+                # 更新树形列表显示
+                display_default = var_def['default']
+                if var_def['type'] == 'select' and var_def['multi_values']:
+                    display_default = f"{var_def['default']} (可选: {', '.join(var_def['multi_values'])})"
+
+                self.var_tree.item(item_id, values=(
+                    var_def["name"],
+                    var_def["type"],
+                    display_default,
+                    var_def["desc"]
+                ), tags=(json.dumps(var_def),))
+
+                self.log_message(f"已更新任务变量: {var_def['name']}", "designer")
+                dialog.destroy()
+
+            ttk.Button(button_frame, text="保存", command=save_variable).pack(side=tk.RIGHT, padx=5)
+            ttk.Button(button_frame, text="取消", command=dialog.destroy).pack(side=tk.RIGHT)
+
+            name_entry.focus()
 
         except Exception as e:
             self.log_message(f"编辑变量失败: {str(e)}", "designer")
@@ -1887,6 +2244,7 @@ class LLMTaskAutomationGUI:
         prompt += "\n## 当前子任务状态（队列形式）\n"
         for st in content_window['splited_task']:
             status_text = {"pending": "待完成", "in_progress": "进行中", "completed": "已完成"}.get(st['status'], "未知")
+            status_emoji = {"pending": "▫", "in_progress": "▸", "completed": "✓"}.get(st['status'], "•")
             prompt += f"{status_emoji} [{st['status']}] {st['desc']} (ID: {st['id']})\n"
             if st['subtasks']:
                 for sub in st['subtasks']:
@@ -2439,9 +2797,28 @@ class LLMTaskAutomationGUI:
         # 执行控制
         exec_frame = ttk.LabelFrame(control_frame, text="执行控制", padding="10")
         exec_frame.pack(fill='x', pady=(0, 10))
-        self.llm_start_btn = self.create_btn(exec_frame, "▶ 启动LLM执行队列", self.start_llm_execution, 'Security.TButton', tk.TOP, fill='x', pady=(0, 5))
+        self.llm_start_btn = self.create_btn(exec_frame, "▶ 启动推理", self.start_llm_execution, 'Security.TButton', tk.TOP, fill='x', pady=(0, 5))
         self.llm_stop_btn = self.create_btn(exec_frame, "■ 停止执行", self.stop_llm_execution, 'Stop.TButton', tk.TOP, fill='x', pady=(5, 0))
         self.llm_stop_btn.config(state='disabled')
+
+        # 执行次数设置
+        count_frame = ttk.Frame(exec_frame)
+        count_frame.pack(fill='x', pady=(5, 0))
+        ttk.Label(count_frame, text="执行次数:", font=('Arial', 9)).pack(side=tk.LEFT)
+        self.execution_count_var = tk.IntVar(value=self.execution_count)
+        execution_count_spinbox = ttk.Spinbox(count_frame, from_=1, to=99, textvariable=self.execution_count_var, width=5)
+        execution_count_spinbox.pack(side=tk.LEFT, padx=(5, 0))
+        execution_count_spinbox.bind('<Return>', lambda e: self.on_execution_count_changed())
+        execution_count_spinbox.bind('<FocusOut>', lambda e: self.on_execution_count_changed())
+
+        # 保存spinbox的引用以便后续控制
+        self.execution_count_entry = execution_count_spinbox
+
+        # 添加持续循环选项
+        self.continuous_loop_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(count_frame, text="持续循环",
+                       variable=self.continuous_loop_var,
+                       command=self.on_continuous_loop_changed).pack(side=tk.LEFT, padx=(20, 5))
 
         # 当前任务状态显示
         self.current_task_label = ttk.Label(exec_frame, text="当前: 无", font=('Arial', 9), justify=tk.LEFT)
@@ -2504,6 +2881,7 @@ class LLMTaskAutomationGUI:
         return {
             "template_id": "__device_setup__",
             "template_copy": {
+                "template_id": "__device_setup__",  # 添加这个字段
                 "id": "__device_setup__",
                 "name": "📱 设备连接",
                 "description": "连接目标Android设备，为后续任务做准备",
@@ -2682,12 +3060,23 @@ class LLMTaskAutomationGUI:
                             "timeout": 300,
                             "continue_on_failure": False
                         },
-                        "variables_override": {},  # 初始无覆盖
+                        "variables_override": {},  # 初始无覆盖，用户可在任务设置中配置
                         "enabled": True,
                         "order": len(self.task_queue)
                     }
 
                     self.task_queue.append(task_item)
+
+                    # 确保设备连接任务始终是第一个
+                    has_device_task = any(item["template_id"] == "__device_setup__" for item in self.task_queue)
+                    if not has_device_task:
+                        # 插入设备连接任务到开始
+                        device_task = self.create_device_task_item()
+                        self.task_queue.insert(0, device_task)
+                        # 更新所有任务的order
+                        for i, task in enumerate(self.task_queue):
+                            task["order"] = i
+
                     self.save_task_queue()  # 立即保存
                     self.refresh_task_queue_display()
                     self.log_message(f"已添加任务到队列: {template['name']}", "llm")
@@ -2703,17 +3092,115 @@ class LLMTaskAutomationGUI:
         ttk.Button(btn_frame, text="❌ 取消",
                    command=dialog.destroy).pack(side=tk.LEFT, padx=5)
 
+    def configure_variables_dialog(self, template, select_variables):
+        """配置变量多选值的对话框"""
+        dialog = tk.Toplevel(self.root)
+        dialog.title(f"配置变量 - {template['name']}")
+        dialog.geometry("600x450")
+        dialog.transient(self.root)
+        dialog.grab_set()
+
+        result = {'confirmed': False, 'variables': {}}
+
+        ttk.Label(dialog, text="请配置以下变量的值:", font=('Arial', 10, 'bold')).pack(pady=10)
+
+        # 创建滚动的变量配置区域
+        canvas = tk.Canvas(dialog, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(dialog, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas, padding="10")
+
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        variables_config = {}
+
+        for i, var in enumerate(select_variables):
+            var_frame = ttk.LabelFrame(scrollable_frame, text=f"变量: {var['name']}", padding="10")
+            var_frame.pack(fill='x', pady=5)
+
+            ttk.Label(var_frame, text="描述:").pack(anchor=tk.W)
+            ttk.Label(var_frame, text=var.get('desc', '无描述'), font=('Arial', 9)).pack(anchor=tk.W, pady=(0, 5))
+
+            ttk.Label(var_frame, text="可选值:").pack(anchor=tk.W)
+
+            # 根据可选值数量选择UI
+            multi_values = var.get('multi_values', [])
+            if len(multi_values) <= 4:
+                # 使用Radio Buttons
+                selected_var = tk.StringVar(value=var.get('default', multi_values[0] if multi_values else ''))
+                for value in multi_values:
+                    ttk.Radiobutton(var_frame, text=value, variable=selected_var, value=value).pack(anchor=tk.W)
+                variables_config[var['name']] = selected_var
+            else:
+                # 使用Combobox
+                ttk.Label(var_frame, text="选择值:").pack(anchor=tk.W, pady=(5, 0))
+                selected_var = tk.StringVar(value=var.get('default', multi_values[0] if multi_values else ''))
+                combo = ttk.Combobox(var_frame, textvariable=selected_var, values=multi_values, state='readonly')
+                combo.pack(fill='x', pady=2)
+                variables_config[var['name']] = selected_var
+
+        canvas.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+        scrollbar.pack(side="right", fill="y")
+
+        # 按钮区域
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(fill='x', padx=10, pady=10)
+
+        def on_confirm():
+            result['confirmed'] = True
+            for var_name, var_widget in variables_config.items():
+                result['variables'][var_name] = var_widget.get()
+            dialog.destroy()
+
+        def on_cancel():
+            dialog.destroy()
+
+        ttk.Button(btn_frame, text="确认", command=on_confirm, style='Security.TButton').pack(side=tk.RIGHT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.RIGHT, padx=5)
+
+        # 添加鼠标滚轮支持
+        def _on_mousewheel(event):
+            if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
+                delta = -1 * (event.delta // 120) if event.delta else 0
+                canvas.yview_scroll(delta, "units")
+            else:
+                if event.num == 4:
+                    canvas.yview_scroll(-1, "units")
+                elif event.num == 5:
+                    canvas.yview_scroll(1, "units")
+
+        dialog.bind("<MouseWheel>", _on_mousewheel)
+        dialog.bind("<Button-4>", _on_mousewheel)
+        dialog.bind("<Button-5>", _on_mousewheel)
+
+        dialog.wait_window()
+
+        if result['confirmed']:
+            # 将配置的变量保存到模板的变量覆盖中
+            # 这里需要在调用处处理
+            self.last_variable_config = result['variables']
+
+        return result['confirmed']
+
     def remove_task_from_queue(self):
-        """从队列中移除选中的任务"""
+        """从队列中移除选中的任务 - 确保索引0的任务无法被删除"""
         selection = self.task_queue_listbox.curselection()
         if not selection:
             messagebox.showwarning("警告", "请先选择一个任务")
             return
 
         selected_index = selection[0]
-        if 0 <= selected_index < len(self.task_queue):
+
+        # 禁止删除索引0的任务
+        if selected_index == 0:
+            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能删除")
+            return
+
+        if 0 < selected_index < len(self.task_queue):
             task_item = self.task_queue[selected_index]
-            # 检查是否为设备连接任务（不可删除）
+            # 双重检查：基于模板ID和索引位置
             if task_item.get("template_id") == "__device_setup__":
                 messagebox.showwarning("警告", "设备连接任务不可删除")
                 return
@@ -2724,14 +3211,20 @@ class LLMTaskAutomationGUI:
             self.log_message(f"🗑️ 已从队列移除任务: {task_name}", "llm")
 
     def move_task_up(self):
-        """将选中的任务上移"""
+        """将选中的任务上移 - 禁止移动索引0的任务和索引1的任务上移"""
         selection = self.task_queue_listbox.curselection()
         if not selection:
             messagebox.showwarning("警告", "请先选择一个任务")
             return
 
         selected_index = selection[0]
-        if 0 <= selected_index < len(self.task_queue):
+
+        # 禁止移动索引0和索引1的任务上移
+        if selected_index <= 1:
+            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能移动其他任务到它前面")
+            return
+
+        if selected_index > 1 and selected_index < len(self.task_queue):
             # 交换位置
             self.task_queue[selected_index], self.task_queue[selected_index-1] = \
                 self.task_queue[selected_index-1], self.task_queue[selected_index]
@@ -2742,13 +3235,19 @@ class LLMTaskAutomationGUI:
             self.log_message(f"⬆️ 任务已上移", "llm")
 
     def move_task_down(self):
-        """将选中的任务下移"""
+        """将选中的任务下移 - 禁止索引0的任务下移"""
         selection = self.task_queue_listbox.curselection()
         if not selection:
             messagebox.showwarning("警告", "请先选择一个任务")
             return
 
         selected_index = selection[0]
+
+        # 禁止索引0的任务下移
+        if selected_index == 0:
+            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能下移")
+            return
+
         if selected_index < len(self.task_queue) - 1:
             # 交换位置
             self.task_queue[selected_index], self.task_queue[selected_index+1] = \
@@ -2832,7 +3331,7 @@ class LLMTaskAutomationGUI:
             self.open_task_settings(selection[0])
 
     def open_task_settings(self, task_index: int):
-        """在标签页中打开任务特定设置"""
+        """在标签页中打开任务特定设置 - 分离设备连接任务和普通任务的UI"""
         if task_index < 0 or task_index >= len(self.task_queue):
             return
 
@@ -2867,140 +3366,261 @@ class LLMTaskAutomationGUI:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
-        # 4. 设备选择（从LLM执行控制台移动到任务设置）
-        device_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
-        device_frame.pack(fill='x', pady=(10, 5))
+        # 4. 检查是否是设备连接任务
+        is_device_setup_task = task_template.get('template_id') == '__device_setup__'
 
-        # 设备选择和输入框架
-        device_input_frame = ttk.Frame(device_frame)
-        device_input_frame.pack(fill='x', pady=(0, 5))
+        if is_device_setup_task:
+            # === 设备连接任务的独有UI ===
+            ttk.Label(scrollable_frame, text="📱 设备连接配置", font=('Arial', 12, 'bold')).pack(pady=(10, 5), anchor=tk.W)
 
-        ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
-        task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
-        task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
+            # 设备选择（从LLM执行控制台移动到任务设置）
+            device_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
+            device_frame.pack(fill='x', pady=(10, 5))
+
+            # 设备选择和输入框架
+            device_input_frame = ttk.Frame(device_frame)
+            device_input_frame.pack(fill='x', pady=(0, 5))
+
+            ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
+            task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
+            task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
 
             # 初始化设备列表
-        all_devices = list(dict.fromkeys(self.device_cache))
-        if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
-            all_devices.remove(self.last_successful_device)
-            all_devices.insert(0, self.last_successful_device)
-        task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
-        # 默认选中最近一个连接成功的设备
-        if self.last_successful_device:
-            task_settings_device_combo.set(self.last_successful_device)
+            all_devices = list(dict.fromkeys(self.device_cache))
+            if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
+                all_devices.remove(self.last_successful_device)
+                all_devices.insert(0, self.last_successful_device)
+            task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
 
-        # 刷新按钮
-        refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
-                                command=lambda: self.refresh_device_combo(task_settings_device_combo))
-        refresh_btn.pack(side=tk.LEFT, padx=5)
+            # 默认选中最近一个连接成功的设备
+            if self.last_successful_device:
+                task_settings_device_combo.set(self.last_successful_device)
 
-        # 手动输入按钮
-        manual_btn = ttk.Button(device_input_frame, text="手动输入",
-                               command=lambda: self.manual_input_device_for_settings(task_settings_device_combo))
-        manual_btn.pack(side=tk.LEFT, padx=5)
+            # 刷新按钮
+            refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
+                                    command=lambda: self.refresh_device_combo(task_settings_device_combo))
+            refresh_btn.pack(side=tk.LEFT, padx=5)
 
-        # 连接状态显示
-        device_status_frame = ttk.Frame(device_frame)
-        device_status_frame.pack(fill='x', pady=(5, 0))
+            # 手动输入按钮
+            manual_btn = ttk.Button(device_input_frame, text="手动输入",
+                                   command=lambda: self.manual_input_device_for_settings(task_settings_device_combo))
+            manual_btn.pack(side=tk.LEFT, padx=5)
 
-        device_connection_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
-                                           font=('Arial', 9), foreground='gray')
-        device_connection_status.pack(side=tk.LEFT)
+            # 连接状态显示
+            device_status_frame = ttk.Frame(device_frame)
+            device_status_frame.pack(fill='x', pady=(5, 0))
 
-        # 连接按钮
-        connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
-                                command=lambda: self.connect_device_from_settings(task_settings_device_combo, device_connection_status))
-        connect_btn.pack(side=tk.RIGHT, padx=5)
+            device_connection_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
+                                               font=('Arial', 9), foreground='gray')
+            device_connection_status.pack(side=tk.LEFT)
 
-        # 保存设备选择的引用，以便后续使用
-        settings_tab.task_settings_device_combo = task_settings_device_combo
-        settings_tab.device_connection_status = device_connection_status
-        settings_tab.task_index = task_index
+            # 连接按钮
+            connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
+                                    command=lambda: self.connect_device_from_settings(task_settings_device_combo, device_connection_status))
+            connect_btn.pack(side=tk.RIGHT, padx=5)
 
-        # 5. 变量设置部分
-        ttk.Label(scrollable_frame, text="任务变量设置", font=('Arial', 11, 'bold')).pack(pady=(10, 5), anchor=tk.W)
+            # 保存设备选择的引用，以便后续使用
+            settings_tab.task_settings_device_combo = task_settings_device_combo
+            settings_tab.device_connection_status = device_connection_status
+            settings_tab.task_index = task_index
 
-        # 获取当前覆盖值
-        current_overrides = task_item.get("variables_override", {})
+            # 设备连接任务说明
+            info_frame = ttk.LabelFrame(scrollable_frame, text="📋 任务说明", padding="10")
+            info_frame.pack(fill='x', pady=(10, 5))
 
-        # 为每个变量创建输入框
-        variable_widgets = {}
-        for var_def in task_template.get("variables", []):
-            var_frame = ttk.Frame(scrollable_frame)
-            var_frame.pack(fill='x', padx=10, pady=5)
+            info_text = """设备连接任务说明：
+• 此任务负责建立与Android设备的连接
+• 支持USB和网络连接方式
+• 连接成功后才能执行后续任务
+• 此任务始终固定在队列第一位
 
-            var_name = var_def["name"]
-            var_type = var_def["type"]
-            default_val = var_def["default"]
+注意事项：
+• 确保设备已开启USB调试
+• 网络连接需要输入IP:端口格式
+• 连接失败时会自动重试"""
 
-            # 使用覆盖值或默认值
-            current_val = current_overrides.get(var_name, default_val)
+            ttk.Label(info_frame, text=info_text, font=('Arial', 9), justify=tk.LEFT).pack(anchor=tk.W)
 
-            ttk.Label(var_frame, text=f"{var_name} ({var_type}):", width=20).pack(side=tk.LEFT)
+            # 隐藏其他设置部分
+            variable_widgets = {}
 
-            # 根据变量类型创建不同的输入控件
-            if var_type == "bool":
-                var_var = tk.BooleanVar(value=str(current_val).lower() in ['true', '1', 'yes'])
-                ttk.Checkbutton(var_frame, variable=var_var).pack(side=tk.LEFT)
-            elif var_type == "int":
-                var_var = tk.StringVar(value=str(current_val))
-                ttk.Spinbox(var_frame, textvariable=var_var, from_=-1000000, to=1000000, width=15).pack(side=tk.LEFT, padx=5)
-            elif var_type == "float":
-                var_var = tk.StringVar(value=str(current_val))
-                ttk.Entry(var_frame, textvariable=var_var, width=20).pack(side=tk.LEFT, padx=5)
-            else:  # string
-                var_var = tk.StringVar(value=str(current_val))
-                ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
+        else:
+            # === 普通任务的UI ===
+            # 检查模板是否有变量
+            template_variables = task_template.get("variables", [])
 
-            # 显示默认值提示
-            ttk.Label(var_frame, text=f"默认: {default_val}", font=('Arial', 8), foreground='gray').pack(side=tk.LEFT, padx=10)
+            # 根据任务类型决定是否显示设备设置
+            show_device_settings = len(template_variables) > 0
 
-            variable_widgets[var_name] = (var_var, var_type)
+            if show_device_settings:
+                # 4. 设备选择（从LLM执行控制台移动到任务设置）
+                device_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
+                device_frame.pack(fill='x', pady=(10, 5))
 
-        # 6. 其他设置
-        ttk.Label(scrollable_frame, text="其他设置", font=('Arial', 11, 'bold')).pack(pady=(20, 5), anchor=tk.W)
+                # 设备选择和输入框架
+                device_input_frame = ttk.Frame(device_frame)
+                device_input_frame.pack(fill='x', pady=(0, 5))
 
-        # 启用/禁用任务
-        enabled_var = tk.BooleanVar(value=task_item.get("enabled", True))
-        enabled_frame = ttk.Frame(scrollable_frame)
-        enabled_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(enabled_frame, text="启用任务:").pack(side=tk.LEFT)
-        ttk.Checkbutton(enabled_frame, variable=enabled_var).pack(side=tk.LEFT)
+                ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
+                task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
+                task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
 
-        # 执行顺序
-        order_var = tk.IntVar(value=task_item.get("order", task_index))
-        order_frame = ttk.Frame(scrollable_frame)
-        order_frame.pack(fill='x', padx=10, pady=5)
-        ttk.Label(order_frame, text="执行顺序:").pack(side=tk.LEFT)
-        ttk.Spinbox(order_frame, textvariable=order_var, from_=0, to=len(self.task_queue)-1, width=10).pack(side=tk.LEFT, padx=5)
+                # 初始化设备列表
+                all_devices = list(dict.fromkeys(self.device_cache))
+                if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
+                    all_devices.remove(self.last_successful_device)
+                    all_devices.insert(0, self.last_successful_device)
+                task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
+
+                # 默认选中最近一个连接成功的设备
+                if self.last_successful_device:
+                    task_settings_device_combo.set(self.last_successful_device)
+
+                # 刷新按钮
+                refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
+                                        command=lambda: self.refresh_device_combo(task_settings_device_combo))
+                refresh_btn.pack(side=tk.LEFT, padx=5)
+
+                # 手动输入按钮
+                manual_btn = ttk.Button(device_input_frame, text="手动输入",
+                                       command=lambda: self.manual_input_device_for_settings(task_settings_device_combo))
+                manual_btn.pack(side=tk.LEFT, padx=5)
+
+                # 连接状态显示
+                device_status_frame = ttk.Frame(device_frame)
+                device_status_frame.pack(fill='x', pady=(5, 0))
+
+                device_connection_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
+                                                   font=('Arial', 9), foreground='gray')
+                device_connection_status.pack(side=tk.LEFT)
+
+                # 连接按钮
+                connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
+                                        command=lambda: self.connect_device_from_settings(task_settings_device_combo, device_connection_status))
+                connect_btn.pack(side=tk.RIGHT, padx=5)
+
+                # 保存设备选择的引用，以便后续使用
+                settings_tab.task_settings_device_combo = task_settings_device_combo
+                settings_tab.device_connection_status = device_connection_status
+                settings_tab.task_index = task_index
+
+            # 5. 变量设置部分
+            ttk.Label(scrollable_frame, text="任务变量设置", font=('Arial', 11, 'bold')).pack(pady=(10, 5), anchor=tk.W)
+
+            if not template_variables:
+                # 显示"无可用设置"
+                no_settings_label = ttk.Label(scrollable_frame, text="无可用设置",
+                                            font=('Arial', 10), foreground='gray')
+                no_settings_label.pack(pady=20, anchor=tk.W)
+                variable_widgets = {}
+            else:
+                # 获取当前覆盖值
+                current_overrides = task_item.get("variables_override", {})
+
+                # 为每个变量创建输入框
+                variable_widgets = {}
+                for var_def in template_variables:
+                    var_frame = ttk.Frame(scrollable_frame)
+                    var_frame.pack(fill='x', padx=10, pady=5)
+
+                    var_name = var_def["name"]
+                    var_type = var_def["type"]
+                    default_val = var_def["default"]
+
+                    # 使用覆盖值或默认值
+                    current_val = current_overrides.get(var_name, default_val)
+
+                    ttk.Label(var_frame, text=f"{var_name} ({var_type}):", width=20).pack(side=tk.LEFT)
+
+                    # 根据变量类型创建不同的输入控件
+                    if var_type == "bool":
+                        var_var = tk.BooleanVar(value=str(current_val).lower() in ['true', '1', 'yes'])
+                        ttk.Checkbutton(var_frame, variable=var_var).pack(side=tk.LEFT)
+                    elif var_type == "int":
+                        var_var = tk.StringVar(value=str(current_val))
+                        ttk.Spinbox(var_frame, textvariable=var_var, from_=-1000000, to=1000000, width=15).pack(side=tk.LEFT, padx=5)
+                    elif var_type == "float":
+                        var_var = tk.StringVar(value=str(current_val))
+                        ttk.Entry(var_frame, textvariable=var_var, width=20).pack(side=tk.LEFT, padx=5)
+                    elif var_type == "select":
+                        # 多选值类型使用Combobox
+                        multi_values = var_def.get('multi_values', [])
+                        if multi_values:
+                            # 确保当前值在可选值中，如果不在则使用默认值
+                            effective_value = current_val
+                            if effective_value not in multi_values:
+                                # 使用模板中的默认值或第一个可选值
+                                template_default = var_def.get('default')
+                                if template_default and template_default in multi_values:
+                                    effective_value = template_default
+                                elif multi_values:
+                                    effective_value = multi_values[0]
+
+                            var_var = tk.StringVar(value=effective_value)
+                            combo = ttk.Combobox(var_frame, textvariable=var_var, values=multi_values, state='readonly', width=25)
+                            combo.pack(side=tk.LEFT, padx=5)
+                        else:
+                            # 如果没有可选值，回退到普通输入框
+                            var_var = tk.StringVar(value=str(current_val))
+                            ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
+                    else:  # string
+                        var_var = tk.StringVar(value=str(current_val))
+                        ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
+
+                    # 显示默认值提示
+                    if var_type == "select" and var_def.get('multi_values'):
+                        ttk.Label(var_frame, text=f"可选: {', '.join(var_def['multi_values'])}", font=('Arial', 8), foreground='blue').pack(side=tk.LEFT, padx=10)
+                    else:
+                        ttk.Label(var_frame, text=f"默认: {default_val}", font=('Arial', 8), foreground='gray').pack(side=tk.LEFT, padx=10)
+
+                    variable_widgets[var_name] = (var_var, var_type)
+
+            # 6. 其他设置
+            ttk.Label(scrollable_frame, text="其他设置", font=('Arial', 11, 'bold')).pack(pady=(20, 5), anchor=tk.W)
+
+            # 启用/禁用任务
+            enabled_var = tk.BooleanVar(value=task_item.get("enabled", True))
+            enabled_frame = ttk.Frame(scrollable_frame)
+            enabled_frame.pack(fill='x', padx=10, pady=5)
+            ttk.Label(enabled_frame, text="启用任务:").pack(side=tk.LEFT)
+            ttk.Checkbutton(enabled_frame, variable=enabled_var).pack(side=tk.LEFT)
+
+            # 执行顺序
+            order_var = tk.IntVar(value=task_item.get("order", task_index))
+            order_frame = ttk.Frame(scrollable_frame)
+            order_frame.pack(fill='x', padx=10, pady=5)
+            ttk.Label(order_frame, text="执行顺序:").pack(side=tk.LEFT)
+            ttk.Spinbox(order_frame, textvariable=order_var, from_=0, to=len(self.task_queue)-1, width=10).pack(side=tk.LEFT, padx=5)
 
         # 7. 保存设置并关闭的函数
         def save_and_close():
             """保存任务特定设置并关闭标签页"""
-            # 收集变量覆盖值
-            new_overrides = {}
-            for var_name, (var_widget, var_type) in variable_widgets.items():
-                try:
-                    if var_type == "bool":
-                        value = var_widget.get()
-                    elif var_type == "int":
-                        value = int(var_widget.get())
-                    elif var_type == "float":
-                        value = float(var_widget.get())
-                    else:
-                        value = var_widget.get()
+            # 仅对非设备连接任务处理变量覆盖
+            if not is_device_setup_task:
+                # 收集变量覆盖值
+                new_overrides = {}
+                for var_name, (var_widget, var_type) in variable_widgets.items():
+                    try:
+                        if var_type == "bool":
+                            value = var_widget.get()
+                        elif var_type == "int":
+                            value = int(var_widget.get())
+                        elif var_type == "float":
+                            value = float(var_widget.get())
+                        else:
+                            value = var_widget.get()
 
-                    # 检查是否与默认值不同
-                    original_default = next((v["default"] for v in task_template.get("variables", []) if v["name"] == var_name), "")
-                    if str(value) != str(original_default):
-                        new_overrides[var_name] = value
-                except Exception as e:
-                    self.log_message(f"变量 {var_name} 解析失败: {e}", "llm", "WARNING")
+                        # 检查是否与默认值不同
+                        original_default = next((v["default"] for v in task_template.get("variables", []) if v["name"] == var_name), "")
+                        if str(value) != str(original_default):
+                            new_overrides[var_name] = value
+                    except Exception as e:
+                        self.log_message(f"变量 {var_name} 解析失败: {e}", "llm", "WARNING")
 
-            # 更新任务项
-            task_item["variables_override"] = new_overrides
-            task_item["enabled"] = enabled_var.get()
-            task_item["order"] = order_var.get()
+                # 更新任务项
+                task_item["variables_override"] = new_overrides
+                task_item["enabled"] = enabled_var.get() if 'enabled_var' in locals() else True
+                task_item["order"] = order_var.get() if 'order_var' in locals() else task_index
 
             # 保存到本地
             self.save_task_queue()
@@ -3020,12 +3640,19 @@ class LLMTaskAutomationGUI:
         btn_frame = ttk.Frame(scrollable_frame)
         btn_frame.pack(fill='x', pady=20)
 
-        ttk.Button(btn_frame, text="💾 保存设置并返回", command=save_and_close,
-                  style='Security.TButton').pack(side=tk.LEFT, padx=10)
-        ttk.Button(btn_frame, text="❌ 取消",
-                  command=lambda: self.content_notebook.forget(settings_tab)).pack(side=tk.LEFT, padx=10)
-        ttk.Button(btn_frame, text="🗑️ 重置为默认",
-                  command=lambda: self.reset_task_settings(task_index, settings_tab)).pack(side=tk.LEFT, padx=10)
+        # 根据任务类型显示不同的按钮
+        if is_device_setup_task:
+            # 设备连接任务只显示退出按钮
+            ttk.Button(btn_frame, text="退出", command=save_and_close,
+                      style='Security.TButton').pack(side=tk.LEFT, padx=10)
+        else:
+            # 普通任务显示完整按钮组
+            ttk.Button(btn_frame, text="退出", command=save_and_close,
+                      style='Security.TButton').pack(side=tk.LEFT, padx=10)
+            ttk.Button(btn_frame, text="❌ 取消",
+                      command=lambda: self.content_notebook.forget(settings_tab)).pack(side=tk.LEFT, padx=10)
+            ttk.Button(btn_frame, text="🗑️ 重置为默认",
+                      command=lambda: self.reset_task_settings(task_index, settings_tab)).pack(side=tk.LEFT, padx=10)
 
     def reset_task_settings(self, task_index: int, settings_tab: ttk.Frame):
         """重置任务设置为默认值（适配标签页模式）"""
@@ -3313,10 +3940,23 @@ class LLMTaskAutomationGUI:
             self.log_message(f"保存任务失败: {str(e)}", "llm", "ERROR")
 
     def start_llm_execution(self):
-        """启动LLM执行队列"""
+        """启动推理"""
         if not self.task_queue:
             messagebox.showwarning("警告", "任务队列为空，请添加任务")
             return
+
+        # 检查设备连接，如果没有连接则自动连接
+        if not self.controller_id:
+            device_address = self.get_active_device_address()
+            if device_address:
+                self.log_message(f"🔄 自动连接设备: {device_address}", "llm")
+                success = self.connect_device_by_address(device_address)
+                if not success:
+                    messagebox.showerror("错误", "设备连接失败，请检查设备状态")
+                    return
+            else:
+                messagebox.showerror("错误", "未找到设备配置，请先配置设备")
+                return
 
         # 重置状态
         self.llm_running = True
@@ -3329,7 +3969,7 @@ class LLMTaskAutomationGUI:
         # 更新当前任务显示
         self.update_current_task_display()
 
-        self.log_message(f"▶ 启动LLM执行队列，共 {len(self.task_queue)} 个任务", "llm")
+        self.log_message(f"▶ 启动推理，共 {len(self.task_queue)} 个任务", "llm")
         self.log_message(f"   安全参数: 按压{self.press_duration_ms}ms ±{self.press_jitter_px}px", "llm")
         self.log_message(f"   VLM模式: {'真实调用' if VLM_AVAILABLE else '模拟'}", "llm")
 
@@ -3344,6 +3984,15 @@ class LLMTaskAutomationGUI:
 
         self.llm_thread = threading.Thread(target=execute_thread, daemon=True)
         self.llm_thread.start()
+
+    def get_active_device_address(self) -> Optional[str]:
+        """获取当前活动的设备地址"""
+        # 优先使用最近成功连接的设备
+        if hasattr(self, 'last_successful_device') and self.last_successful_device:
+            return self.last_successful_device
+
+        # 从配置读取
+        return self.load_device_address()
 
     def update_current_task_display(self):
         """更新当前任务显示"""
@@ -3365,65 +4014,85 @@ class LLMTaskAutomationGUI:
 
     def llm_execution_loop(self):
         """LLM执行主循环（支持任务队列）"""
-        total_tasks = len(self.task_queue)
+        # 获取持续循环状态
+        is_continuous_loop = getattr(self, 'continuous_loop_var', tk.BooleanVar()).get()
 
-        while self.current_task_index < total_tasks and not self.llm_stop_flag:
-            task_item = self.task_queue[self.current_task_index]
+        # 执行次数计数器
+        execution_round = 0
+        max_executions = self.execution_count if not is_continuous_loop else float('inf')
 
-            # 确保任务启用
-            if not task_item.get("enabled", True):
-                self.log_message(f"⏭️ 跳过已禁用的任务: [{self.current_task_index+1}/{total_tasks}]")
-                self.current_task_index += 1
-                continue
-
-            # 应用变量覆盖到深拷贝的模板
-            task_template = self.apply_variables_to_template(task_item)
-
-            # 更新当前任务显示
-            self.root.after(0, self.update_current_task_display)
-            self.root.after(0, self.refresh_task_queue_display)
-
-            # 获取任务名称，支持两种格式
-            if 'template_copy' in task_item and 'name' in task_item['template_copy']:
-                task_name = task_item['template_copy']['name']
-            elif 'name' in task_item:
-                task_name = task_item['name']
-            else:
-                task_name = '未知任务'
-
-            self.log_message(f"📋 开始执行任务 [{self.current_task_index+1}/{total_tasks}]: {task_name}", "llm")
-
-            # 显示变量覆盖信息
-            overrides = task_item.get("variables_override", {})
-            if overrides:
-                self.log_message(f"   🔧 应用变量覆盖: {overrides}", "llm", "INFO")
-
-            # 初始化当前任务的子任务
-            self.current_subtasks = [
-                {
-                    "id": f"st_{i+1}_{int(time.time())}",
-                    "desc": step.split('.', 1)[-1].strip() if '.' in step else step.strip(),
-                    "status": "pending",
-                    "subtasks": []
-                }
-                for i, step in enumerate(task_template.get('task_steps', []))
-            ]
-            self.root.after(0, self.refresh_subtask_ui)
-
-            # 执行单个任务
-            task_completed = self.execute_single_task(task_template)
-
-            if task_completed:
-                self.log_message(f"✅ 任务完成: {task_name}", "llm")
-                self.current_task_index += 1
-
-                # 任务间暂停
-                if self.current_task_index < total_tasks and not self.llm_stop_flag:
-                    self.log_message("⏸️ 准备下一个任务...", "llm")
-                    # time.sleep(2.0)  # 移除延迟，提高执行效率
-            else:
-                self.log_message(f"❌ 任务失败或中断: {task_name}", "llm", "ERROR")
+        while (self.current_task_index < len(self.task_queue) or is_continuous_loop) and not self.llm_stop_flag:
+            # 检查是否达到最大执行次数（非持续循环模式）
+            if not is_continuous_loop and execution_round >= max_executions:
+                self.log_message(f"✅ 已完成 {max_executions} 轮执行", "llm")
                 break
+
+            # 每轮开始时重置任务索引（除第一轮外）
+            if execution_round > 0:
+                self.current_task_index = 1  # 跳过设备连接任务
+                self.log_message(f"🔄 开始第 {execution_round + 1} 轮执行", "llm")
+
+            # 执行一轮任务队列
+            while self.current_task_index < len(self.task_queue) and not self.llm_stop_flag:
+                task_item = self.task_queue[self.current_task_index]
+
+                # 确保任务启用
+                if not task_item.get("enabled", True):
+                    self.log_message(f"⏭️ 跳过已禁用的任务: [{self.current_task_index+1}/{len(self.task_queue)}]")
+                    self.current_task_index += 1
+                    continue
+
+                # 应用变量覆盖到深拷贝的模板
+                task_template = self.apply_variables_to_template(task_item)
+
+                # 更新当前任务显示
+                self.root.after(0, self.update_current_task_display)
+                self.root.after(0, self.refresh_task_queue_display)
+
+                # 获取任务名称，支持两种格式
+                if 'template_copy' in task_item and 'name' in task_item['template_copy']:
+                    task_name = task_item['template_copy']['name']
+                elif 'name' in task_item:
+                    task_name = task_item['name']
+                else:
+                    task_name = '未知任务'
+
+                self.log_message(f"📋 开始执行任务 [{self.current_task_index+1}/{len(self.task_queue)}]: {task_name}", "llm")
+
+                # 显示变量覆盖信息
+                overrides = task_item.get("variables_override", {})
+                if overrides:
+                    self.log_message(f"   🔧 应用变量覆盖: {overrides}", "llm", "INFO")
+
+                # 初始化当前任务的子任务
+                self.current_subtasks = [
+                    {
+                        "id": f"st_{i+1}_{int(time.time())}",
+                        "desc": step.split('.', 1)[-1].strip() if '.' in step else step.strip(),
+                        "status": "pending",
+                        "subtasks": []
+                    }
+                    for i, step in enumerate(task_template.get('task_steps', []))
+                ]
+                self.root.after(0, self.refresh_subtask_ui)
+
+                # 执行单个任务
+                task_completed = self.execute_single_task(task_template)
+
+                if task_completed:
+                    self.log_message(f"✅ 任务完成: {task_name}", "llm")
+                    self.current_task_index += 1
+
+                    # 任务间暂停
+                    if self.current_task_index < len(self.task_queue) and not self.llm_stop_flag:
+                        self.log_message("⏸️ 准备下一个任务...", "llm")
+                        # time.sleep(2.0)  # 移除延迟，提高执行效率
+                else:
+                    self.log_message(f"❌ 任务失败或中断: {task_name}", "llm", "ERROR")
+                    break
+
+            # 完成一轮执行
+            execution_round += 1
 
         # 执行完成处理
         self.root.after(0, self.on_llm_complete)
@@ -3437,8 +4106,19 @@ class LLMTaskAutomationGUI:
         if task_template.get('template_id') == '__device_setup__':
             self.root.after(0, self.log_message, "📱 正在连接设备...", "llm")
 
-            # 从任务设置中获取设备地址
-            device_address = self.load_device_address()
+            # 优先使用最新一次连接成功的设备
+            device_address = None
+
+            # 首先尝试使用last_successful_device属性
+            if hasattr(self, 'last_successful_device') and self.last_successful_device:
+                device_address = self.last_successful_device
+                self.root.after(0, self.log_message, f"🎯 使用上次成功设备: {device_address}", "llm")
+            else:
+                # 回退到从任务设置中获取设备地址
+                device_address = self.load_device_address()
+                if device_address:
+                    self.root.after(0, self.log_message, f"⚙️ 从配置加载设备: {device_address}", "llm")
+
             if device_address:
                 success = self.connect_device_by_address(device_address)
                 if not success:
@@ -4421,28 +5101,23 @@ class LLMTaskAutomationGUI:
         self.cloud_vlm_status = ttk.Label(cloud_enable_frame, text="未启用", foreground='gray')
         self.cloud_vlm_status.pack(side=tk.LEFT, padx=10)
 
-        # 测试区域
         test_frame = ttk.LabelFrame(right_panel, text="云服务测试", padding="10")
         test_frame.pack(fill='both', expand=True, pady=(0, 10))
 
-        # 测试输入
         test_input_frame = ttk.Frame(test_frame)
         test_input_frame.pack(fill='x', pady=(0, 10))
         ttk.Label(test_input_frame, text="测试消息:").pack(side=tk.LEFT)
         self.cloud_test_var = tk.StringVar(value="测试消息")
         ttk.Entry(test_input_frame, textvariable=self.cloud_test_var, width=30).pack(side=tk.LEFT, padx=5, fill='x', expand=True)
 
-        # 测试按钮
         test_btn_frame = ttk.Frame(test_frame)
         test_btn_frame.pack(fill='x', pady=(0, 10))
         self.create_btn(test_btn_frame, "发送测试", self.test_cloud_service)
         self.create_btn(test_btn_frame, "测试子任务", self.test_cloud_subtask)
 
-        # 测试结果
         self.cloud_test_result = scrolledtext.ScrolledText(test_frame, height=10, wrap=tk.WORD, font=('Consolas', 9))
         self.cloud_test_result.pack(fill='both', expand=True)
 
-        # 云客户端实例
         self.cloud_client = None
 
         # 初始化
@@ -4723,7 +5398,6 @@ class LLMTaskAutomationGUI:
             messagebox.showwarning("警告", "请先连接云服务")
             return
 
-        # 模拟子任务测试 (模型将由服务器覆盖)
         test_payload = {
             "messages": [{"role": "user", "content": "请创建一个子任务：检查游戏状态"}],
             "temperature": 0.7
