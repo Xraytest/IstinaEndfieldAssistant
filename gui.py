@@ -24,7 +24,7 @@ try:
     from android_control import (
         find_adb_device_list,
         connect_adb_device,
-        click,  # 仅紧急回退
+        click,
         swipe,
         input_text,
         click_key,
@@ -35,17 +35,15 @@ try:
         disconnect_device,
         check_network_device_status,
         list_network_devices,
-        get_device_resolution  # <--- 添加这一行
+        get_device_resolution
     )
     IMPORT_SUCCESS = True
 except ImportError as e:
-    # 使用临时列表存储导入错误
     _temp_log = []
     _temp_log.append(f"导入错误: {e}")
     IMPORT_SUCCESS = False
 
-# 导入VLM客户端
-# 先定义为None
+# VLM客户端
 llm_requests = None
 try:
     from utils.vlm_transportation.to_llama_server import llm_requests
@@ -54,7 +52,7 @@ except ImportError as e:
     _temp_log.append(f"VLM导入错误: {e}")
     VLM_AVAILABLE = False
 
-# 导入云服务客户端
+# 云服务客户端
 try:
     from utils.tcp_client import CloudClient
     CLOUD_AVAILABLE = True
@@ -70,7 +68,6 @@ class LLMTaskAutomationGUI:
         self.root.geometry("1600x950")
         self.root.minsize(1400, 900)
 
-        # 处理导入错误的临时日志
         if globals().get('_temp_log'):
             for msg in globals()['_temp_log']:
                 self.log_message(f"模块导入: {msg}", "system", "Error")
@@ -95,65 +92,59 @@ class LLMTaskAutomationGUI:
         
         # LLM任务管理
         self.task_templates = self.load_default_templates()
-        self.current_task_group = self.load_current_task_group()
-        self.current_subtasks = []
+
+        # 统一使用 task_queue 和 current_task_index
+        self.task_queue = self.load_task_queue()
+        if not self.task_queue:
+            self.task_queue = []
+
+        self.current_task_index = 0
+
+        # 保留知识库加载
         self.knowledge_base = self.load_knowledge_base()
 
-        # 添加UI助手函数
+        # UI助手函数
         self.create_btn = self._create_btn
         self.create_label = self._create_label
 
         # 安全参数
-        self.press_duration_ms = 100  # 默认按压时长
-        self.press_jitter_px = 2      # 随机抖动范围
+        self.press_duration_ms = 100
+        self.press_jitter_px = 2
 
         # 设备缓存
         self.device_cache = self.load_device_cache()
-        # 添加：上次成功设备
         self.last_successful_device = self.load_last_successful_device()
 
-        # 添加分辨率缓存
-        self.cached_resolution = None  # 缓存的设备分辨率 (width, height)
-        self.resolution_verified = False  # 分辨率是否已验证
+        # 分辨率缓存
+        self.cached_resolution = None
+        self.resolution_verified = False
 
         # 执行状态
         self.llm_running = False
         self.llm_stop_flag = False
         self.llm_thread = None
 
-        # 任务队列 - 新增
-        self.task_queue = []  # 每个元素格式:
-        # {
-        #     "template_id": str,           # 任务模板ID
-        #     "template_copy": dict,        # 模板的深拷贝（独立修改）
-        #     "task_settings": dict,        # 任务特定设置
-        #     "variables_override": dict,   # 变量覆盖值
-        #     "enabled": bool,             # 任务是否启用
-        #     "order": int                 # 显示顺序
-        # }
-        self.current_task_index = 0  # 当前执行的任务索引
+        self.current_task_index = 0
 
         # 执行次数设置
-        self.execution_count = 1  # 默认执行次数
-        self.load_execution_count()  # 启动时读取
+        self.execution_count = 1
+        self.load_execution_count()
 
-        # VLM工具定义（OpenAI格式）
+        # VLM工具定义
         self.tools = self.define_vlm_tools()
-        
+
         # 创建UI
         self.setup_styles()
         self.setup_ui()
-        
+
         # 初始化
         self.scan_devices()
         self.update_time()
-        # 加载任务队列
-        self.task_queue = self.load_task_queue()
 
-        # --- 自动检测并部署模型 ---
+        # 自动检测并部署模型
         self._check_and_deploy_vlm_model()
 
-        # --- 自动检测并登录云服务 ---
+        # 自动检测并登录云服务
         self.root.after(1000, self.auto_check_and_login_cloud)
 
     def _create_btn(self, parent, text, cmd=None, style=None, side=tk.LEFT, **kwargs):
@@ -214,14 +205,13 @@ class LLMTaskAutomationGUI:
                 with open(config_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
             else:
-                self.log_message("已删除开发用Mock和尾部冗余代码", "all", "INFO")
                 return self._get_default_tools()
         except Exception as e:
             self.log_message(f"加载工具配置失败: {str(e)}，使用默认工具集", "llm", "ERROR")
             return self._get_default_tools()
 
     def _get_default_tools(self) -> List[Dict]:
-        """返回默认的VLM工具集（OpenAI格式）"""
+        """返回默认的VLM工具集"""
         return [
             {
                 "type": "function",
@@ -380,9 +370,8 @@ class LLMTaskAutomationGUI:
         try:
             style.theme_use('clam')
         except tk.TclError:
-            # 如果clam主题不可用，忽略并使用默认主题
             pass
-        
+
         # 按钮样式
         style.configure('Action.TButton', padding=6)
         style.configure('Accent.TButton', background='#2196F3', foreground='white')
@@ -391,7 +380,7 @@ class LLMTaskAutomationGUI:
         style.map('Stop.TButton', background=[('active', '#d32f2f')])
         style.configure('Security.TButton', background='#9C27B0', foreground='white')
         style.map('Security.TButton', background=[('active', '#7B1FA2')])
-        
+
         # 状态标签
         style.configure('Status.Ready.TLabel', foreground='#4CAF50', font=('Arial', 10, 'bold'))
         style.configure('Status.Running.TLabel', foreground='#ff9800', font=('Arial', 10, 'bold'))
@@ -405,12 +394,12 @@ class LLMTaskAutomationGUI:
         style.configure('Subtask.Completed.TLabel', foreground='#4CAF50', font=('Arial', 9))
     
     def setup_ui(self):
-        """设置主UI - 三页面设计，LLM控制台在最前"""
+        """设置主UI"""
         # 顶部状态栏
         self.status_bar = ttk.Frame(self.root)
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X, padx=10, pady=(0, 5))
 
-        # 添加分辨率显示
+        # 状态显示
         self.resolution_status = ttk.Label(self.status_bar, text="分辨率: 未知", width=25)
         self.resolution_status.pack(side=tk.LEFT, padx=5)
 
@@ -418,7 +407,6 @@ class LLMTaskAutomationGUI:
         self.device_status.pack(side=tk.LEFT, padx=5)
         self.network_status = ttk.Label(self.status_bar, text="网络: 未连接", width=20)
         self.network_status.pack(side=tk.LEFT, padx=5)
-        # VLM状态标记（已移除显示，但仍保留占位符）
         self.vlm_status = ttk.Label(self.status_bar, text="", width=0)
         self.vlm_status.pack(side=tk.LEFT, padx=5)
         self.app_status = ttk.Label(self.status_bar, text="就绪", width=20)
@@ -426,24 +414,24 @@ class LLMTaskAutomationGUI:
         self.time_label = ttk.Label(self.status_bar, text="", font=('Arial', 9))
         self.time_label.pack(side=tk.RIGHT, padx=5)
 
-        # 主Notebook - 修改：LLM控制台在最前
+        # 主Notebook
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=10, pady=5)
 
-        # 页面框架 - 修改顺序：LLM控制台最前
+        # 页面框架
         self.llm_page_frame = ttk.Frame(self.notebook)
         self.test_page_frame = ttk.Frame(self.notebook)
         self.designer_page_frame = ttk.Frame(self.notebook)
         self.cloud_page_frame = ttk.Frame(self.notebook)
 
-        # 添加页面 - 修改顺序，云服务移至第二位
+        # 添加页面
         self.notebook.add(self.llm_page_frame, text='开始代理')
         self.notebook.add(self.cloud_page_frame, text='云服务')
         self.notebook.add(self.test_page_frame, text='基础测试')
         self.notebook.add(self.designer_page_frame, text='LLM任务设计器')
 
         # 设置页面
-        self.setup_llm_page()  # 先设置LLM页面
+        self.setup_llm_page()
         self.setup_test_page()
         self.setup_designer_page()
         self.setup_cloud_page()
@@ -457,23 +445,18 @@ class LLMTaskAutomationGUI:
             current_time = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
             self.time_label.config(text=f"🕒 {current_time}")
         except (AttributeError, tk.TclError):
-            # 忽略时间更新错误（可能GUI还未完全初始化）
             pass
         self.root.after(1000, self.update_time)
     
     def log_message(self, message: str, page: str = "all", level: str = "INFO"):
-        """
-        线程安全的日志记录：使用 after() 将 UI 更新派发回主线程
-        """
+        """线程安全的日志记录"""
         timestamp = datetime.now().strftime("%H:%M:%S")
         formatted = f"[{timestamp}] [{level}] {message}\n"
 
-        # ERROR级别消息同时输出到控制台 - 使用标准error输出
         if level == "ERROR":
             pass
 
         def _update():
-            # 这部分代码最终会在主线程执行
             targets = {
                 "test": getattr(self, 'test_log_text', None),
                 "designer": getattr(self, 'designer_log_text', None),
@@ -484,7 +467,6 @@ class LLMTaskAutomationGUI:
                    targets[p].insert(tk.END, formatted)
                    targets[p].see(tk.END)
 
-        # 0毫秒后立即在主线程执行 _update
         self.root.after(0, _update)
     
     def load_device_cache(self) -> List[str]:
@@ -495,7 +477,6 @@ class LLMTaskAutomationGUI:
                 with open(cache_path, 'r', encoding='utf-8') as f:
                     return json.load(f)
         except (OSError, json.JSONDecodeError):
-            # 文件不存在、权限问题或JSON格式错误时返回空列表
             pass
         return []
 
@@ -508,18 +489,12 @@ class LLMTaskAutomationGUI:
                     data = json.load(f)
                     return data.get('device_id')
         except (OSError, json.JSONDecodeError):
-            # 文件不存在、权限问题或JSON格式错误时返回None
             pass
         return None
-
-    def load_device_address(self) -> Optional[str]:
-        """加载上次成功连接的设备地址"""
-        return self.load_last_successful_device()
 
     def connect_device_by_address(self, device_address: str) -> bool:
         """通过地址连接设备"""
         try:
-            # 使用connect_adb_device方法连接设备
             controller_id = connect_adb_device(device_address)
             if controller_id:
                 self.controller_id = controller_id
@@ -561,7 +536,6 @@ class LLMTaskAutomationGUI:
                     config = json.load(f)
                     self.execution_count = config.get('execution_count', 1)
         except (OSError, json.JSONDecodeError):
-            # 文件不存在、权限问题或JSON格式错误时使用默认值
             self.execution_count = 1
 
     def save_execution_count(self):
@@ -570,15 +544,12 @@ class LLMTaskAutomationGUI:
             config_path = "config/config.json"
             config = {}
 
-            # 读取现有配置
             if os.path.exists(config_path):
                 with open(config_path, 'r', encoding='utf-8') as f:
                     config = json.load(f)
 
-            # 更新执行次数
             config['execution_count'] = self.execution_count
 
-            # 保存配置
             os.makedirs("config", exist_ok=True)
             with open(config_path, 'w', encoding='utf-8') as f:
                 json.dump(config, f, ensure_ascii=False, indent=2)
@@ -596,18 +567,15 @@ class LLMTaskAutomationGUI:
 
     def get_next_instance_name(self, template_id):
         """获取任务的下一个实例名称"""
-        # 统计该模板已存在的实例数量
         existing_count = sum(1 for task in self.task_queue if task["template_id"] == template_id)
         return f"实例{existing_count + 1}"
 
     def on_continuous_loop_changed(self):
         """当持续循环选项改变时处理"""
         if self.continuous_loop_var.get():
-            # 如果选中持续循环，禁用执行次数输入
             self.execution_count_entry.config(state='disabled')
             self.log_message("已启用持续循环模式", "system")
         else:
-            # 如果取消持续循环，启用执行次数输入
             self.execution_count_entry.config(state='normal')
             self.log_message("已取消持续循环模式", "system")
 
@@ -622,14 +590,13 @@ class LLMTaskAutomationGUI:
 
         ttk.Label(dialog, text="手动输入设备地址", font=('Arial', 11, 'bold')).pack(pady=10)
 
-        # 设备地址输入
         addr_frame = ttk.Frame(dialog)
         addr_frame.pack(fill='x', padx=20, pady=10)
         ttk.Label(addr_frame, text="设备地址:").pack(side=tk.LEFT)
         addr_var = tk.StringVar()
         ttk.Entry(addr_frame, textvariable=addr_var, width=30).pack(side=tk.LEFT, padx=5)
 
-        # 说明（简化）
+        # 说明
         ttk.Label(dialog, text="支持格式:", font=('Arial', 9, 'bold')).pack(anchor=tk.W, padx=20, pady=(5,0))
         ttk.Label(dialog, text="• USB设备: device_serial", font=('Arial', 9)).pack(anchor=tk.W, padx=40)
         ttk.Label(dialog, text="• 网络设备: IP:端口 (自动尝试两种连接方式)", font=('Arial', 9)).pack(anchor=tk.W, padx=40)
@@ -640,13 +607,11 @@ class LLMTaskAutomationGUI:
                 messagebox.showwarning("警告", "请输入设备地址")
                 return
 
-            # 更新对应页面的下拉框
             combo_map = {
                 "test": self.test_device_combo,
                 "designer": self.designer_device_combo,
             }
 
-            # 只有当llm_device_combo存在时才添加到映射中
             if hasattr(self, 'llm_device_combo'):
                 combo_map["llm"] = self.llm_device_combo
 
@@ -683,9 +648,8 @@ class LLMTaskAutomationGUI:
             self.update_device_list([])
             self.log_message("设备缓存已清除", "all")
 
-    # ==================== 设备管理 ====================
     def scan_devices(self):
-        """扫描ADB设备（包括网络设备）"""
+        """扫描ADB设备"""
         self.log_message("正在扫描ADB设备...", "all")
 
         def scan_thread():
@@ -703,7 +667,6 @@ class LLMTaskAutomationGUI:
                     if network_devices:
                         devices.extend(network_devices)
                 except Exception as e:
-                    # 网络设备列表获取失败，忽略具体错误
                     self.log_message(f"网络设备扫描失败，继续本地设备扫描: {str(e)}", "all", "INFO")
                     pass
 
@@ -734,7 +697,7 @@ class LLMTaskAutomationGUI:
         # 合并扫描到的设备和缓存设备，去重
         all_devices = list(dict.fromkeys(devices + self.device_cache))
 
-        # 如果存在上次成功设备，将其移到列表前面
+        # 优先显示上次成功设备
         if self.last_successful_device and self.last_successful_device in all_devices:
             all_devices.remove(self.last_successful_device)
             all_devices.insert(0, self.last_successful_device)
@@ -749,9 +712,7 @@ class LLMTaskAutomationGUI:
             combos.append(self.llm_device_combo)
 
         for combo in combos:
-            # 设置下拉列表值
             combo['values'] = all_devices if all_devices else ["未检测到设备"]
-            # 如果上次成功设备存在，则默认选择它
             if self.last_successful_device and self.last_successful_device in all_devices:
                 combo.set(self.last_successful_device)
 
@@ -904,13 +865,11 @@ class LLMTaskAutomationGUI:
             except Exception as e:
                 error_msg = f"连接后获取分辨率失败: {str(e)}"
                 self.log_message(error_msg, page, "ERROR")
-                # 移除冗余的控制台输出，log_message已经处理了ERROR级别的输出
 
         # 在新线程中获取分辨率
         threading.Thread(target=get_resolution_after_connect, daemon=True).start()
 
         if page == "test":
-            # 延迟一点再截图，确保设备稳定
             self.root.after(1000, self.take_screenshot)
     
     def on_connect_failed(self, device_id: str, error: str, page: str):
@@ -925,7 +884,6 @@ class LLMTaskAutomationGUI:
     def disconnect_device(self):
         """断开设备"""
         if self.controller_id:
-            # 调用android_control的disconnect_device函数
             try:
                 success = disconnect_device(self.controller_id)
                 if success:
@@ -936,23 +894,27 @@ class LLMTaskAutomationGUI:
             self.controller_id = None
             self.current_device = None
             self.device_status.config(text="无设备", style='Status.Error.TLabel')
+            self.network_status.config(text="未连接", style='Status.Error.TLabel')
             self.app_status.config(text="已断开", style='Status.Error.TLabel')
             self.log_message("设备状态已清除", "all")
 
-    # ==================== 基础测试页 ====================
+            # 更新LLM页面的设备状态显示
+            if hasattr(self, 'main_device_status'):
+                self.main_device_status.config(text="设备状态: 未连接", foreground='gray')
+
     def setup_test_page(self):
-        """设置基础测试页面 - 调试点击带明确安全警告"""
+        """设置基础测试页面"""
         frame = ttk.Frame(self.test_page_frame, padding="10")
         frame.pack(fill='both', expand=True)
-        
+
         paned = ttk.PanedWindow(frame, orient=tk.HORIZONTAL)
         paned.pack(fill='both', expand=True)
-        
+
         left_panel = ttk.Frame(paned)
         paned.add(left_panel, weight=1)
         right_panel = ttk.Frame(paned)
         paned.add(right_panel, weight=2)
-        
+
         # 左侧面板：设备控制
         device_frame = ttk.LabelFrame(left_panel, text="设备控制", padding="10")
         device_frame.pack(fill='x', pady=(0, 10))
@@ -981,12 +943,12 @@ class LLMTaskAutomationGUI:
         self.create_btn(btn_frame, "断开", self.disconnect_device, 'Action.TButton', tk.LEFT, padx=(5, 0))
         self.create_btn(btn_frame, "清除缓存", self.clear_device_cache, 'Action.TButton', tk.LEFT, padx=5)
 
-        # 添加网络设备连接按钮
+        # 网络设备连接按钮
         network_btn_frame = ttk.Frame(device_frame)
         network_btn_frame.pack(fill='x', pady=(5, 0))
-        
-        # 操作控制（仅调试用）
-        control_frame = ttk.LabelFrame(left_panel, text="调试操作（仅开发）", padding="10")
+
+        # 操作控制
+        control_frame = ttk.LabelFrame(left_panel, text="调试操作", padding="10")
         control_frame.pack(fill='x', pady=(0, 10))
         btn_grid = ttk.Frame(control_frame)
         btn_grid.pack(fill='x')
@@ -998,7 +960,7 @@ class LLMTaskAutomationGUI:
         for i, (text, cmd) in enumerate(actions):
             ttk.Button(btn_grid, text=text, command=cmd, width=12,
                        style='Action.TButton').grid(row=0, column=i, padx=3, pady=3)
-        
+
         # 日志
         log_frame = ttk.LabelFrame(left_panel, text="操作日志", padding="10")
         log_frame.pack(fill='both', expand=True)
@@ -1008,7 +970,7 @@ class LLMTaskAutomationGUI:
         log_btn_frame.pack(fill='x', pady=(5, 0))
         self.create_btn(log_btn_frame, "清空", lambda: self.clear_log("test"), None, tk.LEFT, padx=(0, 5))
         self.create_btn(log_btn_frame, "保存", lambda: self.save_log("test"), None, tk.LEFT)
-        
+
         # 右侧面板：截图显示
         image_frame = ttk.LabelFrame(right_panel, text="屏幕截图", padding="10")
         image_frame.pack(fill='both', expand=True)
@@ -1054,7 +1016,7 @@ class LLMTaskAutomationGUI:
             messagebox.showwarning("警告", "请先连接设备")
             return
         self.log_message("正在截图...", "test")
-        
+
         def capture():
             try:
                 image_obj = screencap(self.controller_id)
@@ -1072,7 +1034,7 @@ class LLMTaskAutomationGUI:
             except Exception as e:
                 self.root.after(0, self.log_message, f"截图失败: {str(e)}", "test")
                 self.root.after(0, self.log_message, f"   详细: {traceback.format_exc()[:200]}", "test")
-        
+
         threading.Thread(target=capture, daemon=True).start()
     
     def display_screenshot(self, image: Image.Image, path: str):
@@ -1102,11 +1064,11 @@ class LLMTaskAutomationGUI:
         self.root.after(0, _update)
     
     def perform_action(self, action_type: str, *args):
-        """执行基础操作（仅用于调试）"""
+        """执行基础操作"""
         if not self.controller_id:
             messagebox.showwarning("警告", "请先连接设备")
             return
-        
+
         def do_action():
             try:
                 if action_type == "key" and args:
@@ -1120,32 +1082,30 @@ class LLMTaskAutomationGUI:
                         self.root.after(0, self.take_screenshot)
             except Exception as e:
                 self.root.after(0, self.log_message, f"操作错误: {str(e)}", "test")
-        
+
         threading.Thread(target=do_action, daemon=True).start()
     
-    # ==================== LLM任务设计器 ====================
     def setup_designer_page(self):
-        """LLM任务设计器 - 移除所有硬编码操作，专注高层目标"""
+        """LLM任务设计器"""
         frame = ttk.Frame(self.designer_page_frame, padding="10")
         frame.pack(fill='both', expand=True)
-        
+
         # 上下分栏：设计器 | 预览/知识库
         paned = ttk.PanedWindow(frame, orient=tk.VERTICAL)
         paned.pack(fill='both', expand=True)
-        
+
         # 上：设计器
         designer_panel = ttk.Frame(paned)
         paned.add(designer_panel, weight=3)
-        
+
         # 下：预览/知识库
         preview_panel = ttk.Frame(paned)
         paned.add(preview_panel, weight=1)
-        
-        # ----- 任务设计器 -----
-        # 左右分栏：模板库 | 编辑器
+
+        # 任务设计器
         designer_paned = ttk.PanedWindow(designer_panel, orient=tk.HORIZONTAL)
         designer_paned.pack(fill='both', expand=True)
-        
+
         # 左：模板库
         lib_frame = ttk.LabelFrame(designer_paned, text="任务模板库", padding="10")
         designer_paned.add(lib_frame, weight=1)
@@ -1161,20 +1121,12 @@ class LLMTaskAutomationGUI:
         self.template_listbox.pack(side="left", fill="both", expand=True)
         template_listbox_scrollbar.pack(side="right", fill="y")
 
-        # 添加鼠标滚轮支持
+        # 添加鼠标滚轮支持（Windows专用）
         def _on_template_mousewheel(event):
-            if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
-                delta = -1 * (event.delta // 120) if event.delta else 0
-                self.template_listbox.yview_scroll(delta, "units")
-            else:
-                if event.num == 4:
-                    self.template_listbox.yview_scroll(-1, "units")
-                elif event.num == 5:
-                    self.template_listbox.yview_scroll(1, "units")
+            delta = -1 * (event.delta // 120) if event.delta else 0
+            self.template_listbox.yview_scroll(delta, "units")
 
         self.template_listbox.bind("<MouseWheel>", _on_template_mousewheel)
-        self.template_listbox.bind("<Button-4>", _on_template_mousewheel)
-        self.template_listbox.bind("<Button-5>", _on_template_mousewheel)
         # 模板列表初始化（修改后）
         self.template_listbox.delete(0, tk.END)
         if self.task_templates:
@@ -1220,32 +1172,13 @@ class LLMTaskAutomationGUI:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
         
-        # === 鼠标滚轮支持 ===
+        # === 鼠标滚轮支持（Windows专用）===
         def _on_mousewheel(event):
-            if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
-                delta = -1 * (event.delta // 120) if event.delta else 0
-                canvas.yview_scroll(delta, "units")
-            else:
-                if event.num == 4:
-                    canvas.yview_scroll(-1, "units")
-                elif event.num == 5:
-                    canvas.yview_scroll(1, "units")
-
-        # 修复：为整个编辑器框架的子组件都绑定滚轮事件
-        def _bind_mousewheel_to_widget(widget):
-            widget.bind("<MouseWheel>", _on_mousewheel)
-            widget.bind("<Button-4>", _on_mousewheel)
-            widget.bind("<Button-5>", _on_mousewheel)
-            for child in widget.winfo_children():
-                _bind_mousewheel_to_widget(child)
+            delta = -1 * (event.delta // 120) if event.delta else 0
+            canvas.yview_scroll(delta, "units")
 
         # 为canvas绑定滚轮事件
         canvas.bind("<MouseWheel>", _on_mousewheel)
-        canvas.bind("<Button-4>", _on_mousewheel)
-        canvas.bind("<Button-5>", _on_mousewheel)
-
-        # 为scrollable_frame及其所有子组件绑定滚轮事件
-        _bind_mousewheel_to_widget(scrollable_frame)
         
         # === 任务基本信息 ===
         basic_frame = ttk.Frame(scrollable_frame)
@@ -2236,7 +2169,9 @@ class LLMTaskAutomationGUI:
     
     # ==================== VLM集成核心 ====================
     def build_vlm_prompt(self, content_window: Dict) -> str:
-        """将content_window转换为VLM可理解的文本提示"""
+        """将content_window转换为VLM可理解的文本提示 - 优化版"""
+        timestamp = content_window['device_vision'].get('timestamp', 'N/A')
+
         prompt = f"""# 明日方舟：终末地 LLM自动化助手
 
 ## 全局目标
@@ -2246,7 +2181,7 @@ class LLMTaskAutomationGUI:
 """
         for i, step in enumerate(content_window['task_list']):
             prompt += f"{i+1}. {step}\n"
-        
+
         prompt += "\n## 当前子任务状态（队列形式）\n"
         for st in content_window['splited_task']:
             status_text = {"pending": "待完成", "in_progress": "进行中", "completed": "已完成"}.get(st['status'], "未知")
@@ -2256,7 +2191,7 @@ class LLMTaskAutomationGUI:
                 for sub in st['subtasks']:
                     sub_emoji = {"pending": "▫", "in_progress": "▸", "completed": "✓"}.get(sub['status'], "•")
                     prompt += f"  {sub_emoji} {sub['desc']} (ID: {sub['id']})\n"
-        
+
         prompt += f"\n## 持久化知识库（最近10条）\n"
         for i, kb in enumerate(content_window['markdown'][-10:]):
             prompt += f"{i+1}. [{kb['type']}] {kb['content']}"
@@ -2266,42 +2201,36 @@ class LLMTaskAutomationGUI:
             if 'image_path' in kb:
                 prompt += f" | 截图: {os.path.basename(kb['image_path'])}"
             prompt += "\n"
-        
+
         prompt += f"\n## 最近操作历史（最近5次）\n"
         for i, func in enumerate(content_window['function'][-5:]):
             prompt += f"{i+1}. {func['timestamp'][-12:]} | {func['action']} | {func.get('purpose', 'N/A')}\n"
-        
-        prompt += """
+
+        prompt += f"""
 
 ## 屏幕状态
 - 分辨率: 1080x1920 (标准安卓设备)
 - 时间戳: {timestamp}
 - 当前界面: 请分析提供的截图
 
-## 坐标系统
-- 使用比例坐标 (0.0-1.0) 替代像素坐标
-- 屏幕左上角: (0.0, 0.0)
-- 屏幕右下角: (1.0, 1.0)
-- 示例：屏幕中心 = (0.5, 0.5)
-
-## 重要：坐标格式
-所有工具调用必须使用比例坐标：
-- safe_press: {"x": 0.5, "y": 0.5, "purpose": "点击中心"}
-- safe_swipe: {"start_x": 0.5, "start_y": 0.8, "end_x": 0.5, "end_y": 0.2, "purpose": "向上滑动"}
-
-## 操作规范
+## 操作规则与坐标系统
 1. 所有"点击"必须使用 safe_press 工具（内部已实现安全滑动模拟，100ms按压+随机抖动）
-2. 坐标单位：使用比例坐标 (0.0-1.0) 替代像素坐标
-3. 屏幕左上角: (0.0, 0.0)，屏幕右下角: (1.0, 1.0)
-4. 示例：屏幕中心 = (0.5, 0.5)
-5. 每次只调用一个工具，完成后再进行下一步决策
-6. 操作前必须在purpose参数中说明目的（例如："点击战术终端入口以进入关卡选择"）
-7. 避免连续快速操作（两次操作间隔建议≥800ms）
-8. 子任务管理：
+2. 坐标系统：使用比例坐标 (0.0-1.0)
+   - 屏幕左上角: (0.0, 0.0)，屏幕右下角: (1.0, 1.0)
+   - 示例：屏幕中心 = (0.5, 0.5)
+3. 可以一次调用多个工具，提高执行效率
+4. 操作前必须在purpose参数中说明目的（例如："点击战术终端入口以进入关卡选择"）
+5. 避免连续快速操作（两次操作间隔建议≥800ms）
+6. 子任务管理：
    - 创建新子任务: create_subtask(desc, parent_id?)
    - 更新状态: update_subtask_status(task_id, status, notes?)
-9. 知识库更新：
+7. 知识库更新：
    - 识别到新按钮/元素时，使用 add_knowledge_entry 记录（含坐标比例和截图）
+
+## 坐标格式要求
+所有工具调用必须使用比例坐标：
+- safe_press: {{"x": 0.5, "y": 0.5, "purpose": "点击中心"}}
+- safe_swipe: {{"start_x": 0.5, "start_y": 0.8, "end_x": 0.5, "end_y": 0.2, "purpose": "向上滑动"}}
 
 ## 可用工具
 - safe_press: 安全按压（点击）
@@ -2313,16 +2242,14 @@ class LLMTaskAutomationGUI:
 - update_subtask_status: 更新子任务状态
 - add_knowledge_entry: 添加知识库词条
 
-## 重要安全提示
+## 安全提醒
 禁止使用原始click API！所有点击必须通过safe_press实现安全按压模拟
 操作必须符合人类行为模式（自然时长+随机抖动）
 避免高频操作（可能触发反作弊）
 
-请直接返回工具调用，无需解释思考过程。
+## 强制要求
+请直接返回工具调用，无需解释思考过程。可以返回一个或多个工具调用来完成任务，不要返回对话性文本。返回格式应为工具调用的JSON数组。
 """
-        # 注入实际timestamp
-        timestamp = content_window['device_vision'].get('timestamp', 'N/A')
-        prompt = prompt.replace("{timestamp}", timestamp)
         return prompt
     
     def call_vlm(self, content_window: Dict) -> List[Dict]:
@@ -2375,54 +2302,157 @@ class LLMTaskAutomationGUI:
                 self.log_message(f"云VLM调用失败: {error_msg}", "llm", "ERROR")
                 return []
 
-            # 解析云VLM响应
+            # 解析云VLM响应 - 检查不同的响应格式
             choices = response.get('choices', [])
             if not choices:
-                self.log_message("云VLM返回空响应", "llm", "WARNING")
-                return []
+                self.log_message("云VLM返回空响应，正在检查其他字段...", "llm", "DEBUG")
+                # 检查是否有其他可能的响应格式
+                if 'data' in response:
+                    data = response.get('data', {})
+                    choices = data.get('choices', [])
+                    self.log_message(f"在data字段中找到choices: {len(choices)}个", "llm", "DEBUG")
+                elif 'message' in response:
+                    # 直接包含message的格式
+                    message = response.get('message', {})
+                    tool_calls = message.get('tool_calls', [])
+                    if tool_calls:
+                        self.log_message(f"在message字段中找到tool_calls: {len(tool_calls)}个", "llm", "INFO")
+                        return self._process_tool_calls(tool_calls)
+
+            if not choices:
+                self.log_message("云VLM未返回有效响应格式", "llm", "WARNING")
+                # 尝试回退到等待操作
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
 
             message = choices[0].get('message', {})
             tool_calls = message.get('tool_calls', [])
 
             if not tool_calls:
-                self.log_message("云VLM未返回工具调用", "llm", "WARNING")
+                # 检查是否有内容文本，用于调试
+                content = message.get('content', '')
+                if content:
+                    self.log_message(f"云VLM返回内容但无工具调用: {content[:100]}...", "llm", "DEBUG")
+                else:
+                    self.log_message("云VLM未返回工具调用", "llm", "WARNING")
                 # 尝试回退到等待操作
                 return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
 
-            # 解析工具调用参数
-            parsed_tool_calls = []
-            for tc in tool_calls:
-                try:
-                    function = tc.get('function', {})
-                    tool_name = function.get('name')
-                    arguments = function.get('arguments', '{}')
-
-                    if tool_name:
-                        # 解析JSON参数
-                        args = json.loads(arguments) if isinstance(arguments, str) else arguments
-                        # 构建标准工具调用格式
-                        tool_call = {
-                            "action": tool_name,
-                            "params": args,
-                            "purpose": args.get('purpose', '未指定目的')
-                        }
-                        parsed_tool_calls.append(tool_call)
-                        self.log_message(f"🌐 云工具调用: {tool_name} | {tool_call['purpose']}", "llm")
-
-                except json.JSONDecodeError as e:
-                    self.log_message(f"云工具参数解析失败: {str(e)}", "llm", "WARNING")
-                except Exception as e:
-                    self.log_message(f"云工具调用处理异常: {str(e)}", "llm", "ERROR")
-
-            if not parsed_tool_calls:
-                self.log_message("云VLM未返回有效工具调用", "llm", "WARNING")
-                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
-
-            return parsed_tool_calls
+            return self._process_tool_calls(tool_calls)
 
         except Exception as e:
             self.log_message(f"处理云VLM响应时发生异常: {str(e)}", "llm", "ERROR")
             return []
+
+    def _process_tool_calls(self, tool_calls: List[Dict]) -> List[Dict]:
+        """处理工具调用的通用逻辑 - 增强版"""
+        try:
+            self.log_message(f"🔧 ===== 开始处理工具调用 =====", "llm", "DEBUG")
+            self.log_message(f"📨 收到工具调用数量: {len(tool_calls)}", "llm", "DEBUG")
+
+            if not tool_calls:
+                self.log_message("⚠️ 收到空的工具调用列表", "llm", "WARNING")
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            parsed_tool_calls = []
+            for i, tc in enumerate(tool_calls):
+                try:
+                    self.log_message(f"🔍 处理第{i+1}个工具调用", "llm", "DEBUG")
+                    self.log_message(f"📋 原始数据: {tc}", "llm", "DEBUG")
+
+                    function = tc.get('function', {})
+                    tool_name = function.get('name')
+                    arguments = function.get('arguments', '{}')
+
+                    self.log_message(f"🏷️ 工具名称: {tool_name}", "llm", "DEBUG")
+                    self.log_message(f"📝 参数字符串: {arguments[:100]}...", "llm", "DEBUG")
+
+                    if not tool_name:
+                        self.log_message(f"❌ 工具调用缺少name字段", "llm", "ERROR")
+                        self.log_message(f"完整工具调用数据: {tc}", "llm", "ERROR")
+                        continue
+
+                    # 验证工具名称是否在支持列表中
+                    supported_tools = [tool.get('function', {}).get('name') for tool in self.tools]
+                    if tool_name not in supported_tools:
+                        self.log_message(f"⚠️ 未知工具: {tool_name}", "llm", "WARNING")
+                        self.log_message(f"支持的工具: {supported_tools}", "llm", "DEBUG")
+                        continue
+
+                    # 解析JSON参数
+                    if isinstance(arguments, str):
+                        if not arguments.strip():
+                            self.log_message(f"⚠️ 工具{tool_name}参数为空，使用{{}}", "llm", "WARNING")
+                            args = {}
+                        else:
+                            try:
+                                args = json.loads(arguments)
+                                self.log_message(f"✅ 参数解析成功: {args}", "llm", "DEBUG")
+                            except json.JSONDecodeError as e:
+                                self.log_message(f"❌ JSON解析失败: {e}", "llm", "ERROR")
+                                self.log_message(f"原始参数字符串: {arguments}", "llm", "ERROR")
+
+                                # 尝试修复常见的JSON错误
+                                try:
+                                    # 移除可能的控制字符
+                                    cleaned_args = ''.join(char for char in arguments if char.isprintable() or char.isspace())
+                                    args = json.loads(cleaned_args)
+                                    self.log_message(f"🔧 JSON修复成功: {args}", "llm", "INFO")
+                                except:
+                                    self.log_message(f"🔧 JSON修复失败，使用空参数", "llm", "WARNING")
+                                    args = {}
+                    else:
+                        args = arguments
+
+                    # 验证必需参数
+                    tool_def = None
+                    for tool in self.tools:
+                        if tool.get('function', {}).get('name') == tool_name:
+                            tool_def = tool.get('function', {})
+                            break
+
+                    if tool_def:
+                        required_params = tool_def.get('parameters', {}).get('required', [])
+                        missing_params = [param for param in required_params if param not in args]
+
+                        if missing_params:
+                            self.log_message(f"⚠️ 工具{tool_name}缺少必需参数: {missing_params}", "llm", "WARNING")
+
+                            # 为坐标参数提供默认值
+                            if 'x' in missing_params or 'start_x' in missing_params:
+                                args.setdefault('x', 0.5) if 'x' in missing_params else None
+                                args.setdefault('start_x', 0.5) if 'start_x' in missing_params else None
+                                self.log_message(f"🔧 为提供默认x坐标: 0.5", "llm", "INFO")
+
+                            if 'y' in missing_params or 'start_y' in missing_params:
+                                args.setdefault('y', 0.5) if 'y' in missing_params else None
+                                args.setdefault('start_y', 0.5) if 'start_y' in missing_params else None
+                                self.log_message(f"🔧 为提供默认y坐标: 0.5", "llm", "INFO")
+
+                    # 构建标准工具调用格式
+                    tool_call = {
+                        "action": tool_name,
+                        "params": args,
+                        "purpose": args.get('purpose', '未指定目的')
+                    }
+
+                    parsed_tool_calls.append(tool_call)
+                    self.log_message(f"✅ 工具调用解析成功: {tool_name} | {tool_call['purpose']}", "llm")
+
+                except Exception as e:
+                    self.log_message(f"❌ 处理第{i+1}个工具调用时发生异常: {str(e)}", "llm", "ERROR")
+                    self.log_message(f"异常详情: {type(e).__name__}: {e}", "llm", "ERROR")
+                    continue
+
+            if not parsed_tool_calls:
+                self.log_message("⚠️ 所有工具调用都解析失败，使用默认等待操作", "llm", "WARNING")
+                return [{"action": "wait", "params": {"duration_ms": 1500}, "purpose": "等待界面变化"}]
+
+            self.log_message(f"🎉 成功解析 {len(parsed_tool_calls)} 个工具调用", "llm", "INFO")
+            return parsed_tool_calls
+
+        except Exception as e:
+            self.log_message(f"❌ 处理工具调用时发生严重异常: {type(e).__name__}: {e}", "llm", "ERROR")
+            return [{"action": "wait", "params": {"duration_ms": 2000}, "purpose": "异常后等待"}]
 
     def _call_cloud_vlm(self, content_window: Dict) -> List[Dict]:
         """调用云VLM服务"""
@@ -2444,11 +2474,41 @@ class LLMTaskAutomationGUI:
                     return []
 
         try:
-            self.log_message(f"🌐 调用云VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
+            self.log_message(f"🌐 ===== 云VLM调用开始 =====", "llm", "DEBUG")
 
             # 构建云VLM请求
             prompt = self.build_vlm_prompt(content_window)
             img_path = content_window['device_vision']['screenshot_path']
+
+            # 增强的调试日志记录云VLM调用信息
+            self.log_message(f"📱 设备时间戳: {content_window['device_vision']['timestamp']}", "llm", "DEBUG")
+            self.log_message(f"📸 截图路径: {img_path}", "llm", "DEBUG")
+            self.log_message(f"📝 Prompt总长度: {len(prompt)} 字符", "llm", "DEBUG")
+            self.log_message(f"🎯 Prompt开头预览: {prompt[:150]}...", "llm", "DEBUG")
+
+            # 验证关键组件存在
+            key_sections = {
+                "全局目标": "全局目标" in prompt,
+                "任务步骤": "任务步骤" in prompt,
+                "坐标系统": "坐标系统" in prompt or "坐标格式要求" in prompt,
+                "可用工具": "可用工具" in prompt,
+                "强制要求": "强制要求" in prompt,
+                "工具调用指令": "请直接返回工具调用" in prompt
+            }
+
+            self.log_message(f"🔍 Prompt关键组件检查:", "llm", "DEBUG")
+            for section, exists in key_sections.items():
+                status = "✅" if exists else "❌"
+                self.log_message(f"  {status} {section}: {exists}", "llm", "DEBUG")
+
+            # 记录工具定义传递给云VLM
+            self.log_message(f"🔧 传递给云VLM的工具数量: {len(self.tools)}", "llm", "DEBUG")
+            for i, tool in enumerate(self.tools):
+                tool_name = tool.get('function', {}).get('name', 'unknown')
+                tool_params = tool.get('function', {}).get('parameters', {}).get('properties', {}).keys()
+                self.log_message(f"  工具{i+1}: {tool_name} (参数: {list(tool_params)})", "llm", "DEBUG")
+
+            self.log_message(f"🌐 ===== 参数验证完成，开始云VLM调用 =====", "llm", "DEBUG")
 
             # 读取图像并转换为base64
             with open(img_path, 'rb') as f:
@@ -2475,12 +2535,37 @@ class LLMTaskAutomationGUI:
                     }
                 ],
                 "tools": self.tools,
-                "tool_choice": "required",
+                "tool_choice": "required",  # 强制工具调用
                 "temperature": 0.7
                 # 移除max_tokens限制，让模型使用默认值
             }
 
+            # 验证云VLM请求结构
+            self.log_message(f"🔐 ===== 云VLM请求结构验证 =====", "llm", "DEBUG")
+            self.log_message(f"📨 Messages数量: {len(cloud_request['messages'])}", "llm", "DEBUG")
+            self.log_message(f"🔧 Tools数量: {len(cloud_request['tools'])}", "llm", "DEBUG")
+            self.log_message(f"🎯 Tool_choice: {cloud_request['tool_choice']}", "llm", "DEBUG")
+            self.log_message(f"🌡️ Temperature: {cloud_request['temperature']}", "llm", "DEBUG")
+
+            # 记录实际工具定义内容
+            self.log_message(f"📋 ===== 实际传递的工具定义 =====", "llm", "DEBUG")
+            for i, tool in enumerate(cloud_request['tools']):
+                tool_info = tool.get('function', {})
+                tool_name = tool_info.get('name', 'unknown')
+                tool_desc = tool_info.get('description', 'no description')
+                params = tool_info.get('parameters', {}).get('properties', {})
+                param_names = list(params.keys()) if params else []
+                required_params = tool_info.get('parameters', {}).get('required', [])
+
+                self.log_message(f"  🛠️ 工具{i+1}: {tool_name}", "llm", "DEBUG")
+                self.log_message(f"     描述: {tool_desc[:80]}...", "llm", "DEBUG")
+                self.log_message(f"     参数: {param_names}", "llm", "DEBUG")
+                self.log_message(f"     必需: {required_params}", "llm", "DEBUG")
+
             # 发送云VLM请求
+            self.log_message(f"🚀 ===== 发送云VLM请求 =====", "llm", "DEBUG")
+            self.log_message(f"📡 目标服务器: {self.cloud_config.get('host', 'unknown')}:{self.cloud_config.get('port', 'unknown')}", "llm", "DEBUG")
+
             response = self.cloud_client.chat_completion(cloud_request)
 
             if not response or response.get('status') == 'error':
@@ -2542,6 +2627,15 @@ class LLMTaskAutomationGUI:
                 prompt = self.build_vlm_prompt(content_window)
                 img_path = content_window['device_vision']['screenshot_path']
 
+                # 详细记录prompt信息用于调试
+                self.log_message(f"🔍 Prompt长度检查: 总长度 {len(prompt)} 字符", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt结构检查: 开头为 '{prompt[:100]}...'", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt包含全局目标: {'全局目标' in prompt}", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt包含任务步骤: {'任务步骤' in prompt}", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt包含工具列表: {'可用工具' in prompt}", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt包含操作规则: {'操作规则' in prompt}", "llm", "DEBUG")
+                self.log_message(f"🔍 Prompt包含指示: {'重要指示' in prompt}", "llm", "DEBUG")
+
                 # 读取图像并转换为base64
                 with open(img_path, 'rb') as f:
                     image_data = f.read()
@@ -2566,10 +2660,15 @@ class LLMTaskAutomationGUI:
                         }
                     ],
                     "tools": self.tools,
-                    "tool_choice": "required",
+                    "tool_choice": "required",  # 修改为required确保工具调用
                     "temperature": 0.7
                     # 移除max_tokens限制，让模型使用默认值
                 }
+
+                # 发送云VLM请求
+                self.log_message(f"🔍 发送到云服务的请求包含tools: {len(self.tools)} 个", "llm", "DEBUG")
+                self.log_message(f"🔍 云请求tool_choice设置: required", "llm", "DEBUG")
+                response = self.cloud_client.chat_completion(cloud_request)
 
                 # 发送请求并处理响应
                 response = self.cloud_client.chat_completion(cloud_request)
@@ -2644,18 +2743,47 @@ class LLMTaskAutomationGUI:
 
     def _call_local_vlm(self, content_window: Dict) -> List[Dict]:
         """调用本地VLM服务"""
-
-        # 构建prompt和图像路径
         prompt = self.build_vlm_prompt(content_window)
         img_path = content_window['device_vision']['screenshot_path']
+
+        # 增强的调试日志记录本地VLM调用信息
+        self.log_message(f"🧠 ===== 本地VLM调用开始 =====", "llm", "DEBUG")
+        self.log_message(f"📱 设备时间戳: {content_window['device_vision']['timestamp']}", "llm", "DEBUG")
+        self.log_message(f"📸 截图路径: {img_path}", "llm", "DEBUG")
+        self.log_message(f"📝 Prompt总长度: {len(prompt)} 字符", "llm", "DEBUG")
+        self.log_message(f"🎯 Prompt开头预览: {prompt[:150]}...", "llm", "DEBUG")
+
+        # 验证关键组件存在
+        key_sections = {
+            "全局目标": "全局目标" in prompt,
+            "任务步骤": "任务步骤" in prompt,
+            "坐标系统": "坐标系统" in prompt or "坐标格式要求" in prompt,
+            "可用工具": "可用工具" in prompt,
+            "强制要求": "强制要求" in prompt,
+            "工具调用指令": "请直接返回工具调用" in prompt
+        }
+
+        self.log_message(f"🔍 Prompt关键组件检查:", "llm", "DEBUG")
+        for section, exists in key_sections.items():
+            status = "✅" if exists else "❌"
+            self.log_message(f"  {status} {section}: {exists}", "llm", "DEBUG")
+
+        # 记录工具定义
+        self.log_message(f"🔧 定义工具数量: {len(self.tools)}", "llm", "DEBUG")
+        for i, tool in enumerate(self.tools):
+            tool_name = tool.get('function', {}).get('name', 'unknown')
+            self.log_message(f"  工具{i+1}: {tool_name}", "llm", "DEBUG")
+
+        self.log_message(f"🧠 ===== 参数验证完成，开始VLM调用 =====", "llm", "DEBUG")
 
         tool_calls = []  # 累积tool_calls（支持多工具调用）
         accumulated_text = ""  # 累积LLM思考文本
 
         try:
-            self.log_message(f"🧠 调用本地VLM分析界面 (timestamp: {content_window['device_vision']['timestamp'][-12:]})", "llm")
+            self.log_message(f"🚀 正在调用本地VLM分析界面", "llm")
 
             # 流式调用VLM
+            self.log_message(f"🔧 tool_choice设置: 'required' (强制工具调用)", "llm", "DEBUG")
             for chunk in llm_requests(prompt, img_path, tools=self.tools, tool_choice="required"):
                 if self.llm_stop_flag:
                     self.log_message("VLM调用被用户中断", "llm", "WARNING")
@@ -2749,11 +2877,29 @@ class LLMTaskAutomationGUI:
 
         # === 任务队列管理（修改部分）===
         task_queue_frame = ttk.LabelFrame(control_frame, text="任务队列", padding="10")
-        task_queue_frame.pack(fill='x', pady=(0, 10))
+        task_queue_frame.pack(fill='x')
+
+        # 创建带滚动条的容器
+        list_container = ttk.Frame(task_queue_frame)
+        list_container.pack(fill='both', expand=True, pady=(0, 5))
+
+        # 滚动条
+        scrollbar = ttk.Scrollbar(list_container, orient="vertical")
+        scrollbar.pack(side=tk.RIGHT, fill='y')
 
         # 任务队列列表
-        self.task_queue_listbox = tk.Listbox(task_queue_frame, height=8, font=('Arial', 10))
-        self.task_queue_listbox.pack(fill='both', expand=True, pady=(0, 5))
+        self.task_queue_listbox = tk.Listbox(
+            list_container,
+            height=8,
+            font=('Arial', 10),
+            yscrollcommand=scrollbar.set
+        )
+        self.task_queue_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+        scrollbar.config(command=self.task_queue_listbox.yview)
+
+        # Windows专用滚轮支持
+        self.task_queue_listbox.bind("<MouseWheel>",
+            lambda e: self.task_queue_listbox.yview_scroll(-1 * (e.delta // 120), "units"))
 
         # 绑定双击事件
         self.task_queue_listbox.bind('<Double-Button-1>', lambda e: self.open_selected_task_settings())
@@ -2793,16 +2939,9 @@ class LLMTaskAutomationGUI:
         self.queue_info_label = ttk.Label(task_queue_frame, text="队列: 0个任务", font=('Arial', 9))
         self.queue_info_label.pack(anchor=tk.W, pady=(5, 0))
 
-        # 设备状态显示（仅保留状态信息）
-        self.device_info_frame = ttk.Frame(control_frame)
-        self.device_info_frame.pack(fill='x', pady=(0, 10))
-
-        self.device_status_label = ttk.Label(self.device_info_frame, text="设备: 未连接", font=('Arial', 9))
-        self.device_status_label.pack(anchor=tk.W)
-
         # 执行控制
         exec_frame = ttk.LabelFrame(control_frame, text="执行控制", padding="10")
-        exec_frame.pack(fill='x', pady=(0, 10))
+        exec_frame.pack(fill='x')
         self.llm_start_btn = self.create_btn(exec_frame, "▶ 启动推理", self.start_llm_execution, 'Security.TButton', tk.TOP, fill='x', pady=(0, 5))
         self.llm_stop_btn = self.create_btn(exec_frame, "■ 停止执行", self.stop_llm_execution, 'Stop.TButton', tk.TOP, fill='x', pady=(5, 0))
         self.llm_stop_btn.config(state='disabled')
@@ -2832,7 +2971,7 @@ class LLMTaskAutomationGUI:
 
         # 子任务管理
         subtask_frame = ttk.LabelFrame(control_frame, text="🧩 当前任务子任务", padding="10")
-        subtask_frame.pack(fill='both', expand=True)
+        subtask_frame.pack(fill='both', expand=True, pady=(5, 0))
         self.subtask_tree = ttk.Treeview(subtask_frame, columns=('status', 'desc', 'progress'), show='headings', height=10)
         self.subtask_tree.heading('status', text='状态')
         self.subtask_tree.heading('desc', text='任务描述')
@@ -2863,11 +3002,16 @@ class LLMTaskAutomationGUI:
         self.full_content_text.pack(fill='both', expand=True)
         self.full_content_text.insert(1.0, "LLM接收的完整content_window将显示在这里...\n")
 
+        # 设备设置面板 - 在完整上下文左侧
+        self.setup_device_panel()
+
         # 设备视觉
         vision_frame = ttk.Frame(self.content_notebook)
         self.content_notebook.add(vision_frame, text='设备视觉')
         self.vision_canvas = tk.Canvas(vision_frame, bg='black', highlightthickness=0)
         self.vision_canvas.pack(fill='both', expand=True)
+
+        # 刷新任务队列显示
 
         # 执行日志
         log_frame = ttk.Frame(content_frame)
@@ -2882,32 +3026,101 @@ class LLMTaskAutomationGUI:
         # 刷新任务队列显示
         self.refresh_task_queue_display()
 
-    def create_device_task_item(self):
-        """创建设备连接任务项"""
-        return {
-            "template_id": "__device_setup__",
-            "template_copy": {
-                "template_id": "__device_setup__",  # 添加这个字段
-                "id": "__device_setup__",
-                "name": "📱 设备连接",
-                "description": "连接目标Android设备，为后续任务做准备",
-                "type": "device_setup",
-                "fixed": True,
-                "variables": [],
-                "task_steps": ["自动连接设备并确保屏幕已解锁"],
-                "success_indicators": ["设备已连接"]
-            },
-            "display_name": "📱 设备连接",
-            "task_settings": {
-                "retry_count": 3,
-                "timeout": 10,
-                "continue_on_failure": False,
-                "execute_once": True  # 设备连接任务默认仅执行一次
-            },
-            "variables_override": {},
-            "enabled": True,
-            "order": 0
-        }
+    def setup_device_panel(self):
+        """设置设备配置面板"""
+        # 创建设备配置面板
+        device_frame = ttk.Frame(self.content_notebook)
+        # 在完整上下文之前插入
+        self.content_notebook.insert(0, device_frame, text="📱 设备配置")
+
+        # 创建滚动容器
+        canvas = tk.Canvas(device_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(device_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = ttk.Frame(canvas)
+
+        scrollable_frame.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas_window = canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+
+        # 鼠标滚轮支持
+        def _on_mousewheel(event):
+            delta = -1 * (event.delta // 120) if event.delta else 0
+            canvas.yview_scroll(delta, "units")
+
+        scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+
+        # 设备选择框架
+        device_select_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
+        device_select_frame.pack(fill='x', pady=(10, 5))
+
+        # 设备选择和输入框架
+        device_input_frame = ttk.Frame(device_select_frame)
+        device_input_frame.pack(fill='x', pady=(0, 5))
+
+        ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
+        self.main_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
+        self.main_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
+
+        # 初始化设备列表
+        all_devices = list(dict.fromkeys(self.device_cache))
+        if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
+            all_devices.remove(self.last_successful_device)
+            all_devices.insert(0, self.last_successful_device)
+        self.main_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
+
+        # 默认选中最近一个连接成功的设备
+        if self.last_successful_device:
+            self.main_device_combo.set(self.last_successful_device)
+
+        # 刷新按钮
+        refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
+                                command=lambda: self.refresh_device_combo(self.main_device_combo))
+        refresh_btn.pack(side=tk.LEFT, padx=5)
+
+        # 手动输入按钮
+        manual_btn = ttk.Button(device_input_frame, text="手动输入",
+                               command=lambda: self.manual_input_device_for_settings(self.main_device_combo))
+        manual_btn.pack(side=tk.LEFT, padx=5)
+
+        # 连接状态显示
+        device_status_frame = ttk.Frame(device_select_frame)
+        device_status_frame.pack(fill='x', pady=(5, 0))
+
+        self.main_device_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
+                                          font=('Arial', 9), foreground='gray')
+        self.main_device_status.pack(side=tk.LEFT)
+
+        # 连接按钮
+        connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
+                                command=lambda: self.connect_device_from_settings(self.main_device_combo, self.main_device_status))
+        connect_btn.pack(side=tk.RIGHT, padx=5)
+
+    def save_device_config(self):
+        """保存设备配置到文件"""
+        try:
+            selected_device = self.main_device_combo.get().strip()
+            if selected_device and selected_device != "未检测到设备":
+                os.makedirs("config", exist_ok=True)
+                with open("config/device_config.json", 'w', encoding='utf-8') as f:
+                    json.dump({"selected_device": selected_device}, f, ensure_ascii=False, indent=2)
+                self.log_message(f"设备配置已保存: {selected_device}", "llm")
+        except Exception as e:
+            self.log_message(f"保存设备配置失败: {e}", "llm", "ERROR")
+
+    def load_device_config(self):
+        """加载设备配置"""
+        try:
+            if os.path.exists("config/device_config.json"):
+                with open("config/device_config.json", 'r', encoding='utf-8') as f:
+                    config = json.load(f)
+                    return config.get("selected_device")
+        except Exception as e:
+            self.log_message(f"加载设备配置失败: {e}", "llm", "ERROR")
+        return None
 
     def load_task_queue(self):
         """从文件加载任务队列"""
@@ -2934,20 +3147,14 @@ class LLMTaskAutomationGUI:
                             "order": item.get("order", len(task_queue))
                         })
 
-                # 确保设备连接任务存在
-                has_device_task = any(item["template_id"] == "__device_setup__" for item in task_queue)
-                if not has_device_task:
-                    # 插入设备连接任务到开始
-                    device_task = self.create_device_task_item()
-                    task_queue.insert(0, device_task)
-
+                # 直接返回任务队列（设备连接已不再作为任务）
                 return task_queue
             else:
-                # 创建默认队列（设备连接 + 空列表）
-                return [self.create_device_task_item()]
+                # 创建空队列
+                return []
         except Exception as e:
             self.log_message(f"加载任务队列失败: {e}", "llm", "ERROR")
-            return [self.create_device_task_item()]
+            return []
 
     def save_task_queue(self):
         """保存任务队列到文件"""
@@ -3016,88 +3223,86 @@ class LLMTaskAutomationGUI:
 
     def add_task_to_queue(self):
         """添加任务到队列"""
-        # 创建对话框选择任务模板
-        dialog = tk.Toplevel(self.root)
-        dialog.title("选择任务模板")
-        dialog.geometry("500x400")
-        dialog.transient(self.root)
-        dialog.grab_set()
+        try:
+            # 创建对话框选择任务模板
+            dialog = tk.Toplevel(self.root)
+            dialog.title("选择任务模板")
+            dialog.geometry("500x400")
+            dialog.transient(self.root)
+            dialog.grab_set()
 
-        # 任务模板列表
-        ttk.Label(dialog, text="选择要添加的任务模板:", font=('Arial', 10, 'bold')).pack(pady=10)
+            # 任务模板列表
+            ttk.Label(dialog, text="选择要添加的任务模板:", font=('Arial', 10, 'bold')).pack(pady=10)
 
-        listbox_frame = ttk.Frame(dialog)
-        listbox_frame.pack(fill='both', expand=True, padx=10, pady=5)
+            listbox_frame = ttk.Frame(dialog)
+            listbox_frame.pack(fill='both', expand=True, padx=10, pady=5)
 
-        template_listbox = tk.Listbox(listbox_frame, height=12, font=('Arial', 10))
-        template_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+            template_listbox = tk.Listbox(listbox_frame, height=12, font=('Arial', 10))
+            template_listbox.pack(side=tk.LEFT, fill='both', expand=True)
 
-        scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=template_listbox.yview)
-        scrollbar.pack(side=tk.RIGHT, fill='y')
-        template_listbox.config(yscrollcommand=scrollbar.set)
+            scrollbar = ttk.Scrollbar(listbox_frame, orient="vertical", command=template_listbox.yview)
+            scrollbar.pack(side=tk.RIGHT, fill='y')
+            template_listbox.config(yscrollcommand=scrollbar.set)
 
-        # 填充任务模板
-        for i, template in enumerate(self.task_templates):
-            template_listbox.insert(tk.END, f"{template['name']} - {template['description'][:60]}...")
+            # 填充任务模板
+            for i, template in enumerate(self.task_templates):
+                template_listbox.insert(tk.END, f"{template['name']} - {template['description'][:60]}...")
 
-        def add_selected():
-            selection = template_listbox.curselection()
-            if not selection:
-                messagebox.showwarning("警告", "请选择一个任务模板")
-                return
+            def add_selected():
+                try:
+                    selection = template_listbox.curselection()
+                    if not selection:
+                        messagebox.showwarning("警告", "请选择一个任务模板")
+                        return
 
-            selected_index = selection[0]
-            if selected_index < len(self.task_templates):
-                template = self.task_templates[selected_index]
-                template_id = template['id']
+                    selected_index = selection[0]
+                    if selected_index < len(self.task_templates):
+                        template = self.task_templates[selected_index]
+                        template_id = template['id']
 
-                # 移除重复检查，允许同一个任务模板多次添加
-                # 创建深拷贝
-                import copy
-                template_copy = copy.deepcopy(template)
+                        # 移除重复检查，允许同一个任务模板多次添加
+                        # 创建深拷贝
+                        import copy
+                        template_copy = copy.deepcopy(template)
 
-                # 创建任务项
-                task_item = {
-                    "template_id": template_id,
-                    "template_copy": template_copy,
-                    "display_name": f"{template['name']} - {self.get_next_instance_name(template_id)}",
-                    "task_settings": {
-                        "retry_count": 3,
-                        "timeout": 300,
-                        "continue_on_failure": False,
-                        "execute_once": False  # 是否仅在第一轮执行
-                    },
-                    "variables_override": {},  # 初始无覆盖，用户可在任务设置中配置
-                    "enabled": True,
-                    "order": len(self.task_queue)
-                }
+                        # 创建任务项
+                        task_item = {
+                            "template_id": template_id,
+                            "template_copy": template_copy,
+                            "display_name": f"{template['name']} - {self.get_next_instance_name(template_id)}",
+                            "task_settings": {
+                                "retry_count": 3,
+                                "continue_on_failure": False,
+                                "execute_once": False  # 是否仅在第一轮执行
+                            },
+                            "variables_override": {},  # 初始无覆盖，用户可在任务设置中配置
+                            "enabled": True,
+                            "order": len(self.task_queue)
+                        }
 
-                self.task_queue.append(task_item)
+                        self.task_queue.append(task_item)
 
-                # 确保设备连接任务始终是第一个
-                has_device_task = any(item["template_id"] == "__device_setup__" for item in self.task_queue)
-                if not has_device_task:
-                    # 插入设备连接任务到开始
-                    device_task = self.create_device_task_item()
-                    self.task_queue.insert(0, device_task)
-                    # 更新所有任务的order
-                    for i, task in enumerate(self.task_queue):
-                        task["order"] = i
+                        self.save_task_queue()  # 立即保存
+                        self.refresh_task_queue_display()
+                        self.log_message(f"已添加任务到队列: {task_item['display_name']}", "llm")
 
-                self.save_task_queue()  # 立即保存
-                self.refresh_task_queue_display()
-                self.log_message(f"已添加任务到队列: {task_item['display_name']}", "llm")
+                    dialog.destroy()
+                except Exception as e:
+                    self.log_message(f"添加任务失败: {str(e)}", "llm", "ERROR")
+                    messagebox.showerror("错误", f"添加任务失败:\n{str(e)}")
 
-            dialog.destroy()
+            # 按钮框架
+            btn_frame = ttk.Frame(dialog)
+            btn_frame.pack(pady=10, padx=10)
 
-        # 按钮框架
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=10, padx=10)
+            ttk.Button(btn_frame, text="✅ 添加", command=add_selected,
+                       style='Security.TButton').pack(side=tk.LEFT, padx=5)
+            ttk.Button(btn_frame, text="❌ 取消",
+                       command=dialog.destroy).pack(side=tk.LEFT, padx=5)
 
-        ttk.Button(btn_frame, text="✅ 添加", command=add_selected,
-                   style='Security.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="❌ 取消",
-                   command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+        except Exception as e:
+            self.log_message(f"打开任务选择对话框失败: {str(e)}", "llm", "ERROR")
+            messagebox.showerror("错误", f"打开任务选择对话框失败:\n{str(e)}")
 
     def configure_variables_dialog(self, template, select_variables):
         """配置变量多选值的对话框"""
@@ -3167,20 +3372,12 @@ class LLMTaskAutomationGUI:
         ttk.Button(btn_frame, text="确认", command=on_confirm, style='Security.TButton').pack(side=tk.RIGHT, padx=5)
         ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.RIGHT, padx=5)
 
-        # 添加鼠标滚轮支持
+        # 添加鼠标滚轮支持（Windows专用）
         def _on_mousewheel(event):
-            if sys.platform.startswith('win') or sys.platform.startswith('darwin'):
-                delta = -1 * (event.delta // 120) if event.delta else 0
-                canvas.yview_scroll(delta, "units")
-            else:
-                if event.num == 4:
-                    canvas.yview_scroll(-1, "units")
-                elif event.num == 5:
-                    canvas.yview_scroll(1, "units")
+            delta = -1 * (event.delta // 120) if event.delta else 0
+            canvas.yview_scroll(delta, "units")
 
         dialog.bind("<MouseWheel>", _on_mousewheel)
-        dialog.bind("<Button-4>", _on_mousewheel)
-        dialog.bind("<Button-5>", _on_mousewheel)
 
         dialog.wait_window()
 
@@ -3200,17 +3397,8 @@ class LLMTaskAutomationGUI:
 
         selected_index = selection[0]
 
-        # 禁止删除索引0的任务
-        if selected_index == 0:
-            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能删除")
-            return
-
-        if 0 < selected_index < len(self.task_queue):
+        if 0 <= selected_index < len(self.task_queue):
             task_item = self.task_queue[selected_index]
-            # 双重检查：基于模板ID和索引位置
-            if task_item.get("template_id") == "__device_setup__":
-                messagebox.showwarning("警告", "设备连接任务不可删除")
-                return
             task_name = task_item["template_copy"]["name"]
             self.task_queue.pop(selected_index)
             self.refresh_task_queue_display()
@@ -3218,7 +3406,7 @@ class LLMTaskAutomationGUI:
             self.log_message(f"🗑️ 已从队列移除任务: {task_name}", "llm")
 
     def move_task_up(self):
-        """将选中的任务上移 - 禁止移动索引0的任务和索引1的任务上移"""
+        """将选中的任务上移"""
         selection = self.task_queue_listbox.curselection()
         if not selection:
             messagebox.showwarning("警告", "请先选择一个任务")
@@ -3226,12 +3414,7 @@ class LLMTaskAutomationGUI:
 
         selected_index = selection[0]
 
-        # 禁止移动索引0和索引1的任务上移
-        if selected_index <= 1:
-            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能移动其他任务到它前面")
-            return
-
-        if selected_index > 1 and selected_index < len(self.task_queue):
+        if selected_index > 0 and selected_index < len(self.task_queue):
             # 交换位置
             self.task_queue[selected_index], self.task_queue[selected_index-1] = \
                 self.task_queue[selected_index-1], self.task_queue[selected_index]
@@ -3242,18 +3425,13 @@ class LLMTaskAutomationGUI:
             self.log_message(f"⬆️ 任务已上移", "llm")
 
     def move_task_down(self):
-        """将选中的任务下移 - 禁止索引0的任务下移"""
+        """将选中的任务下移"""
         selection = self.task_queue_listbox.curselection()
         if not selection:
             messagebox.showwarning("警告", "请先选择一个任务")
             return
 
         selected_index = selection[0]
-
-        # 禁止索引0的任务下移
-        if selected_index == 0:
-            messagebox.showwarning("警告", "设备连接任务必须保持在队列首位，不能下移")
-            return
 
         if selected_index < len(self.task_queue) - 1:
             # 交换位置
@@ -3271,26 +3449,24 @@ class LLMTaskAutomationGUI:
             return
 
         if messagebox.askyesno("确认清空", "确定要清空整个任务队列吗？"):
-            # 保留设备连接任务
-            device_task = None
-            for task in self.task_queue:
-                if task.get("template_id") == "__device_setup__":
-                    device_task = task
-                    break
-
-            self.task_queue = [device_task] if device_task else []
+            self.task_queue = []
             self.refresh_task_queue_display()
             self.save_task_queue()  # 保存更改
-            self.log_message("🗑️ 任务队列已清空（保留设备连接任务）", "llm")
+            self.log_message("🗑️ 任务队列已清空", "llm")
 
     def refresh_task_queue_display(self):
         """刷新任务队列显示"""
         def _update():
             self.task_queue_listbox.delete(0, tk.END)
 
-            for i, task_item in enumerate(self.task_queue):
+            # 显示所有任务（设备连接已不再作为任务）
+            filtered_tasks = self.task_queue
+
+            for i, task_item in enumerate(filtered_tasks):
                 task = task_item["template_copy"]
-                status_prefix = "▶ " if i == self.current_task_index else f"{i+1}. "
+                # 直接使用当前索引
+                actual_index = i
+                status_prefix = "▶ " if actual_index == self.current_task_index else f"{i+1}. "
 
                 # 使用display_name而不是task['name']
                 display_name = task_item.get("display_name", task["name"])
@@ -3298,21 +3474,21 @@ class LLMTaskAutomationGUI:
                 # 添加设置图标标记
                 settings_mark = " ⚙" if task_item.get("variables_override") else ""
 
-                # 对于设备连接任务特殊标记
-                if task_item.get("template_id") == "__device_setup__":
-                    display_text = f"{status_prefix}{display_name}{settings_mark}"
-                else:
-                    display_text = f"{status_prefix}{display_name}{settings_mark}"
-
+                display_text = f"{status_prefix}{display_name}{settings_mark}"
                 self.task_queue_listbox.insert(tk.END, display_text)
 
             # 更新队列信息
-            queue_info = f"队列: {len(self.task_queue)}个任务"
-            if self.task_queue:
+            queue_info = f"队列: {len(filtered_tasks)}个任务"
+            if filtered_tasks:
+                # 找到当前正在执行的任务
+                current_task_display = None
                 if self.current_task_index < len(self.task_queue):
-                    current_task = self.task_queue[self.current_task_index]["template_copy"]["name"]
-                    queue_info += f" | 当前: {current_task}"
-                else:
+                    current_task = self.task_queue[self.current_task_index]
+                    current_task_display = current_task["template_copy"]["name"]
+
+                if current_task_display:
+                    queue_info += f" | 当前: {current_task_display}"
+                elif self.current_task_index >= len(self.task_queue):
                     queue_info += f" | 当前: 已完成"
 
             self.queue_info_label.config(text=queue_info)
@@ -3323,25 +3499,30 @@ class LLMTaskAutomationGUI:
         """显示任务上下文菜单"""
         selection = self.task_queue_listbox.curselection()
         if selection:
-            task_index = selection[0]
-            task_item = self.task_queue[task_index]
+            # 获取选中的任务
+            display_index = selection[0]
 
-            # 检查是否为设备连接任务（不可删除）
-            if task_item.get("template_id") == "__device_setup__":
-                self.task_queue_context_menu.entryconfig("删除", state="disabled")
-            else:
+            if display_index < len(self.task_queue):
+                task_item = self.task_queue[display_index]
+                # 启用删除菜单
                 self.task_queue_context_menu.entryconfig("删除", state="normal")
-
-            self.task_queue_context_menu.post(event.x_root, event.y_root)
+                self.task_queue_context_menu.post(event.x_root, event.y_root)
 
     def open_selected_task_settings(self):
         """打开选中任务的设置"""
         selection = self.task_queue_listbox.curselection()
         if selection:
-            self.open_task_settings(selection[0])
+            # 获取选中的任务
+            display_index = selection[0]
+
+            if display_index < len(self.task_queue):
+                task_item = self.task_queue[display_index]
+                # 获取实际索引
+                actual_index = display_index
+                self.open_task_settings(actual_index)
 
     def open_task_settings(self, task_index: int):
-        """在标签页中打开任务特定设置 - 分离设备连接任务和普通任务的UI"""
+        """在标签页中打开任务特定设置"""
         if task_index < 0 or task_index >= len(self.task_queue):
             return
 
@@ -3376,6 +3557,14 @@ class LLMTaskAutomationGUI:
         canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
 
+        # === 鼠标滚轮支持（Windows专用）===
+        def _on_mousewheel(event):
+            delta = -1 * (event.delta // 120) if event.delta else 0
+            canvas.yview_scroll(delta, "units")
+
+        scrollable_frame.bind("<MouseWheel>", _on_mousewheel)
+        canvas.bind("<MouseWheel>", _on_mousewheel)
+
         # 4. 任务名称设置
         name_frame = ttk.LabelFrame(scrollable_frame, text="任务名称", padding="10")
         name_frame.pack(fill='x', pady=(10, 5))
@@ -3395,280 +3584,136 @@ class LLMTaskAutomationGUI:
         display_name_entry.bind('<KeyRelease>', update_display_name)
         display_name_entry.bind('<FocusOut>', update_display_name)
 
-        # 4. 检查是否是设备连接任务
-        is_device_setup_task = task_template.get('template_id') == '__device_setup__'
+        # 5. 检查模板是否有变量
+        template_variables = task_template.get("variables", [])
 
-        if is_device_setup_task:
-            # === 设备连接任务的独有UI ===
-            ttk.Label(scrollable_frame, text="📱 设备连接配置", font=('Arial', 12, 'bold')).pack(pady=(10, 5), anchor=tk.W)
+        # 变量设置部分
+        ttk.Label(scrollable_frame, text="任务变量设置", font=('Arial', 11, 'bold')).pack(pady=(10, 5), anchor=tk.W)
 
-            # 设备选择（从LLM执行控制台移动到任务设置）
-            device_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
-            device_frame.pack(fill='x', pady=(10, 5))
-
-            # 设备选择和输入框架
-            device_input_frame = ttk.Frame(device_frame)
-            device_input_frame.pack(fill='x', pady=(0, 5))
-
-            ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
-            task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
-            task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
-
-            # 初始化设备列表
-            all_devices = list(dict.fromkeys(self.device_cache))
-            if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
-                all_devices.remove(self.last_successful_device)
-                all_devices.insert(0, self.last_successful_device)
-            task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
-
-            # 默认选中最近一个连接成功的设备
-            if self.last_successful_device:
-                task_settings_device_combo.set(self.last_successful_device)
-
-            # 刷新按钮
-            refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
-                                    command=lambda: self.refresh_device_combo(task_settings_device_combo))
-            refresh_btn.pack(side=tk.LEFT, padx=5)
-
-            # 手动输入按钮
-            manual_btn = ttk.Button(device_input_frame, text="手动输入",
-                                   command=lambda: self.manual_input_device_for_settings(task_settings_device_combo))
-            manual_btn.pack(side=tk.LEFT, padx=5)
-
-            # 连接状态显示
-            device_status_frame = ttk.Frame(device_frame)
-            device_status_frame.pack(fill='x', pady=(5, 0))
-
-            device_connection_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
-                                               font=('Arial', 9), foreground='gray')
-            device_connection_status.pack(side=tk.LEFT)
-
-            # 连接按钮
-            connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
-                                    command=lambda: self.connect_device_from_settings(task_settings_device_combo, device_connection_status))
-            connect_btn.pack(side=tk.RIGHT, padx=5)
-
-            # 保存设备选择的引用，以便后续使用
-            settings_tab.task_settings_device_combo = task_settings_device_combo
-            settings_tab.device_connection_status = device_connection_status
-            settings_tab.task_index = task_index
-
-            # 设备连接任务说明
-            info_frame = ttk.LabelFrame(scrollable_frame, text="📋 任务说明", padding="10")
-            info_frame.pack(fill='x', pady=(10, 5))
-
-            info_text = """设备连接任务说明：
-• 此任务负责建立与Android设备的连接
-• 支持USB和网络连接方式
-• 连接成功后才能执行后续任务
-• 此任务始终固定在队列第一位
-
-注意事项：
-• 确保设备已开启USB调试
-• 网络连接需要输入IP:端口格式
-• 连接失败时会自动重试"""
-
-            ttk.Label(info_frame, text=info_text, font=('Arial', 9), justify=tk.LEFT).pack(anchor=tk.W)
-
-            # 隐藏其他设置部分
+        if not template_variables:
+            # 显示"无可用设置"
+            no_settings_label = ttk.Label(scrollable_frame, text="无可用设置",
+                                        font=('Arial', 10), foreground='gray')
+            no_settings_label.pack(pady=20, anchor=tk.W)
             variable_widgets = {}
-
         else:
-            # === 普通任务的UI ===
-            # 检查模板是否有变量
-            template_variables = task_template.get("variables", [])
+            # 获取当前覆盖值
+            current_overrides = task_item.get("variables_override", {})
 
-            # 根据任务类型决定是否显示设备设置
-            show_device_settings = len(template_variables) > 0
+            # 为每个变量创建输入框
+            variable_widgets = {}
+            for var_def in template_variables:
+                var_frame = ttk.Frame(scrollable_frame)
+                var_frame.pack(fill='x', padx=10, pady=5)
 
-            if show_device_settings:
-                # 4. 设备选择（从LLM执行控制台移动到任务设置）
-                device_frame = ttk.LabelFrame(scrollable_frame, text="📱 执行设备配置", padding="10")
-                device_frame.pack(fill='x', pady=(10, 5))
+                var_name = var_def["name"]
+                var_type = var_def["type"]
+                default_val = var_def["default"]
 
-                # 设备选择和输入框架
-                device_input_frame = ttk.Frame(device_frame)
-                device_input_frame.pack(fill='x', pady=(0, 5))
+                # 使用覆盖值或默认值
+                current_val = current_overrides.get(var_name, default_val)
 
-                ttk.Label(device_input_frame, text="选择设备:").pack(side=tk.LEFT, padx=5)
-                task_settings_device_combo = ttk.Combobox(device_input_frame, state="readonly", width=30)
-                task_settings_device_combo.pack(side=tk.LEFT, padx=5, fill='x', expand=True)
+                ttk.Label(var_frame, text=f"{var_name} ({var_type}):", width=20).pack(side=tk.LEFT)
 
-                # 初始化设备列表
-                all_devices = list(dict.fromkeys(self.device_cache))
-                if hasattr(self, 'last_successful_device') and self.last_successful_device and self.last_successful_device in all_devices:
-                    all_devices.remove(self.last_successful_device)
-                    all_devices.insert(0, self.last_successful_device)
-                task_settings_device_combo['values'] = all_devices if all_devices else ["未检测到设备"]
+                # 根据变量类型创建不同的输入控件
+                if var_type == "bool":
+                    var_var = tk.BooleanVar(value=str(current_val).lower() in ['true', '1', 'yes'])
+                    ttk.Checkbutton(var_frame, variable=var_var).pack(side=tk.LEFT)
+                elif var_type == "int":
+                    var_var = tk.StringVar(value=str(current_val))
+                    ttk.Spinbox(var_frame, textvariable=var_var, from_=-1000000, to=1000000, width=15).pack(side=tk.LEFT, padx=5)
+                elif var_type == "float":
+                    var_var = tk.StringVar(value=str(current_val))
+                    ttk.Entry(var_frame, textvariable=var_var, width=20).pack(side=tk.LEFT, padx=5)
+                elif var_type == "select":
+                    # 多选值类型使用Combobox
+                    multi_values = var_def.get('multi_values', [])
+                    if multi_values:
+                        # 确保当前值在可选值中，如果不在则使用默认值
+                        effective_value = current_val
+                        if effective_value not in multi_values:
+                            # 使用模板中的默认值或第一个可选值
+                            template_default = var_def.get('default')
+                            if template_default and template_default in multi_values:
+                                effective_value = template_default
+                            else:
+                                effective_value = multi_values[0]
 
-                # 默认选中最近一个连接成功的设备
-                if self.last_successful_device:
-                    task_settings_device_combo.set(self.last_successful_device)
-
-                # 刷新按钮
-                refresh_btn = ttk.Button(device_input_frame, text="🔄 刷新列表",
-                                        command=lambda: self.refresh_device_combo(task_settings_device_combo))
-                refresh_btn.pack(side=tk.LEFT, padx=5)
-
-                # 手动输入按钮
-                manual_btn = ttk.Button(device_input_frame, text="手动输入",
-                                       command=lambda: self.manual_input_device_for_settings(task_settings_device_combo))
-                manual_btn.pack(side=tk.LEFT, padx=5)
-
-                # 连接状态显示
-                device_status_frame = ttk.Frame(device_frame)
-                device_status_frame.pack(fill='x', pady=(5, 0))
-
-                device_connection_status = ttk.Label(device_status_frame, text="设备状态: 未连接",
-                                                   font=('Arial', 9), foreground='gray')
-                device_connection_status.pack(side=tk.LEFT)
-
-                # 连接按钮
-                connect_btn = ttk.Button(device_status_frame, text="🔌 连接设备",
-                                        command=lambda: self.connect_device_from_settings(task_settings_device_combo, device_connection_status))
-                connect_btn.pack(side=tk.RIGHT, padx=5)
-
-                # 保存设备选择的引用，以便后续使用
-                settings_tab.task_settings_device_combo = task_settings_device_combo
-                settings_tab.device_connection_status = device_connection_status
-                settings_tab.task_index = task_index
-
-            # 5. 变量设置部分
-            ttk.Label(scrollable_frame, text="任务变量设置", font=('Arial', 11, 'bold')).pack(pady=(10, 5), anchor=tk.W)
-
-            if not template_variables:
-                # 显示"无可用设置"
-                no_settings_label = ttk.Label(scrollable_frame, text="无可用设置",
-                                            font=('Arial', 10), foreground='gray')
-                no_settings_label.pack(pady=20, anchor=tk.W)
-                variable_widgets = {}
-            else:
-                # 获取当前覆盖值
-                current_overrides = task_item.get("variables_override", {})
-
-                # 为每个变量创建输入框
-                variable_widgets = {}
-                for var_def in template_variables:
-                    var_frame = ttk.Frame(scrollable_frame)
-                    var_frame.pack(fill='x', padx=10, pady=5)
-
-                    var_name = var_def["name"]
-                    var_type = var_def["type"]
-                    default_val = var_def["default"]
-
-                    # 使用覆盖值或默认值
-                    current_val = current_overrides.get(var_name, default_val)
-
-                    ttk.Label(var_frame, text=f"{var_name} ({var_type}):", width=20).pack(side=tk.LEFT)
-
-                    # 根据变量类型创建不同的输入控件
-                    if var_type == "bool":
-                        var_var = tk.BooleanVar(value=str(current_val).lower() in ['true', '1', 'yes'])
-                        ttk.Checkbutton(var_frame, variable=var_var).pack(side=tk.LEFT)
-                    elif var_type == "int":
-                        var_var = tk.StringVar(value=str(current_val))
-                        ttk.Spinbox(var_frame, textvariable=var_var, from_=-1000000, to=1000000, width=15).pack(side=tk.LEFT, padx=5)
-                    elif var_type == "float":
-                        var_var = tk.StringVar(value=str(current_val))
-                        ttk.Entry(var_frame, textvariable=var_var, width=20).pack(side=tk.LEFT, padx=5)
-                    elif var_type == "select":
-                        # 多选值类型使用Combobox
-                        multi_values = var_def.get('multi_values', [])
-                        if multi_values:
-                            # 确保当前值在可选值中，如果不在则使用默认值
-                            effective_value = current_val
-                            if effective_value not in multi_values:
-                                # 使用模板中的默认值或第一个可选值
-                                template_default = var_def.get('default')
-                                if template_default and template_default in multi_values:
-                                    effective_value = template_default
-                                elif multi_values:
-                                    effective_value = multi_values[0]
-
-                            var_var = tk.StringVar(value=effective_value)
-                            combo = ttk.Combobox(var_frame, textvariable=var_var, values=multi_values, state='readonly', width=25)
-                            combo.pack(side=tk.LEFT, padx=5)
-                        else:
-                            # 如果没有可选值，回退到普通输入框
-                            var_var = tk.StringVar(value=str(current_val))
-                            ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
-                    else:  # string
+                        var_var = tk.StringVar(value=effective_value)
+                        combo = ttk.Combobox(var_frame, textvariable=var_var, values=multi_values, state='readonly', width=25)
+                        combo.pack(side=tk.LEFT, padx=5)
+                    else:
+                        # 如果没有可选值，回退到普通输入框
                         var_var = tk.StringVar(value=str(current_val))
                         ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
+                else:  # string
+                    var_var = tk.StringVar(value=str(current_val))
+                    ttk.Entry(var_frame, textvariable=var_var, width=30).pack(side=tk.LEFT, padx=5)
 
-                    # 显示默认值提示
-                    if var_type == "select" and var_def.get('multi_values'):
-                        ttk.Label(var_frame, text=f"可选: {', '.join(var_def['multi_values'])}", font=('Arial', 8), foreground='blue').pack(side=tk.LEFT, padx=10)
-                    else:
-                        ttk.Label(var_frame, text=f"默认: {default_val}", font=('Arial', 8), foreground='gray').pack(side=tk.LEFT, padx=10)
+                # 显示默认值提示
+                if var_type == "select" and var_def.get('multi_values'):
+                    ttk.Label(var_frame, text=f"可选: {', '.join(var_def['multi_values'])}", font=('Arial', 8), foreground='blue').pack(side=tk.LEFT, padx=10)
+                else:
+                    ttk.Label(var_frame, text=f"默认: {default_val}", font=('Arial', 8), foreground='gray').pack(side=tk.LEFT, padx=10)
 
-                    variable_widgets[var_name] = (var_var, var_type)
+                variable_widgets[var_name] = (var_var, var_type)
 
-            # 6. 其他设置
-            ttk.Label(scrollable_frame, text="其他设置", font=('Arial', 11, 'bold')).pack(pady=(20, 5), anchor=tk.W)
+        # 6. 其他设置
+        ttk.Label(scrollable_frame, text="其他设置", font=('Arial', 11, 'bold')).pack(pady=(20, 5), anchor=tk.W)
 
-            # 启用/禁用任务
-            enabled_var = tk.BooleanVar(value=task_item.get("enabled", True))
-            enabled_frame = ttk.Frame(scrollable_frame)
-            enabled_frame.pack(fill='x', padx=10, pady=5)
-            ttk.Label(enabled_frame, text="启用任务:").pack(side=tk.LEFT)
-            ttk.Checkbutton(enabled_frame, variable=enabled_var).pack(side=tk.LEFT)
+        # 启用/禁用任务
+        enabled_var = tk.BooleanVar(value=task_item.get("enabled", True))
+        enabled_frame = ttk.Frame(scrollable_frame)
+        enabled_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(enabled_frame, text="启用任务:").pack(side=tk.LEFT)
+        ttk.Checkbutton(enabled_frame, variable=enabled_var).pack(side=tk.LEFT)
 
-            # 执行顺序
-            order_var = tk.IntVar(value=task_item.get("order", task_index))
-            order_frame = ttk.Frame(scrollable_frame)
-            order_frame.pack(fill='x', padx=10, pady=5)
-            ttk.Label(order_frame, text="执行顺序:").pack(side=tk.LEFT)
-            ttk.Spinbox(order_frame, textvariable=order_var, from_=0, to=len(self.task_queue)-1, width=10).pack(side=tk.LEFT, padx=5)
+        # 执行顺序
+        order_var = tk.IntVar(value=task_item.get("order", task_index))
+        order_frame = ttk.Frame(scrollable_frame)
+        order_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Label(order_frame, text="执行顺序:").pack(side=tk.LEFT)
+        ttk.Spinbox(order_frame, textvariable=order_var, from_=0, to=len(self.task_queue)-1, width=10).pack(side=tk.LEFT, padx=5)
 
-            # 执行次数控制（所有任务都可以设置，但设备连接任务强制为True）
-            execute_once_var = tk.BooleanVar(value=task_item.get("task_settings", {}).get("execute_once", False))
-            if is_device_setup_task:
-                execute_once_var.set(True)  # 设备连接任务强制设置为仅执行一次
-            execute_once_frame = ttk.Frame(scrollable_frame)
-            execute_once_frame.pack(fill='x', padx=10, pady=5)
-
-            # 设备连接任务显示禁用状态的复选框
-            if is_device_setup_task:
-                ttk.Label(execute_once_frame, text="✓ 仅在第一轮执行（设备连接任务固定）", foreground="green").pack(side=tk.LEFT)
-            else:
-                ttk.Checkbutton(execute_once_frame, text="仅在第一轮执行（多轮循环中", variable=execute_once_var).pack(side=tk.LEFT)
+        # 执行次数控制
+        execute_once_var = tk.BooleanVar(value=task_item.get("task_settings", {}).get("execute_once", False))
+        execute_once_frame = ttk.Frame(scrollable_frame)
+        execute_once_frame.pack(fill='x', padx=10, pady=5)
+        ttk.Checkbutton(execute_once_frame, text="仅在第一轮执行（多轮循环中", variable=execute_once_var).pack(side=tk.LEFT)
 
         # 7. 保存设置并关闭的函数
         def save_and_close():
             """保存任务特定设置并关闭标签页"""
-            # 仅对非设备连接任务处理变量覆盖
-            if not is_device_setup_task:
-                # 收集变量覆盖值
-                new_overrides = {}
-                for var_name, (var_widget, var_type) in variable_widgets.items():
-                    try:
-                        if var_type == "bool":
-                            value = var_widget.get()
-                        elif var_type == "int":
-                            value = int(var_widget.get())
-                        elif var_type == "float":
-                            value = float(var_widget.get())
-                        else:
-                            value = var_widget.get()
+            # 收集变量覆盖值
+            new_overrides = {}
+            for var_name, (var_widget, var_type) in variable_widgets.items():
+                try:
+                    if var_type == "bool":
+                        value = var_widget.get()
+                    elif var_type == "int":
+                        value = int(var_widget.get())
+                    elif var_type == "float":
+                        value = float(var_widget.get())
+                    else:
+                        value = var_widget.get()
 
-                        # 检查是否与默认值不同
-                        original_default = next((v["default"] for v in task_template.get("variables", []) if v["name"] == var_name), "")
-                        if str(value) != str(original_default):
-                            new_overrides[var_name] = value
-                    except Exception as e:
-                        self.log_message(f"变量 {var_name} 解析失败: {e}", "llm", "WARNING")
+                    # 检查是否与默认值不同
+                    original_default = next((v["default"] for v in task_template.get("variables", []) if v["name"] == var_name), "")
+                    if str(value) != str(original_default):
+                        new_overrides[var_name] = value
+                except Exception as e:
+                    self.log_message(f"变量 {var_name} 解析失败: {e}", "llm", "WARNING")
 
-                # 更新任务项
-                task_item["variables_override"] = new_overrides
-                task_item["enabled"] = enabled_var.get() if 'enabled_var' in locals() else True
-                task_item["order"] = order_var.get() if 'order_var' in locals() else task_index
-                # 确保execute_once字段存在
-                if "execute_once" not in task_item["task_settings"]:
-                    task_item["task_settings"]["execute_once"] = False
-                # 非设备连接任务才更新execute_once设置
-                if not is_device_setup_task and 'execute_once_var' in locals():
-                    task_item["task_settings"]["execute_once"] = execute_once_var.get()
+            # 更新任务项
+            task_item["variables_override"] = new_overrides
+            task_item["enabled"] = enabled_var.get() if 'enabled_var' in locals() else True
+            task_item["order"] = order_var.get() if 'order_var' in locals() else task_index
+            # 确保execute_once字段存在
+            if "execute_once" not in task_item["task_settings"]:
+                task_item["task_settings"]["execute_once"] = False
+            # 更新execute_once设置
+            if 'execute_once_var' in locals():
+                task_item["task_settings"]["execute_once"] = execute_once_var.get()
 
             # 保存到本地
             self.save_task_queue()
@@ -3688,15 +3733,9 @@ class LLMTaskAutomationGUI:
         btn_frame = ttk.Frame(scrollable_frame)
         btn_frame.pack(fill='x', pady=20)
 
-        # 根据任务类型显示不同的按钮
-        if is_device_setup_task:
-            # 设备连接任务只显示退出按钮
-            ttk.Button(btn_frame, text="退出", command=save_and_close,
-                      style='Security.TButton').pack(side=tk.LEFT, padx=10)
-        else:
-            # 普通任务也只显示退出按钮
-            ttk.Button(btn_frame, text="退出", command=save_and_close,
-                      style='Security.TButton').pack(side=tk.LEFT, padx=10)
+        # 退出按钮
+        ttk.Button(btn_frame, text="退出", command=save_and_close,
+                  style='Security.TButton').pack(side=tk.LEFT, padx=10)
 
     def reset_task_settings(self, task_index: int, settings_tab: ttk.Frame):
         """重置任务设置为默认值（适配标签页模式）"""
@@ -3763,7 +3802,7 @@ class LLMTaskAutomationGUI:
         ttk.Button(btn_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
 
     def connect_device_from_settings(self, combo: ttk.Combobox, status_label: ttk.Label):
-        """从任务设置连接设备 (已修复)"""
+        """从任务设置连接设备"""
         device_name = combo.get().strip()
         if not device_name or device_name == "未检测到设备":
             messagebox.showwarning("警告", "请先选择或输入设备名称")
@@ -3773,62 +3812,22 @@ class LLMTaskAutomationGUI:
         status_label.config(text=f"正在连接 {device_name}...", foreground='orange')
         self.log_message(f"正在从设置页连接设备: {device_name}", "llm")
 
-        def connect_thread():
-            try:
-                # 1. 尝试连接 (使用 android_control 中的函数)
-                # 注意：如果 device_name 是 IP:Port 格式，可能需要先 add_network_device
-                if ':' in device_name and '.' in device_name:
-                    try:
-                        ip, port = device_name.split(':')
-                        add_network_device(ip, port)
-                    except:
-                        pass # 忽略格式解析错误，直接尝试连接
+        def _connect_and_update_ui(device_name: str, status_label: ttk.Label):
+            success = self.connect_device_by_address(device_name)
 
-                controller_id = connect_adb_device(device_name)
-
-                # 2. 处理连接结果
-                if controller_id:
-                    def _on_success():
-                        self.controller_id = controller_id
-                        self.current_device = device_name
-
-                        # 更新上次成功设备
-                        self.last_successful_device = device_name
-                        self.save_last_successful_device(device_name)
-
-                        # 刷新设备列表缓存
-                        if device_name not in self.device_cache:
-                            self.device_cache.insert(0, device_name)
-                            self.save_device_cache()
-
-                        self.log_message(f"设备已连接: {device_name} (ID: {self.controller_id})", "llm")
-                        status_label.config(text=f"设备状态: 已连接", foreground='green')
-
-                        # 同步更新其他页面的设备状态（如果存在）
-                        if hasattr(self, 'device_status'):
-                            self.device_status.config(text=f"{device_name}", style='Status.Ready.TLabel')
-                        if hasattr(self, 'app_status'):
-                            self.app_status.config(text="就绪", style='Status.Ready.TLabel')
-
-                        # 尝试获取分辨率
-                        threading.Thread(target=lambda: self.get_device_resolution(), daemon=True).start()
-
-                    self.root.after(0, _on_success)
+            def _update():
+                if success:
+                    status_label.config(text="设备状态: 已连接", foreground='green')
+                    # 刷新设备列表缓存
+                    if device_name not in self.device_cache:
+                        self.device_cache.insert(0, device_name)
+                        self.save_device_cache()
                 else:
-                    def _on_fail():
-                        error_msg = "ADB返回空ID"
-                        self.log_message(f"连接失败: {error_msg}", "llm", "ERROR")
-                        status_label.config(text=f"连接失败", foreground='red')
-                    self.root.after(0, _on_fail)
+                    status_label.config(text="连接失败", foreground='red')
 
-            except Exception as e:
-                def _on_error(err_msg):
-                    self.log_message(f"连接异常: {err_msg}", "llm", "ERROR")
-                    status_label.config(text=f"连接异常", foreground='red')
-                self.root.after(0, _on_error, str(e))
+            self.root.after(0, _update)
 
-        # 启动后台线程
-        threading.Thread(target=connect_thread, daemon=True).start()
+        threading.Thread(target=lambda: _connect_and_update_ui(device_name, status_label), daemon=True).start()
 
     def open_task_editor_tab(self, task_index: Optional[int] = None, create_new: bool = False):
         """
@@ -3959,7 +3958,6 @@ class LLMTaskAutomationGUI:
                     },
                     "task_settings": {
                         "retry_count": 3,
-                        "timeout": 300,
                         "continue_on_failure": False
                     },
                     "variables_override": {},
@@ -4031,12 +4029,16 @@ class LLMTaskAutomationGUI:
 
     def get_active_device_address(self) -> Optional[str]:
         """获取当前活动的设备地址"""
-        # 优先使用最近成功连接的设备
+        # 优先使用当前连接的设备
+        if hasattr(self, 'current_device') and self.current_device:
+            return self.current_device
+
+        # 其次使用最近成功连接的设备
         if hasattr(self, 'last_successful_device') and self.last_successful_device:
             return self.last_successful_device
 
         # 从配置读取
-        return self.load_device_address()
+        return self.load_device_config()
 
     def update_current_task_display(self):
         """更新当前任务显示"""
@@ -4073,7 +4075,7 @@ class LLMTaskAutomationGUI:
 
             # 每轮开始时重置任务索引（除第一轮外）
             if execution_round > 0:
-                self.current_task_index = 1  # 跳过设备连接任务
+                self.current_task_index = 0  # 从第一个任务开始
                 self.log_message(f"🔄 开始第 {execution_round + 1} 轮执行", "llm")
 
             # 执行一轮任务队列
@@ -4118,6 +4120,20 @@ class LLMTaskAutomationGUI:
                 self.current_subtasks = []
                 self.root.after(0, self.refresh_subtask_ui)
 
+                #=== 新增：预分解任务步骤 ===
+                self.root.after(0, self.log_message, f"🔍 正在让AI预分解任务步骤: {task_name}", "llm", "INFO")
+                self.root.after(0, self.log_message, "📖 分析详细步骤描述...", "llm", "INFO")
+
+                # 预先让AI分解任务
+                subtasks_created = self.create_subtasks_from_task_list(task_template, task_name)
+                if not subtasks_created:
+                    self.root.after(0, self.log_message, "⚠️ 任务步骤预分解失败，但将继续执行", "llm", "WARNING")
+                else:
+                    self.root.after(0, self.log_message, f"✅ 已预分解为 {len(self.current_subtasks)} 个子任务", "llm", "INFO")
+
+                # 给用户一点时间查看预分解结果
+                time.sleep(1.0)
+
                 # 执行单个任务
                 task_completed = self.execute_single_task(task_template)
 
@@ -4141,38 +4157,8 @@ class LLMTaskAutomationGUI:
 
     def execute_single_task(self, task_template: Dict) -> bool:
         """执行单个任务"""
-        max_iterations = 30  # 最大迭代次数（防无限循环）
+        max_iterations = 300  # 最大迭代次数（防无限循环）
         iteration = 0
-
-        # 如果是设备连接任务，先尝试连接设备
-        if task_template.get('template_id') == '__device_setup__':
-            self.root.after(0, self.log_message, "📱 正在连接设备...", "llm")
-
-            # 优先使用最新一次连接成功的设备
-            device_address = None
-
-            # 首先尝试使用last_successful_device属性
-            if hasattr(self, 'last_successful_device') and self.last_successful_device:
-                device_address = self.last_successful_device
-                self.root.after(0, self.log_message, f"🎯 使用上次成功设备: {device_address}", "llm")
-            else:
-                # 回退到从任务设置中获取设备地址
-                device_address = self.load_device_address()
-                if device_address:
-                    self.root.after(0, self.log_message, f"⚙️ 从配置加载设备: {device_address}", "llm")
-
-            if device_address:
-                success = self.connect_device_by_address(device_address)
-                if not success:
-                    self.root.after(0, self.log_message, "❌ 设备连接失败", "llm", "ERROR")
-                    return False
-                self.root.after(0, self.log_message, "✅ 设备连接成功", "llm")
-            else:
-                self.root.after(0, self.log_message, "⚠️ 未找到设备地址配置", "llm", "ERROR")
-                return False
-
-            # 设备连接任务标记为完成
-            return True
 
         while iteration < max_iterations and not self.llm_stop_flag:
             iteration += 1
@@ -4252,7 +4238,7 @@ class LLMTaskAutomationGUI:
         """停止LLM执行"""
         def _update():
             self.llm_stop_flag = True
-            self.llm_running = False  # 🔧 重置运行状态
+            self.llm_running = False
             self.log_message("■ 停止请求已发送", "llm")
             if self.llm_thread and self.llm_thread.is_alive():
                 self.llm_thread.join(timeout=3.0)
@@ -4260,7 +4246,6 @@ class LLMTaskAutomationGUI:
             self.llm_stop_btn.config(state='disabled')
             self.app_status.config(text="⏹️ LLM已停止", style='Status.Ready.TLabel')
 
-            # 重置当前任务索引
             self.current_task_index = 0
             self.refresh_task_queue_display()
             self.current_task_label.config(text="当前: 无")
@@ -4271,33 +4256,26 @@ class LLMTaskAutomationGUI:
         """将变量覆盖应用到深拷贝的模板上"""
         import copy
 
-        # 获取深拷贝的模板
         template_copy = task_item.get("template_copy", {})
         if not template_copy:
             return task_item
 
-        # 再次深拷贝以确保执行时的隔离
         final_template = copy.deepcopy(template_copy)
 
-        # 获取变量覆盖
         variables_override = task_item.get("variables_override", {})
 
-        # 应用变量覆盖到模板的各个字段
         if variables_override:
-            # 1. 更新模板中的变量定义
             template_variables = final_template.get("variables", [])
             for var_def in template_variables:
                 var_name = var_def.get("name")
                 if var_name in variables_override:
                     var_def["default"] = variables_override[var_name]
 
-            # 2. 更新描述字段中的变量占位符
             description = final_template.get("description", "")
             for var_name, var_value in variables_override.items():
                 description = description.replace(f"{{{var_name}}}", str(var_value))
             final_template["description"] = description
 
-            # 3. 更新任务步骤中的变量占位符
             task_steps = final_template.get("task_steps", [])
             updated_steps = []
             for step in task_steps:
@@ -4307,7 +4285,6 @@ class LLMTaskAutomationGUI:
                 updated_steps.append(updated_step)
             final_template["task_steps"] = updated_steps
 
-            # 4. 更新成功指标中的变量占位符
             success_indicators = final_template.get("success_indicators", [])
             updated_indicators = []
             for indicator in success_indicators:
@@ -4641,7 +4618,6 @@ class LLMTaskAutomationGUI:
                 if "global_settings" not in data:
                     data["global_settings"] = {
                         "operation_delay": 0.8,
-                        "vlm_think_timeout": 30,
                         "max_retries": 3,
                         "screenshot_interval": 2.0
                     }
@@ -4654,7 +4630,6 @@ class LLMTaskAutomationGUI:
                 "tasks": [],
                 "global_settings": {
                     "operation_delay": 0.8,
-                    "vlm_think_timeout": 30,
                     "max_retries": 3,
                     "screenshot_interval": 2.0
                 },
@@ -5081,8 +5056,8 @@ class LLMTaskAutomationGUI:
         ttk.Label(server_frame, text="服务器: 已配置", foreground='green').pack(side=tk.LEFT)
 
         # 固定服务器地址配置
-        self.cloud_host = "api.r54134544.nyat.app"
-        self.cloud_port = 57460
+        self.cloud_host = "127.0.0.1"
+        self.cloud_port = 9999
 
         # 用户认证
         auth_frame = ttk.Frame(conn_frame)
@@ -5343,34 +5318,26 @@ class LLMTaskAutomationGUI:
             try:
                 # 获取统计信息
                 stats = self.cloud_client.get_stats()
-                if stats:
-                    tier = stats.get('layer', 'free')
-                    expiry = stats.get('expiry', 0)
-                    recent_stats = stats.get('stats', [])
+                if stats and stats.get('status') == 'success':
+                    # 修复：正确解析服务器返回的数据结构
+                    stats_data = stats.get('stats', {})
+                    tier = stats_data.get('tier', 'free')
+                    expiry = stats_data.get('expiry', '未知')
+                    tokens_used = stats_data.get('tokens_used', 0)
 
                     self.root.after(0, lambda: self.cloud_tier_label.config(
-                        text=f"当前层级: {tier.upper()}\n到期时间: {time.ctime(expiry) if expiry > 0 else '永久'}"))
+                        text=f"当前层级: {tier.upper()}\n到期时间: {expiry}\n已使用令牌: {tokens_used}"))
 
-                    # 显示最近使用统计
-                    if recent_stats and len(recent_stats) > 0:
-                        # 确保recent_stats是可迭代的列表
-                        if isinstance(recent_stats, list):
-                            stats_list = recent_stats[:5]  # 取前5条记录
-                            if stats_list:
-                                stats_text = f"最近使用记录 (最近{len(stats_list)}次):\n"
-                                for i, record in enumerate(stats_list):
-                                    if isinstance(record, (list, tuple)) and len(record) >= 3:
-                                        ts, tokens, duration = record[:3]
-                                        stats_text += f"  {i+1}. 时间: {time.ctime(ts)}, 令牌: {tokens}, 耗时: {duration:.2f}s\n"
-                                self.root.after(0, lambda: self.cloud_stats_label.config(text=stats_text))
-                            else:
-                                self.root.after(0, lambda: self.cloud_stats_label.config(text="暂无使用记录"))
-                        else:
-                            self.root.after(0, lambda: self.cloud_stats_label.config(text="统计格式错误"))
-                    else:
-                        self.root.after(0, lambda: self.cloud_stats_label.config(text="暂无使用记录"))
+                    # 显示简化的统计信息
+                    stats_text = f"用户统计信息:\n"
+                    stats_text += f"  用户层级: {tier.upper()}\n"
+                    stats_text += f"  到期时间: {expiry}\n"
+                    stats_text += f"  已使用令牌: {tokens_used}\n"
+
+                    self.root.after(0, lambda: self.cloud_stats_label.config(text=stats_text))
                 else:
-                    self.root.after(0, lambda: self.cloud_stats_label.config(text="无法获取统计信息"))
+                    error_msg = stats.get('msg', '未知错误') if stats else '无响应'
+                    self.root.after(0, lambda: self.cloud_stats_label.config(text=f"获取统计信息失败: {error_msg}"))
 
             except Exception as e:
                 error_msg = str(e)
@@ -5511,34 +5478,29 @@ class LLMTaskAutomationGUI:
             sys.exit(0)
 
     def _disconnect_adb_async(self):
-        """异步断开ADB连接 - 不阻塞任何步骤"""
+        """异步断开ADB连接"""
         def disconnect_thread():
             if self.controller_id:
                 try:
-                    # 在后台线程中执行ADB断开，避免阻塞主线程
                     success = disconnect_device(self.controller_id)
                     if success:
                         self.root.after(0, lambda: self.log_message("设备已自动断开", "all"))
                     else:
                         self.root.after(0, lambda: self.log_message("设备断开失败", "all", "WARNING"))
 
-                    # 重置设备状态
                     self.controller_id = None
                     self.current_device = None
 
-                    # 更新UI状态（如果窗口还存在）
                     self.root.after(0, self._update_device_ui_disconnected)
 
                 except Exception as e:
                     self.root.after(0, lambda: self.log_message(f"自动断开设备时出错: {str(e)}", "all", "WARNING"))
 
-        # 启动后台线程执行ADB断开
         threading.Thread(target=disconnect_thread, daemon=True).start()
 
     def _update_device_ui_disconnected(self):
         """更新设备UI为断开状态"""
         try:
-            # 检查窗口是否仍然存在
             if self.root.winfo_exists():
                 self.device_status.config(text="无设备", style='Status.Error.TLabel')
                 self.app_status.config(text="设备已断开", style='Status.Ready.TLabel')
@@ -5556,6 +5518,99 @@ class LLMTaskAutomationGUI:
             self.log_message(f"📊 当前使用分辨率: {width}x{height}", page)
 
         self.root.after(0, _update)
+
+    def create_subtasks_from_task_list(self, task_template: dict, task_name: str) -> bool:
+        """
+        直接从任务的task_list创建子任务，不使用AI预分解
+        """
+        try:
+            # 获取任务步骤描述
+            task_steps = task_template.get('task_steps', [])
+            description = task_template.get('description', '')
+
+            if not task_steps:
+                self.log_message("⚠️ 任务缺少task_steps，无法创建子任务", "llm", "WARNING")
+                return False
+
+            # 清空当前子任务列表
+            self.current_subtasks = []
+
+            # 直接为每个task_steps创建子任务
+            for i, step in enumerate(task_steps):
+                if step and step.strip():
+                    subtask = {
+                        "id": f"st_{len(self.current_subtasks)+1}_{int(time.time())}",
+                        "desc": step.strip(),
+                        "status": "pending",
+                        "subtasks": []
+                    }
+                    self.current_subtasks.append(subtask)
+                    self.log_message(f"✅ 创建子任务: {step.strip()}", "llm", "INFO")
+
+            # 更新UI显示
+            self.root.after(0, self.refresh_subtask_ui)
+
+            success = len(self.current_subtasks) > 0
+            if success:
+                self.log_message(f"✅ 已创建 {len(self.current_subtasks)} 个子任务", "llm")
+            else:
+                self.log_message("⚠️ 未能创建任何子任务", "llm", "WARNING")
+
+            return success
+
+        except Exception as e:
+            self.log_message(f"❌ 创建子任务失败: {str(e)}", "llm", "ERROR")
+            return False
+    def parse_and_create_subtasks(self, ai_response: str):
+        """解析AI响应并创建子任务（VLM运行时动态添加任务使用）"""
+        try:
+            # 简单实现：查找文本中的任务描述
+            # 这个函数现在主要用于VLM运行时动态添加子任务
+            lines = ai_response.strip().split('\n')
+            for line in lines:
+                line = line.strip()
+                if line and len(line) > 10 and not line.startswith('#') and not line.startswith('-'):
+                    # 过滤掉明显的非任务文本
+                    if any(keyword in line.lower() for keyword in ['创建', '任务:', '步骤', '完成']):
+                        # 提取任务描述
+                        # 简单实现：取更长的句子作为子任务
+                        if len(self.current_subtasks) < 10:  # 限制子任务数量
+                            desc = line.strip().strip('-').strip('*').strip()
+                            if desc and len(desc) > 5:
+                                subtask = {
+                                    "id": f"st_{len(self.current_subtasks)+1}_{int(time.time())}",
+                                    "desc": desc,
+                                    "status": "pending",
+                                    "subtasks": []
+                                }
+                                self.current_subtasks.append(subtask)
+                                self.log_message(f"✅ 动态添加子任务: {desc}", "llm")
+
+                                # 更新UI显示
+                                self.root.after(0, self.refresh_subtask_ui)
+
+            # 如果没有解析到子任务，创建一个默认的
+            if not self.current_subtasks:
+                subtask = {
+                    "id": f"st_{len(self.current_subtasks)+1}_{int(time.time())}",
+                    "desc": "执行完整任务流程",
+                    "status": "pending",
+                    "subtasks": []
+                }
+                self.current_subtasks.append(subtask)
+                self.root.after(0, self.refresh_subtask_ui)
+
+        except Exception as e:
+            self.log_message(f"⚠️ 解析AI响应失败: {str(e)}", "llm", "WARNING")
+            # 创建默认子任务
+            subtask = {
+                "id": f"st_{len(self.current_subtasks)+1}_{int(time.time())}",
+                "desc": "执行完整任务流程",
+                "status": "pending",
+                "subtasks": []
+            }
+            self.current_subtasks.append(subtask)
+            self.root.after(0, self.refresh_subtask_ui)
 
 def main():
     root = tk.Tk()

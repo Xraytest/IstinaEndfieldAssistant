@@ -9,10 +9,10 @@ import urllib3
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 class CloudClient:
-    def __init__(self, host='api.r54134544.nyat.app', port=57460):
+    def __init__(self, host='127.0.0.1', port=9999):
         self.host = host
         self.port = port
-        self.base_url = f"https://{host}:{port}"
+        self.base_url = f"http://{host}:{port}"
         self.user_id = None
 
     def connect(self):
