@@ -56,11 +56,12 @@ class ReAcrtureClientGUI:
         self.task_queue_manager = TaskQueueManager(self.task_manager)
         self.auth_manager = AuthManager(self.communicator, self.config)
         
-        # 创建UI
+        # 创建UI（这会创建status_bar）
         self.setup_ui()
         
-        # 创建日志管理器
-        self.log_manager = LogManager(self.main_log_text, self.status_bar)
+        # 创建日志管理器（使用任务队列UI中的日志控件）
+        log_text_widget = self.task_queue_ui.get_log_text_widget()
+        self.log_manager = LogManager(log_text_widget, self.status_bar)
         
         # 为UI组件设置日志回调
         self.device_ui.log_callback = self.log_manager.log_message
@@ -93,21 +94,24 @@ class ReAcrtureClientGUI:
         
     def setup_ui(self):
         """设置主UI"""
-        # 主notebook
+        # 主notebook（重新引入以支持多页面）
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill='both', expand=True, padx=5, pady=5)
         
         # 页面框架
         self.execution_page_frame = ttk.Frame(self.notebook)
-        self.log_page_frame = ttk.Frame(self.notebook)
+        self.cloud_service_frame = ttk.Frame(self.notebook)
         
         # 添加页面
         self.notebook.add(self.execution_page_frame, text='执行控制台')
-        self.notebook.add(self.log_page_frame, text='执行日志')
+        self.notebook.add(self.cloud_service_frame, text='云服务')
+        
+        # 添加页面切换事件监听
+        self.notebook.bind('<<NotebookTabChanged>>', self.on_notebook_tab_changed)
         
         # 设置各页面
         self.setup_execution_page()
-        self.setup_log_page()
+        self.setup_cloud_service_page()
         
         # 状态栏
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
@@ -118,23 +122,11 @@ class ReAcrtureClientGUI:
         frame = ttk.Frame(self.execution_page_frame, padding="10")
         frame.pack(fill='both', expand=True)
         
-        # 上下分栏：设备管理在上，任务队列在下
-        main_paned = ttk.PanedWindow(frame, orient=tk.VERTICAL)
+        # 左右分栏：任务队列在左，设备相关在右
+        main_paned = ttk.PanedWindow(frame, orient=tk.HORIZONTAL)
         main_paned.pack(fill='both', expand=True)
         
-        # 设备管理区域（上方）
-        device_frame = ttk.Frame(main_paned)
-        main_paned.add(device_frame, weight=1)
-        
-        # 创建设备UI
-        self.device_ui = DeviceUI(
-            device_frame,
-            self.device_manager,
-            self.screen_capture,
-            None  # 暂时传入None，稍后设置
-        )
-        
-        # 任务队列区域（下方）
+        # 任务队列区域（左侧）
         queue_frame = ttk.Frame(main_paned)
         main_paned.add(queue_frame, weight=1)
         
@@ -142,6 +134,18 @@ class ReAcrtureClientGUI:
         self.task_queue_ui = TaskQueueUI(
             queue_frame,
             self.task_queue_manager,
+            None  # 暂时传入None，稍后设置
+        )
+        
+        # 设备相关区域（右侧）- 合并设备连接、可用设备和屏幕预览
+        device_combined_frame = ttk.LabelFrame(main_paned, text="设备管理", padding="10")
+        main_paned.add(device_combined_frame, weight=2)
+        
+        # 创建设备UI（现在所有设备相关内容都在一个框内）
+        self.device_ui = DeviceUI(
+            device_combined_frame,
+            self.device_manager,
+            self.screen_capture,
             None  # 暂时传入None，稍后设置
         )
         
@@ -177,14 +181,6 @@ class ReAcrtureClientGUI:
         self.progress_label = ttk.Label(status_frame, textvariable=self.progress_var, style='Status.TLabel')
         self.progress_label.pack(side=tk.RIGHT)
         
-    def setup_log_page(self):
-        """设置执行日志页面"""
-        frame = ttk.Frame(self.log_page_frame, padding="10")
-        frame.pack(fill='both', expand=True)
-        
-        # 执行日志显示
-        self.main_log_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD, font=('Consolas', 9))
-        self.main_log_text.pack(fill='both', expand=True)
         
     def _load_config(self, config_file):
         """加载配置文件"""
@@ -262,6 +258,90 @@ class ReAcrtureClientGUI:
         elif action == 'stop_execution':
             self.stop_llm_execution()
             
+    def on_closing(self):
+        """窗口关闭事件"""
+    def setup_cloud_service_page(self):
+        """设置云服务页面"""
+        frame = ttk.Frame(self.cloud_service_frame, padding="20")
+        frame.pack(fill='both', expand=True)
+        
+        # 标题
+        title_label = ttk.Label(frame, text="云服务账户信息", font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # 用户信息显示区域
+        info_frame = ttk.LabelFrame(frame, text="账户详情", padding="15")
+        info_frame.pack(fill='x', pady=(0, 20))
+        
+        # 用户名
+        username_frame = ttk.Frame(info_frame)
+        username_frame.pack(fill='x', pady=5)
+        ttk.Label(username_frame, text="用户名:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.username_value = ttk.Label(username_frame, text="未登录", font=('Arial', 10))
+        self.username_value.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 账号层级
+        tier_frame = ttk.Frame(info_frame)
+        tier_frame.pack(fill='x', pady=5)
+        ttk.Label(tier_frame, text="账号层级:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.tier_value = ttk.Label(tier_frame, text="未知", font=('Arial', 10))
+        self.tier_value.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # Token (API Key)
+        token_frame = ttk.Frame(info_frame)
+        token_frame.pack(fill='x', pady=5)
+        ttk.Label(token_frame, text="Token:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.token_value = ttk.Label(token_frame, text="未获取", font=('Arial', 10))
+        self.token_value.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 请求用量
+        usage_frame = ttk.Frame(info_frame)
+        usage_frame.pack(fill='x', pady=5)
+        ttk.Label(usage_frame, text="请求用量:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.usage_value = ttk.Label(usage_frame, text="0/0", font=('Arial', 10))
+        self.usage_value.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 刷新按钮
+        refresh_btn = ttk.Button(frame, text="🔄 刷新信息", command=self.refresh_cloud_service_info)
+        refresh_btn.pack(pady=(10, 0))
+        
+        # 初始化显示
+        self.refresh_cloud_service_info()
+        
+    def refresh_cloud_service_info(self):
+        """刷新云服务信息"""
+        if not self.auth_manager or not self.auth_manager.get_login_status():
+            self.username_value.config(text="未登录")
+            self.tier_value.config(text="未知")
+            self.token_value.config(text="未获取")
+            self.usage_value.config(text="0/0")
+            return
+            
+        # 获取用户ID
+        user_id = self.auth_manager.get_user_id()
+        self.username_value.config(text=user_id)
+        
+        # 尝试获取用户信息
+        user_info = self.auth_manager.get_user_info()
+        if user_info:
+            self.tier_value.config(text=user_info.get('tier', '未知'))
+            self.token_value.config(text=str(user_info.get('total_tokens_used', 0)))
+            self.usage_value.config(text=f"{user_info.get('quota_used', 0)}/{user_info.get('quota_daily', 0)}")
+        else:
+            self.tier_value.config(text="未知")
+            self.usage_value.config(text="无法获取")
+            
+            
+        if self.status_bar:
+            self.status_bar.config(text="云服务信息已刷新")
+
+    def on_notebook_tab_changed(self, event):
+        """处理notebook页面切换事件"""
+        current_tab = self.notebook.index(self.notebook.select())
+        # 云服务页面是第二个页面（索引1）
+        if current_tab == 1:
+            self.refresh_cloud_service_info()
+        
     def on_closing(self):
         """窗口关闭事件"""
         if self.execution_manager.is_running():

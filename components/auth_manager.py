@@ -258,3 +258,22 @@ class AuthManager:
     def get_session_id(self):
         """获取会话ID"""
         return self.session_id
+        
+    def get_user_info(self):
+        """获取用户信息"""
+        if not self.is_logged_in:
+            return None
+            
+        try:
+            response = self.communicator.send_request("get_user_info", {
+                "user_id": self.user_id,
+                "session_id": self.session_id
+            })
+            
+            if response and response.get('status') == 'success':
+                return response.get('user_info')
+            else:
+                return None
+        except Exception as e:
+            print(f"获取用户信息失败: {e}")
+            return None

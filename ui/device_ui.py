@@ -184,6 +184,9 @@ class DeviceUI:
                     scale_y = canvas_height / img_height
                     scale = min(scale_x, scale_y)
                     
+                    # 缩小预览比例（使用0.8倍的原始缩放比例）
+                    scale = scale * 0.8
+                    
                     new_width = int(img_width * scale)
                     new_height = int(img_height * scale)
                     
