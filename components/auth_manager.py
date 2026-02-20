@@ -1,0 +1,260 @@
+"""用户认证管理业务逻辑组件"""
+import os
+import json
+import tkinter as tk
+from tkinter import ttk, messagebox, filedialog
+
+class AuthManager:
+    """用户认证管理业务逻辑类"""
+    
+    def __init__(self, communicator, config):
+        self.communicator = communicator
+        self.config = config
+        self.is_logged_in = False
+        self.user_id = ""
+        self.session_id = ""
+        
+    def register_user(self, username):
+        """注册用户"""
+        try:
+            if self.communicator is None:
+                return False, "通信器未初始化"
+                
+            # 调用服务端注册接口
+            response = self.communicator.send_request("register", {"user_id": username})
+            if response and response.get('status') == 'success':
+                api_key = response.get('key')
+                if api_key:
+                    # 保存arkpass文件
+                    arkpass_data = {
+                        "user_id": username,
+                        "api_key": api_key,
+                        "server_host": self.config['server']['host'],
+                        "server_port": self.config['server']['port']
+                    }
+                    
+                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    if not os.path.exists(cache_dir):
+                        os.makedirs(cache_dir)
+                        
+                    arkpass_path = os.path.join(cache_dir, f"{username}.arkpass")
+                    with open(arkpass_path, 'w', encoding='utf-8') as f:
+                        json.dump(arkpass_data, f, indent=2)
+                        
+                    # 更新状态
+                    self.is_logged_in = True
+                    self.user_id = username
+                    
+                    return True, None
+                else:
+                    return False, "服务器响应中缺少API密钥"
+            else:
+                error_msg = response.get('message', '未知错误')
+                return False, error_msg
+                    
+        except Exception as e:
+            return False, str(e)
+            
+    def login_with_arkpass(self, file_path):
+        """使用arkpass文件登录"""
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                content = f.read().strip()
+            
+            # 尝试解析JSON格式
+            if content.startswith('{') and content.endswith('}'):
+                arkpass_data = json.loads(content)
+                user_id = arkpass_data.get('user_id')
+                api_key = arkpass_data.get('api_key')
+                is_json_format = True
+            else:
+                # 尝试解析旧格式 username:api_key
+                parts = content.split(':', 1)
+                if len(parts) == 2:
+                    user_id = parts[0].strip()
+                    api_key = parts[1].strip()
+                    # 为legacy格式创建JSON数据用于缓存
+                    arkpass_data = {
+                        'user_id': user_id,
+                        'api_key': api_key
+                    }
+                else:
+                    return False
+            
+            if not user_id or not api_key:
+                return False
+                
+            # 调用服务端登录接口
+            response = self.communicator.send_request("login", {
+                "user_id": user_id,
+                "key": api_key
+            })
+            
+            if response and response.get('status') == 'success':
+                session_id = response.get('session_id')
+                if session_id:
+                    # 缓存arkpass文件到本地
+                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    if not os.path.exists(cache_dir):
+                        os.makedirs(cache_dir)
+                        
+                    filename = os.path.basename(file_path)
+                    cache_path = os.path.join(cache_dir, filename)
+                    with open(cache_path, 'w', encoding='utf-8') as f:
+                        json.dump(arkpass_data, f, indent=2)
+                        
+                    # 更新状态
+                    self.is_logged_in = True
+                    self.user_id = user_id
+                    self.session_id = session_id
+                    
+                    return True
+                    
+        except Exception as e:
+            print(f"登录失败: {e}")
+            
+        return False
+        
+    def auto_login_with_arkpass(self, arkpass_path):
+        """自动使用arkpass文件登录"""
+        return self.login_with_arkpass(arkpass_path)
+        
+    def check_login_status(self, root_window):
+        """检查登录状态"""
+        # 检查多个可能的arkpass文件位置
+        possible_paths = []
+        
+        # 1. 客户端缓存目录
+        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+        else:
+            cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
+            possible_paths.extend(cache_files)
+        
+        # 2. 项目根目录（相对于client目录的上一级）
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        root_files = [os.path.join(project_root, f) for f in os.listdir(project_root) if f.endswith('.arkpass')]
+        possible_paths.extend(root_files)
+        
+        # 3. 当前工作目录
+        current_files = [f for f in os.listdir('.') if f.endswith('.arkpass')]
+        possible_paths.extend(current_files)
+        
+        # 去重并按优先级排序（缓存目录优先）
+        unique_paths = []
+        seen = set()
+        for path in possible_paths:
+            if path not in seen and os.path.exists(path):
+                unique_paths.append(path)
+                seen.add(path)
+        
+        # 尝试每个arkpass文件
+        for arkpass_path in unique_paths:
+            if self.auto_login_with_arkpass(arkpass_path):
+                return True
+                
+        # 如果有arkpass文件但登录失败，显示错误提示
+        if unique_paths:
+            messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
+        else:
+            # 未找到arkpass文件，显示登录对话框
+            self.show_login_or_register_dialog(root_window)
+            
+        return self.is_logged_in
+        
+    def show_login_or_register_dialog(self, parent_window):
+        """显示登录或注册选择对话框 - 不登录则退出"""
+        dialog = tk.Toplevel(parent_window)
+        dialog.title("账户认证")
+        dialog.geometry("300x150")
+        dialog.resizable(False, False)
+        dialog.transient(parent_window)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="请选择操作:", font=('Arial', 12, 'bold')).pack(pady=20)
+        
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        def on_register():
+            dialog.destroy()
+            self.show_register_dialog(parent_window)
+            
+        def on_login():
+            dialog.destroy()
+            self.show_login_dialog(parent_window)
+            
+        def on_cancel():
+            # 不登录注册，直接退出客户端
+            dialog.destroy()
+            parent_window.quit()
+            
+        ttk.Button(btn_frame, text="注册", command=on_register, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="登入", command=on_login, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
+        
+    def show_register_dialog(self, parent_window):
+        """显示注册对话框"""
+        dialog = tk.Toplevel(parent_window)
+        dialog.title("注册")
+        dialog.geometry("300x150")
+        dialog.resizable(False, False)
+        dialog.transient(parent_window)
+        dialog.grab_set()
+        
+        ttk.Label(dialog, text="请输入用户名:", font=('Arial', 10)).pack(pady=10)
+        
+        username_var = tk.StringVar()
+        username_entry = ttk.Entry(dialog, textvariable=username_var, width=30)
+        username_entry.pack(pady=5)
+        username_entry.focus()
+        
+        def on_submit():
+            username = username_var.get().strip()
+            if not username:
+                messagebox.showwarning("警告", "请输入有效的用户名")
+                return
+                
+            success, error_msg = self.register_user(username)
+            if success:
+                dialog.destroy()
+                messagebox.showinfo("注册成功", f"{username}注册成功！登入凭证已缓存于本地")
+            else:
+                error_display = error_msg if error_msg else "注册失败，请重试。"
+                messagebox.showerror("注册失败", f"注册失败: {error_display}")
+                
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        ttk.Button(btn_frame, text="注册", command=on_submit, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
+        
+        # 绑定回车键
+        username_entry.bind('<Return>', lambda e: on_submit())
+        
+    def show_login_dialog(self, parent_window):
+        """显示登录对话框"""
+        def on_select_file():
+            file_path = filedialog.askopenfilename(
+                title="选择ArkPass文件",
+                filetypes=[("ArkPass Files", "*.arkpass"), ("All Files", "*.*")]
+            )
+            if file_path:
+                if self.login_with_arkpass(file_path):
+                    messagebox.showinfo("登录成功", "登录成功！")
+                else:
+                    messagebox.showerror("登录失败", "ArkPass文件无效或登录失败。")
+                    
+        on_select_file()
+        
+    def get_login_status(self):
+        """获取登录状态"""
+        return self.is_logged_in
+        
+    def get_user_id(self):
+        """获取用户ID"""
+        return self.user_id
+        
+    def get_session_id(self):
+        """获取会话ID"""
+        return self.session_id

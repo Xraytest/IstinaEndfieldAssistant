@@ -521,7 +521,7 @@ class ReAcrtureClientGUI:
             success, error_msg = self.register_user(username)
             if success:
                 dialog.destroy()
-                messagebox.showinfo("注册成功", f"用户 '{username}' 注册成功！\nArkPass文件已保存到本地。")
+                messagebox.showinfo("注册成功", f"{username}注册成功！登入凭证已缓存于本地")
             else:
                 error_display = error_msg if error_msg else "注册失败，请重试。"
                 messagebox.showerror("注册失败", f"注册失败: {error_display}")
