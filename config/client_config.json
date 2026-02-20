@@ -1,0 +1,21 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 9999
+  },
+  "adb": {
+    "path": "3rd-part/ADB/adb.exe",
+    "timeout": 10
+  },
+  "screen": {
+    "quality": 80,
+    "max_size": 1024
+  },
+  "security": {
+    "press_duration_ms": 100,
+    "press_jitter_px": 2
+  },
+  "communication": {
+    "password": "default_password"
+  }
+}

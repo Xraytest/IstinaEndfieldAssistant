@@ -1,0 +1,32 @@
+[
+  {
+    "id": "open_app",
+    "name": "打开应用",
+    "description": "打开指定的应用程序",
+    "variables": [
+      {
+        "name": "应用名称",
+        "type": "string",
+        "default": "设置",
+        "desc": "要打开的应用名称"
+      }
+    ],
+    "created_at": 1707500000.0,
+    "updated_at": 1707500000.0
+  },
+  {
+    "id": "navigate_menu",
+    "name": "导航菜单",
+    "description": "在应用中导航到指定菜单项",
+    "variables": [
+      {
+        "name": "菜单项",
+        "type": "string",
+        "default": "通用",
+        "desc": "要导航到的菜单项"
+      }
+    ],
+    "created_at": 1707500000.0,
+    "updated_at": 1707500000.0
+  }
+]
