@@ -82,30 +82,34 @@ class ADBDeviceManager:
         devices = []
         lines = output.split('\n')
         for line in lines[1:]:  # 跳过第一行标题
-            if line.strip() and 'device' in line:
+            if line.strip():
                 parts = line.split()
                 if len(parts) >= 2:
                     serial = parts[0]
-                    state = parts[1]
-                    device_info = {
-                        'serial': serial,
-                        'state': state,
-                        'model': '',
-                        'product': '',
-                        'transport_id': ''
-                    }
-                    
-                    # 解析额外信息
-                    for part in parts[2:]:
-                        if part.startswith('model:'):
-                            device_info['model'] = part[6:]
-                        elif part.startswith('product:'):
-                            device_info['product'] = part[8:]
-                        elif part.startswith('transport_id:'):
-                            device_info['transport_id'] = part[13:]
+                    # 检查是否是有效的设备序列号（不是空格或特殊字符）
+                    if serial and not serial.startswith('*') and serial != 'List':
+                        state = parts[1]
+                        # 只处理有效的设备状态
+                        if state in ['device', 'offline', 'unauthorized']:
+                            device_info = {
+                                'serial': serial,
+                                'state': state,
+                                'model': '',
+                                'product': '',
+                                'transport_id': ''
+                            }
                             
-                    devices.append(device_info)
-                    self.devices_cache[serial] = device_info
+                            # 解析额外信息
+                            for part in parts[2:]:
+                                if part.startswith('model:'):
+                                    device_info['model'] = part[6:]
+                                elif part.startswith('product:'):
+                                    device_info['product'] = part[8:]
+                                elif part.startswith('transport_id:'):
+                                    device_info['transport_id'] = part[13:]
+                                    
+                            devices.append(device_info)
+                            self.devices_cache[serial] = device_info
                     
         self.last_scan_time = current_time
         return devices

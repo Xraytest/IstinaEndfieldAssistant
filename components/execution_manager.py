@@ -80,8 +80,12 @@ class ExecutionManager:
                 
                 log_callback(f"执行任务: {current_task['name']}", "execution", "INFO")
                 
-                # 获取任务变量
-                task_variables = self.task_queue_manager.get_task_variables(task_id)
+                # 获取任务变量（包括自定义变量）
+                task_variables = {}
+                if 'custom_variables' in current_task:
+                    task_variables.update(current_task['custom_variables'])
+                else:
+                    task_variables.update(self.task_queue_manager.get_task_variables(task_id))
                 
                 # 捕获屏幕
                 current_device = self.device_manager.get_current_device()

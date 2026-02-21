@@ -25,7 +25,7 @@ from task_manager import TaskManager
 from communicator import ClientCommunicator
 
 class ReAcrtureClientGUI:
-    """ReAcrture客户端GUI主类（最终版）"""
+    """ReAcrture客户端GUI主类"""
     
     def __init__(self, root):
         self.root = root
@@ -116,26 +116,22 @@ class ReAcrtureClientGUI:
         
         # 页面框架
         self.execution_page_frame = ttk.Frame(self.notebook)
-        self.log_page_frame = ttk.Frame(self.notebook)
         self.settings_page_frame = ttk.Frame(self.notebook)
+        self.cloud_service_page_frame = ttk.Frame(self.notebook)
         
         # 添加页面
         self.notebook.add(self.execution_page_frame, text='执行控制台')
-        self.notebook.add(self.log_page_frame, text='执行日志')
         self.notebook.add(self.settings_page_frame, text='设置')
+        self.notebook.add(self.cloud_service_page_frame, text='云服务')
+        
+        # 状态栏（先创建状态栏，确保log_message可以访问）
+        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # 设置各页面
         self.setup_execution_page()
-        self.setup_log_page()
         self.setup_settings_page()
-        
-        # 状态栏
-        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
-        
-        # 状态栏
-        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
-        self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.setup_cloud_service_page()
         
     def setup_device_page(self):
         """设置设备管理页面"""
@@ -195,87 +191,17 @@ class ReAcrtureClientGUI:
         frame = ttk.Frame(self.execution_page_frame, padding="10")
         frame.pack(fill='both', expand=True)
         
-        # 上下分栏：设备管理在上，任务队列在下
-        main_paned = ttk.PanedWindow(frame, orient=tk.VERTICAL)
+        # 左右分栏：任务队列在左，设备管理在右
+        main_paned = ttk.PanedWindow(frame, orient=tk.HORIZONTAL)
         main_paned.pack(fill='both', expand=True)
         
-        # 设备管理区域（上方）
-        device_frame = ttk.Frame(main_paned)
-        main_paned.add(device_frame, weight=1)
-        
-        # 设备连接区域
-        conn_frame = ttk.LabelFrame(device_frame, text="设备连接", padding="10")
-        conn_frame.pack(fill='x', pady=(0, 10))
-        
-        # 扫描设备按钮和手动输入
-        scan_btn = ttk.Button(conn_frame, text="扫描设备", command=self.scan_devices)
-        scan_btn.pack(side=tk.LEFT, padx=(0, 10))
-        
-        # 手动输入设备
-        manual_frame = ttk.Frame(conn_frame)
-        manual_frame.pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(manual_frame, text="手动输入:").pack(side=tk.LEFT)
-        self.manual_device_var = tk.StringVar()
-        manual_entry = ttk.Entry(manual_frame, textvariable=self.manual_device_var, width=20)
-        manual_entry.pack(side=tk.LEFT, padx=(5, 5))
-        manual_connect_btn = ttk.Button(manual_frame, text="连接", command=self.manual_connect_device)
-        manual_connect_btn.pack(side=tk.LEFT)
-        
-        # 连接状态
-        self.device_status_label = ttk.Label(conn_frame, text="未连接设备", foreground='gray')
-        self.device_status_label.pack(side=tk.LEFT)
-        
-        # 设备列表
-        device_list_frame = ttk.LabelFrame(device_frame, text="可用设备", padding="10")
-        device_list_frame.pack(fill='both', expand=True, pady=(0, 10))
-        
-        # 设备列表
-        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=6)
-        self.device_tree.heading('serial', text='设备序列号')
-        self.device_tree.heading('model', text='设备型号')
-        self.device_tree.heading('state', text='状态')
-        self.device_tree.column('serial', width=200)
-        self.device_tree.column('model', width=150)
-        self.device_tree.column('state', width=100)
-        self.device_tree.pack(side=tk.LEFT, fill='both', expand=True)
-        
-        # 滚动条
-        device_scroll = ttk.Scrollbar(device_list_frame, orient=tk.VERTICAL, command=self.device_tree.yview)
-        device_scroll.pack(side=tk.RIGHT, fill=tk.Y)
-        self.device_tree.configure(yscrollcommand=device_scroll.set)
-        
-        # 设备操作按钮
-        device_btn_frame = ttk.Frame(device_frame)
-        device_btn_frame.pack(fill='x')
-        
-        connect_device_btn = ttk.Button(device_btn_frame, text="连接选中设备", command=self.connect_selected_device)
-        connect_device_btn.pack(side=tk.LEFT, padx=(0, 10))
-        
-        disconnect_device_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
-        disconnect_device_btn.pack(side=tk.LEFT)
-        
-        # 屏幕预览
-        preview_frame = ttk.LabelFrame(device_frame, text="屏幕预览", padding="10")
-        preview_frame.pack(fill='both', expand=True, pady=(10, 0))
-        
-        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0)
-        self.preview_canvas.pack(fill='both', expand=True)
-        
-        # 任务队列区域（下方）
+        # 左：任务队列区域
         queue_frame = ttk.Frame(main_paned)
         main_paned.add(queue_frame, weight=1)
         
-        # 左右分栏
-        paned = ttk.PanedWindow(queue_frame, orient=tk.HORIZONTAL)
-        paned.pack(fill='both', expand=True)
-        
-        # 左：控制面板
-        control_frame = ttk.Frame(paned)
-        paned.add(control_frame, weight=1)
-        
-        # 任务队列管理（只显示，不编辑）
-        task_queue_frame = ttk.LabelFrame(control_frame, text="任务队列", padding="10")
-        task_queue_frame.pack(fill='x')
+        # 任务队列管理
+        task_queue_frame = ttk.LabelFrame(queue_frame, text="任务队列", padding="10")
+        task_queue_frame.pack(fill='both', expand=True)
         
         # 任务队列列表
         list_container = ttk.Frame(task_queue_frame)
@@ -297,8 +223,84 @@ class ReAcrtureClientGUI:
         self.queue_info_label = ttk.Label(task_queue_frame, text="队列: 0个任务", font=('Arial', 9))
         self.queue_info_label.pack(anchor=tk.W, pady=(5, 0))
         
+        # 任务队列操作按钮
+        queue_btn_frame = ttk.Frame(queue_frame)
+        queue_btn_frame.pack(fill='x', pady=(10, 0))
+        
+        add_task_btn = ttk.Button(queue_btn_frame, text="添加任务", command=self.show_add_task_dialog)
+        add_task_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        edit_task_btn = ttk.Button(queue_btn_frame, text="设置选中", command=self.show_edit_task_dialog)
+        edit_task_btn.pack(side=tk.LEFT)
+        
+        # 右：设备管理区域（合并设备连接、可用设备和屏幕预览）
+        device_frame = ttk.Frame(main_paned)
+        main_paned.add(device_frame, weight=2)
+        
+        # 设备管理主框
+        device_main_frame = ttk.LabelFrame(device_frame, text="设备管理", padding="10")
+        device_main_frame.pack(fill='both', expand=True)
+        
+        # 设备连接区域
+        conn_frame = ttk.Frame(device_main_frame)
+        conn_frame.pack(fill='x', pady=(0, 10))
+        
+        # 扫描设备按钮和手动输入
+        scan_btn = ttk.Button(conn_frame, text="扫描设备", command=self.scan_devices)
+        scan_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 手动输入设备
+        manual_frame = ttk.Frame(conn_frame)
+        manual_frame.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(manual_frame, text="手动输入:").pack(side=tk.LEFT)
+        self.manual_device_var = tk.StringVar()
+        manual_entry = ttk.Entry(manual_frame, textvariable=self.manual_device_var, width=20)
+        manual_entry.pack(side=tk.LEFT, padx=(5, 5))
+        manual_connect_btn = ttk.Button(manual_frame, text="连接", command=self.manual_connect_device)
+        manual_connect_btn.pack(side=tk.LEFT)
+        
+        # 连接状态
+        self.device_status_label = ttk.Label(conn_frame, text="未连接设备", foreground='gray')
+        self.device_status_label.pack(side=tk.LEFT)
+        
+        # 设备列表
+        device_list_frame = ttk.LabelFrame(device_main_frame, text="可用设备", padding="10")
+        device_list_frame.pack(fill='x', pady=(0, 10))
+        
+        # 设备列表
+        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=4)
+        self.device_tree.heading('serial', text='设备序列号')
+        self.device_tree.heading('model', text='设备型号')
+        self.device_tree.heading('state', text='状态')
+        self.device_tree.column('serial', width=200)
+        self.device_tree.column('model', width=150)
+        self.device_tree.column('state', width=100)
+        self.device_tree.pack(side=tk.LEFT, fill='x', expand=True)
+        
+        # 滚动条
+        device_scroll = ttk.Scrollbar(device_list_frame, orient=tk.VERTICAL, command=self.device_tree.yview)
+        device_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.device_tree.configure(yscrollcommand=device_scroll.set)
+        
+        # 设备操作按钮
+        device_btn_frame = ttk.Frame(device_main_frame)
+        device_btn_frame.pack(fill='x', pady=(0, 10))
+        
+        connect_device_btn = ttk.Button(device_btn_frame, text="连接选中设备", command=self.connect_selected_device)
+        connect_device_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        disconnect_device_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
+        disconnect_device_btn.pack(side=tk.LEFT)
+        
+        # 屏幕预览（缩小比例）
+        preview_frame = ttk.LabelFrame(device_main_frame, text="屏幕预览", padding="10")
+        preview_frame.pack(fill='both', expand=True)
+        
+        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=200)
+        self.preview_canvas.pack(fill='both', expand=True)
+        
         # 执行控制
-        exec_frame = ttk.LabelFrame(control_frame, text="执行控制", padding="10")
+        exec_frame = ttk.LabelFrame(queue_frame, text="执行控制", padding="10")
         exec_frame.pack(fill='x', pady=(10, 0))
         
         self.llm_start_btn = ttk.Button(exec_frame, text="▶ 启动推理", command=self.start_llm_execution, style='Security.TButton')
@@ -319,9 +321,9 @@ class ReAcrtureClientGUI:
         execution_count_spinbox.bind('<FocusOut>', lambda e: self.on_execution_count_changed())
         self.execution_count_entry = execution_count_spinbox
         
-        # 右：Content Window
-        content_frame = ttk.Frame(paned)
-        paned.add(content_frame, weight=2)
+        # Content Notebook（保持在设备管理区域下方）
+        content_frame = ttk.Frame(device_frame)
+        content_frame.pack(fill='both', expand=True, pady=(10, 0))
         
         # Content Notebook
         self.content_notebook = ttk.Notebook(content_frame)
@@ -355,18 +357,6 @@ class ReAcrtureClientGUI:
         self.progress_var = tk.StringVar(value="进度: 0/0")
         self.progress_label = ttk.Label(status_frame, textvariable=self.progress_var, style='Status.TLabel')
         self.progress_label.pack(side=tk.RIGHT)
-        
-    def setup_log_page(self):
-        """设置执行日志页面"""
-        frame = ttk.Frame(self.log_page_frame, padding="10")
-        frame.pack(fill='both', expand=True)
-        
-        # 执行日志显示
-        self.main_log_text = scrolledtext.ScrolledText(frame, wrap=tk.WORD, font=('Consolas', 9))
-        self.main_log_text.pack(fill='both', expand=True)
-        
-        # 将log_text指向main_log_text以保持兼容性
-        self.log_text = self.main_log_text
         
         
     def setup_settings_page(self):
@@ -407,6 +397,61 @@ class ReAcrtureClientGUI:
         # 初始化版本信息
         self.load_local_version()
         self.check_for_updates()
+         
+    def setup_cloud_service_page(self):
+        """设置云服务页面"""
+        frame = ttk.Frame(self.cloud_service_page_frame, padding="20")
+        frame.pack(fill='both', expand=True)
+        
+        # 用户信息区域
+        user_info_frame = ttk.LabelFrame(frame, text="用户信息", padding="15")
+        user_info_frame.pack(fill='x', pady=(0, 20))
+        
+        # 用户名
+        self.username_label = ttk.Label(user_info_frame, text="用户名: 未登录", font=('Arial', 10, 'bold'))
+        self.username_label.pack(anchor=tk.W, pady=(0, 5))
+        
+        # 用户层级
+        self.tier_label = ttk.Label(user_info_frame, text="用户层级: -", font=('Arial', 10))
+        self.tier_label.pack(anchor=tk.W, pady=(0, 5))
+        
+        # 配额使用情况 - 每日
+        self.daily_quota_label = ttk.Label(user_info_frame, text="每日配额: -/-", font=('Arial', 10))
+        self.daily_quota_label.pack(anchor=tk.W, pady=(0, 2))
+        
+        # 配额使用情况 - 每周
+        self.weekly_quota_label = ttk.Label(user_info_frame, text="每周配额: -/-", font=('Arial', 10))
+        self.weekly_quota_label.pack(anchor=tk.W, pady=(0, 2))
+        
+        # 配额使用情况 - 每月
+        self.monthly_quota_label = ttk.Label(user_info_frame, text="每月配额: -/-", font=('Arial', 10))
+        self.monthly_quota_label.pack(anchor=tk.W, pady=(0, 5))
+        
+        # Token用量统计
+        self.token_label = ttk.Label(user_info_frame, text="Token用量: -", font=('Arial', 10))
+        self.token_label.pack(anchor=tk.W, pady=(0, 5))
+        
+        # 到期时间（仅高层级用户显示）
+        self.expiry_label = ttk.Label(user_info_frame, text="", font=('Arial', 10, 'bold'), foreground='red')
+        self.expiry_label.pack(anchor=tk.W, pady=(0, 5))
+        
+        # 刷新按钮
+        refresh_btn = ttk.Button(user_info_frame, text="🔄 刷新信息", command=self.refresh_user_info)
+        refresh_btn.pack(anchor=tk.W, pady=(10, 0))
+        
+        # 绑定notebook切换事件，实现自动刷新
+        self.notebook.bind('<<NotebookTabChanged>>', self.on_notebook_tab_changed)
+        
+        # 初始化用户信息显示
+        self.update_user_info_display()
+         
+    def on_notebook_tab_changed(self, event):
+        """处理notebook标签页切换事件"""
+        selected_tab = self.notebook.select()
+        if selected_tab == str(self.cloud_service_page_frame):
+            # 切换到云服务页面时自动刷新
+            if self.is_logged_in:
+                self.refresh_user_info()
         
     def _load_config(self, config_file):
         """加载配置文件"""
@@ -514,6 +559,9 @@ class ReAcrtureClientGUI:
         except urllib.error.URLError as e:
             self.update_status_label.config(text=f"网络错误: {str(e)}", foreground='red')
             self.log_message(f"检查更新失败 - 网络错误: {e}", "version", "ERROR")
+            # 网络错误时直接退出客户端
+            messagebox.showerror("网络连接失败", "无法连接到更新服务器，请检查网络连接后重试。")
+            self.root.quit()
         except Exception as e:
             self.update_status_label.config(text=f"检查失败: {str(e)}", foreground='red')
             self.log_message(f"检查更新失败: {e}", "version", "ERROR")
@@ -679,10 +727,17 @@ class ReAcrtureClientGUI:
             elif result:
                 return
                 
-        # 如果有arkpass文件但登录失败，显示错误提示并直接转到登录注册流程
+        # 如果有arkpass文件但登录失败，检查是否为网络错误
         if unique_paths:
             if last_error:
-                messagebox.showerror("自动登录失败", f"自动登录失败: {last_error}")
+                # 检查是否为网络错误
+                if "网络连接异常" in last_error or "网络错误" in last_error:
+                    messagebox.showerror("网络连接失败", "无法连接到服务器，请检查网络连接后重试。")
+                    # 网络错误时直接退出客户端
+                    self.root.quit()
+                    return
+                else:
+                    messagebox.showerror("自动登录失败", f"自动登录失败: {last_error}")
             else:
                 messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
             # 凭证无效时，直接转到登录注册流程
@@ -749,8 +804,16 @@ class ReAcrtureClientGUI:
                 dialog.destroy()
                 messagebox.showinfo("注册成功", f"{username}注册成功！登入凭证已缓存于本地")
             else:
-                error_display = error_msg if error_msg else "注册失败，请重试。"
-                messagebox.showerror("注册失败", f"注册失败: {error_display}")
+                # 检查是否为网络错误
+                if error_msg and ("网络连接异常" in error_msg or "网络错误" in error_msg):
+                    messagebox.showerror("网络连接失败", "无法连接到服务器，请检查网络连接后重试。")
+                    # 网络错误时直接退出客户端
+                    dialog.destroy()
+                    self.root.quit()
+                    return
+                else:
+                    error_display = error_msg if error_msg else "注册失败，请重试。"
+                    messagebox.showerror("注册失败", f"注册失败: {error_display}")
                 
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=10)
@@ -774,6 +837,12 @@ class ReAcrtureClientGUI:
                     if success:
                         messagebox.showinfo("登录成功", "登录成功！")
                     else:
+                        # 检查是否为网络错误
+                        if "网络连接异常" in error_msg or "网络错误" in error_msg:
+                            messagebox.showerror("网络连接失败", "无法连接到服务器，请检查网络连接后重试。")
+                            # 网络错误时直接退出客户端
+                            self.root.quit()
+                            return
                         # 如果是用户不存在或密钥错误，删除文件
                         if len(result) > 2 and result[2] in ['user_not_found', 'invalid_api_key']:
                             try:
@@ -796,7 +865,9 @@ class ReAcrtureClientGUI:
                 return False, "通信器未初始化"
             # 调用服务端注册接口
             response = self.communicator.send_request("register", {"user_id": username})
-            if response and response.get('status') == 'success':
+            if response is None:
+                return False, "网络连接异常，请检查网络连接"
+            elif response and response.get('status') == 'success':
                 api_key = response.get('key')
                 if api_key:
                     # 保存arkpass文件
@@ -826,6 +897,9 @@ class ReAcrtureClientGUI:
                     if hasattr(self, 'user_info_text'):
                         self.user_info_text.delete(1.0, tk.END)
                         self.user_info_text.insert(tk.END, f"用户: {username}\n状态: 已连接\nAPI密钥: {api_key[:8]}...")
+                    
+                    # 更新云服务页面的用户信息显示
+                    self.update_user_info_display()
                     
                     return True, None
                 else:
@@ -902,6 +976,9 @@ class ReAcrtureClientGUI:
                     if hasattr(self, 'user_info_text'):
                         self.user_info_text.delete(1.0, tk.END)
                         self.user_info_text.insert(tk.END, f"用户: {user_id}\n状态: 已连接\n会话ID: {session_id[:8]}...")
+                     
+                    # 更新云服务页面的用户信息显示
+                    self.update_user_info_display()
                     
                     return True, None
                     
@@ -940,9 +1017,136 @@ class ReAcrtureClientGUI:
             return success, error_msg
         return result
         
+    def refresh_user_info(self):
+        """刷新用户信息"""
+        if not self.is_logged_in:
+            messagebox.showwarning("未登录", "请先登录后再查看云服务信息")
+            return
+            
+        try:
+            # 使用auth_manager获取用户信息（如果存在）
+            if hasattr(self, 'auth_manager') and self.auth_manager:
+                user_info = self.auth_manager.get_user_info()
+            else:
+                # 直接调用服务器API
+                if self.communicator:
+                    response = self.communicator.send_request("get_user_info", {
+                        "user_id": self.user_id,
+                        "session_id": self.session_id
+                    })
+                    if response and response.get('status') == 'success':
+                        user_info = response.get('user_info')
+                    else:
+                        user_info = None
+                else:
+                    user_info = None
+                    
+            if user_info:
+                self.update_user_info_display(user_info)
+                self.log_message("用户信息已刷新", "cloud", "INFO")
+            else:
+                self.log_message("无法获取用户信息", "cloud", "ERROR")
+                messagebox.showerror("错误", "无法获取用户信息，请检查网络连接")
+                
+        except Exception as e:
+            self.log_message(f"刷新用户信息失败: {e}", "cloud", "ERROR")
+            messagebox.showerror("错误", f"刷新用户信息失败: {str(e)}")
+            
+    def update_user_info_display(self, user_info=None):
+        """更新用户信息显示"""
+        if not self.is_logged_in:
+            self.username_label.config(text="用户名: 未登录")
+            self.tier_label.config(text="用户层级: -")
+            self.daily_quota_label.config(text="每日配额: -/-")
+            self.weekly_quota_label.config(text="每周配额: -/-")
+            self.monthly_quota_label.config(text="每月配额: -/-")
+            self.token_label.config(text="Token用量: -")
+            self.expiry_label.config(text="")
+            return
+             
+        if user_info is None:
+            # 显示基本登录信息
+            self.username_label.config(text=f"用户名: {self.user_id}")
+            self.tier_label.config(text="用户层级: 加载中...")
+            self.daily_quota_label.config(text="每日配额: 加载中...")
+            self.weekly_quota_label.config(text="每周配额: 加载中...")
+            self.monthly_quota_label.config(text="每月配额: 加载中...")
+            self.token_label.config(text="Token用量: 加载中...")
+            self.expiry_label.config(text="")
+            return
+             
+        # 更新用户名
+        self.username_label.config(text=f"用户名: {user_info.get('user_id', '未知')}")
+         
+        # 更新用户层级
+        tier = user_info.get('tier', 'free')
+        tier_names = {
+            'free': '免费用户',
+            'prime': 'Prime用户',
+            'plus': 'Plus用户',
+            'pro': '专业用户'
+        }
+        tier_display = tier_names.get(tier, tier)
+        self.tier_label.config(text=f"用户层级: {tier_display}")
+         
+        # 更新每日配额使用情况
+        quota_used = user_info.get('quota_used', 0)
+        quota_daily = user_info.get('quota_daily', 1000)  # 使用正确的默认值1000
+        self.daily_quota_label.config(text=f"每日配额: {quota_used}/{quota_daily}")
+        
+        # 更新每周配额使用情况（目前服务器不跟踪周/月使用量，只显示配额上限）
+        quota_weekly = user_info.get('quota_weekly', 6000)
+        self.weekly_quota_label.config(text=f"每周配额: 0/{quota_weekly}")
+        
+        # 更新每月配额使用情况
+        quota_monthly = user_info.get('quota_monthly', 15000)
+        self.monthly_quota_label.config(text=f"每月配额: 0/{quota_monthly}")
+         
+        # 更新Token用量
+        total_tokens = user_info.get('total_tokens_used', 0)
+        self.token_label.config(text=f"Token用量: {total_tokens}")
+         
+        # 更新到期时间（仅高层级用户）
+        premium_until = user_info.get('premium_until', 0)
+        if premium_until > 0:
+            from datetime import datetime
+            expiry_date = datetime.fromtimestamp(premium_until)
+            self.expiry_label.config(text=f"高级权限到期: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
+        else:
+            self.expiry_label.config(text="")
+         
     def load_task_queue(self):
         """加载任务队列"""
+        # 从本地文件加载持久化的任务队列
+        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+        task_queue_file = os.path.join(cache_dir, "task_queue.json")
+        
+        if os.path.exists(task_queue_file):
+            try:
+                with open(task_queue_file, 'r', encoding='utf-8') as f:
+                    self.task_queue = json.load(f)
+                self.log_message("已从本地加载任务队列", "task", "INFO")
+            except Exception as e:
+                self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
+                self.task_queue = []
+        else:
+            self.task_queue = []
+            
         self.update_queue_display()
+        
+    def save_task_queue(self):
+        """保存任务队列到本地"""
+        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+            
+        task_queue_file = os.path.join(cache_dir, "task_queue.json")
+        try:
+            with open(task_queue_file, 'w', encoding='utf-8') as f:
+                json.dump(self.task_queue, f, ensure_ascii=False, indent=2)
+            self.log_message("任务队列已保存到本地", "task", "INFO")
+        except Exception as e:
+            self.log_message(f"保存任务队列失败: {e}", "task", "ERROR")
         
     def update_queue_display(self):
         """更新任务队列显示"""
@@ -1072,25 +1276,232 @@ class ReAcrtureClientGUI:
         except Exception as e:
             self.log_message(f"屏幕预览更新失败: {e}", "device", "ERROR")
             
-    def add_task_to_queue(self):
-        """添加任务到队列（从服务端获取默认任务）"""
+    def get_available_tasks_from_server(self):
+        """从服务器获取可用任务列表"""
         if not self.is_logged_in:
-            messagebox.showwarning("未登录", "请先登录后再执行任务")
+            messagebox.showwarning("未登录", "请先登录后再获取任务列表")
+            return []
+            
+        if not self.communicator:
+            self.log_message("通信模块未初始化", "task", "ERROR")
+            return []
+            
+        try:
+            # 发送请求获取默认任务（可用任务）
+            response = self.communicator.send_request("get_default_tasks", {})
+            if response and response.get('status') == 'success':
+                tasks = response.get('tasks', [])
+                # 过滤掉不可见的任务
+                visible_tasks = [task for task in tasks if task.get('visible', True)]
+                self.log_message(f"成功从服务器获取 {len(visible_tasks)} 个可用任务", "task", "INFO")
+                return visible_tasks
+            else:
+                error_msg = response.get('message', '未知错误') if response else '无响应'
+                self.log_message(f"获取可用任务失败: {error_msg}", "task", "ERROR")
+                return []
+        except Exception as e:
+            self.log_message(f"获取可用任务异常: {e}", "task", "ERROR")
+            return []
+            
+    def show_add_task_dialog(self):
+        """显示添加任务对话框"""
+        if not self.is_logged_in:
+            messagebox.showwarning("未登录", "请先登录后再添加任务")
             return
             
-        if not self.task_manager:
-            self.log_message("任务管理器未初始化", "execution", "ERROR")
+        # 从服务器获取可用任务
+        available_tasks = self.get_available_tasks_from_server()
+        if not available_tasks:
+            messagebox.showinfo("提示", "暂无可用任务")
             return
             
-        tasks = self.task_manager.get_default_task_chain()
-        if not tasks:
-            self.log_message("未找到默认任务", "execution", "WARNING")
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("添加任务")
+        dialog.geometry("500x400")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # 任务列表
+        ttk.Label(dialog, text="选择要添加的任务:", font=('Arial', 10, 'bold')).pack(pady=10)
+        
+        list_frame = ttk.Frame(dialog)
+        list_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
+        scrollbar.pack(side=tk.RIGHT, fill='y')
+        
+        task_listbox = tk.Listbox(
+            list_frame,
+            font=('Arial', 10),
+            yscrollcommand=scrollbar.set
+        )
+        task_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+        scrollbar.config(command=task_listbox.yview)
+        
+        # 填充任务列表
+        for task in available_tasks:
+            task_listbox.insert(tk.END, f"{task.get('name', '未知任务')} - {task.get('description', '')}")
+            
+        def on_add():
+            selection = task_listbox.curselection()
+            if not selection:
+                messagebox.showwarning("警告", "请选择一个任务")
+                return
+                
+            selected_task = available_tasks[selection[0]]
+            self.add_task_to_queue(selected_task)
+            dialog.destroy()
+            
+        def on_cancel():
+            dialog.destroy()
+            
+        # 按钮
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="添加", command=on_add, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
+        
+    def show_edit_task_dialog(self):
+        """显示编辑任务对话框"""
+        selection = self.task_queue_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("警告", "请先选择一个任务")
             return
             
-        for task in tasks:
-            self.task_queue.append(task)
-        self.update_queue_display()
-        self.log_message(f"已添加 {len(tasks)} 个默认任务到队列", "execution", "INFO")
+        task_index = selection[0]
+        task = self.task_queue[task_index]
+        
+        # 创建对话框
+        dialog = tk.Toplevel(self.root)
+        dialog.title("设置任务")
+        dialog.geometry("400x300")
+        dialog.transient(self.root)
+        dialog.grab_set()
+        
+        # 任务名称
+        ttk.Label(dialog, text="任务名称:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
+        name_var = tk.StringVar(value=task.get('custom_name', task.get('name', '')))
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack(pady=5)
+        
+        # 任务变量
+        ttk.Label(dialog, text="任务变量:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
+        
+        variables_frame = ttk.Frame(dialog)
+        variables_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        variables = task.get('variables', [])
+        variable_entries = {}
+        
+        for var_def in variables:
+            var_name = var_def.get('name', '')
+            var_type = var_def.get('type', 'string')
+            var_default = var_def.get('default', '')
+            var_desc = var_def.get('desc', '')
+            
+            # 获取当前值（如果有）
+            current_value = task.get('custom_variables', {}).get(var_name, var_default)
+            
+            var_frame = ttk.Frame(variables_frame)
+            var_frame.pack(fill='x', pady=2)
+            
+            ttk.Label(var_frame, text=f"{var_name} ({var_type}):").pack(side=tk.LEFT)
+            
+            if var_type == 'bool':
+                var_var = tk.BooleanVar(value=bool(current_value))
+                var_entry = ttk.Checkbutton(var_frame, variable=var_var)
+                var_entry.pack(side=tk.RIGHT)
+            elif var_type == 'int':
+                var_var = tk.StringVar(value=str(current_value))
+                var_entry = ttk.Entry(var_frame, textvariable=var_var, width=10)
+                var_entry.pack(side=tk.RIGHT)
+            else:  # string or other types
+                var_var = tk.StringVar(value=str(current_value))
+                var_entry = ttk.Entry(var_frame, textvariable=var_var, width=20)
+                var_entry.pack(side=tk.RIGHT)
+                
+            variable_entries[var_name] = (var_var, var_type)
+            
+            if var_desc:
+                ttk.Label(var_frame, text=f" - {var_desc}", font=('Arial', 8)).pack(side=tk.LEFT, padx=(5, 0))
+        
+        def on_save():
+            # 更新任务名称
+            new_name = name_var.get().strip()
+            if not new_name:
+                messagebox.showwarning("警告", "任务名称不能为空")
+                return
+                
+            task['custom_name'] = new_name
+            task['name'] = new_name
+            
+            # 更新任务变量
+            custom_vars = {}
+            for var_name, (var_var, var_type) in variable_entries.items():
+                value = var_var.get()
+                if var_type == 'int':
+                    try:
+                        custom_vars[var_name] = int(value)
+                    except ValueError:
+                        custom_vars[var_name] = 0
+                elif var_type == 'bool':
+                    custom_vars[var_name] = bool(value)
+                else:
+                    custom_vars[var_name] = str(value)
+                    
+            task['custom_variables'] = custom_vars
+            
+            # 保存到本地持久化存储
+            self.save_task_queue()
+            
+            self.update_queue_display()
+            self.log_message(f"任务 '{new_name}' 已更新", "task", "INFO")
+            dialog.destroy()
+            
+        def on_cancel():
+            dialog.destroy()
+            
+        # 按钮
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="保存", command=on_save, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
+        
+    def add_task_to_queue(self, task_template=None):
+        """添加任务到队列"""
+        if task_template is None:
+            # 如果没有提供任务模板，使用默认任务
+            if not self.task_manager:
+                self.log_message("任务管理器未初始化", "execution", "ERROR")
+                return
+                
+            tasks = self.task_manager.get_default_task_chain()
+            if not tasks:
+                self.log_message("未找到默认任务", "execution", "WARNING")
+                return
+                
+            for task in tasks:
+                self.task_queue.append(task)
+            self.update_queue_display()
+            self.log_message(f"已添加 {len(tasks)} 个默认任务到队列", "execution", "INFO")
+            # 保存到本地持久化存储
+            self.save_task_queue()
+        else:
+            # 添加指定的任务模板
+            import time
+            # 创建新的任务实例，使用不同的ID但相同的模板
+            new_task = task_template.copy()
+            new_task['id'] = f"{task_template['id']}_{int(time.time())}"
+            new_task['name'] = task_template.get('name', '新任务')
+            new_task['custom_name'] = new_task['name']  # 用于自定义名称
+            self.task_queue.append(new_task)
+            self.update_queue_display()
+            self.log_message(f"已添加任务 '{new_task['name']}' 到队列", "task", "INFO")
+            # 保存到本地持久化存储
+            self.save_task_queue()
         
     def remove_task_from_queue(self):
         """从队列中移除任务"""
@@ -1104,6 +1515,8 @@ class ReAcrtureClientGUI:
         del self.task_queue[index]
         self.update_queue_display()
         self.log_message(f"任务 '{task_name}' 已从队列中移除", "execution", "INFO")
+        # 保存到本地持久化存储
+        self.save_task_queue()
         
     def clear_task_queue(self):
         """清空任务队列"""
@@ -1111,6 +1524,8 @@ class ReAcrtureClientGUI:
             self.task_queue = []
             self.update_queue_display()
             self.log_message("任务队列已清空", "execution", "INFO")
+            # 保存到本地持久化存储
+            self.save_task_queue()
             
     def on_execution_count_changed(self):
         """执行次数改变时的处理"""
@@ -1178,11 +1593,12 @@ class ReAcrtureClientGUI:
                 
                 self.log_message(f"执行任务: {current_task['name']}", "execution", "INFO")
                 
-                # 获取任务变量
-                if self.task_manager:
-                    task_variables = self.task_manager.get_task_variables(task_id)
-                else:
-                    task_variables = {}
+                # 获取任务变量（包括自定义变量）
+                task_variables = {}
+                if 'custom_variables' in current_task:
+                    task_variables.update(current_task['custom_variables'])
+                elif self.task_manager:
+                    task_variables.update(self.task_manager.get_task_variables(task_id))
                 
                 # 捕获屏幕
                 if self.screen_capture and self.current_device:
@@ -1209,6 +1625,11 @@ class ReAcrtureClientGUI:
                     "task_variables": task_variables,
                     "device_info": device_info
                 }
+                
+                # 添加system_prompt字段（任务变量的JSON字符串）
+                if task_variables:
+                    import json as json_lib
+                    request_data["system_prompt"] = json_lib.dumps(task_variables, ensure_ascii=False)
                 
                 # 发送请求到服务端
                 if self.communicator:
@@ -1260,6 +1681,9 @@ class ReAcrtureClientGUI:
         
     def on_closing(self):
         """窗口关闭事件"""
+        # 保存任务队列到本地
+        self.save_task_queue()
+        
         if self.client_running:
             if messagebox.askokcancel("确认", "执行正在进行中，确定要退出吗？"):
                 self.stop_llm_execution()
