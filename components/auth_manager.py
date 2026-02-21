@@ -79,10 +79,10 @@ class AuthManager:
                         'api_key': api_key
                     }
                 else:
-                    return False
+                    return False, "ArkPass文件格式无效"
             
             if not user_id or not api_key:
-                return False
+                return False, "ArkPass文件缺少必要信息"
                 
             # 调用服务端登录接口
             response = self.communicator.send_request("login", {
@@ -90,7 +90,10 @@ class AuthManager:
                 "key": api_key
             })
             
-            if response and response.get('status') == 'success':
+            if response is None:
+                return False, "网络连接异常，请检查网络连接"
+                
+            if response.get('status') == 'success':
                 session_id = response.get('session_id')
                 if session_id:
                     # 缓存arkpass文件到本地
@@ -108,16 +111,41 @@ class AuthManager:
                     self.user_id = user_id
                     self.session_id = session_id
                     
-                    return True
+                    return True, None
+                    
+            else:
+                # 处理不同的错误类型
+                error_type = response.get('error_type', 'unknown')
+                error_message = response.get('message', '未知错误')
+                
+                if error_type in ['user_not_found', 'invalid_api_key']:
+                    # 用户不存在或密钥错误，应该删除缓存的arkpass文件
+                    return False, error_message, error_type
+                else:
+                    # 其他错误类型（如封禁等）
+                    return False, error_message, error_type
                     
         except Exception as e:
-            print(f"登录失败: {e}")
+            return False, f"登录过程发生异常: {str(e)}"
             
-        return False
+        return False, "未知错误"
         
     def auto_login_with_arkpass(self, arkpass_path):
         """自动使用arkpass文件登录"""
-        return self.login_with_arkpass(arkpass_path)
+        result = self.login_with_arkpass(arkpass_path)
+        if isinstance(result, tuple):
+            success, error_msg, *error_type = result
+            if not success and len(error_type) > 0:
+                error_type_val = error_type[0]
+                # 如果是用户不存在或密钥错误，删除缓存的arkpass文件
+                if error_type_val in ['user_not_found', 'invalid_api_key']:
+                    try:
+                        os.remove(arkpass_path)
+                        print(f"已删除无效的ArkPass文件: {arkpass_path}")
+                    except Exception as e:
+                        print(f"删除ArkPass文件失败: {e}")
+            return success, error_msg
+        return result
         
     def check_login_status(self, root_window):
         """检查登录状态"""
@@ -150,13 +178,26 @@ class AuthManager:
                 seen.add(path)
         
         # 尝试每个arkpass文件
+        last_error = None
         for arkpass_path in unique_paths:
-            if self.auto_login_with_arkpass(arkpass_path):
+            result = self.auto_login_with_arkpass(arkpass_path)
+            if isinstance(result, tuple):
+                success, error_msg = result
+                if success:
+                    return True
+                else:
+                    last_error = error_msg
+            elif result:
                 return True
                 
-        # 如果有arkpass文件但登录失败，显示错误提示
+        # 如果有arkpass文件但登录失败，显示错误提示并直接转到登录注册流程
         if unique_paths:
-            messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
+            if last_error:
+                messagebox.showerror("自动登录失败", f"自动登录失败: {last_error}")
+            else:
+                messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
+            # 凭证无效时，直接转到登录注册流程
+            self.show_login_or_register_dialog(root_window)
         else:
             # 未找到arkpass文件，显示登录对话框
             self.show_login_or_register_dialog(root_window)
@@ -240,7 +281,21 @@ class AuthManager:
                 filetypes=[("ArkPass Files", "*.arkpass"), ("All Files", "*.*")]
             )
             if file_path:
-                if self.login_with_arkpass(file_path):
+                result = self.login_with_arkpass(file_path)
+                if isinstance(result, tuple):
+                    success, error_msg = result[:2]
+                    if success:
+                        messagebox.showinfo("登录成功", "登录成功！")
+                    else:
+                        # 如果是用户不存在或密钥错误，删除文件
+                        if len(result) > 2 and result[2] in ['user_not_found', 'invalid_api_key']:
+                            try:
+                                os.remove(file_path)
+                                print(f"已删除无效的ArkPass文件: {file_path}")
+                            except Exception as e:
+                                print(f"删除ArkPass文件失败: {e}")
+                        messagebox.showerror("登录失败", f"登录失败: {error_msg}")
+                elif result:
                     messagebox.showinfo("登录成功", "登录成功！")
                 else:
                     messagebox.showerror("登录失败", "ArkPass文件无效或登录失败。")

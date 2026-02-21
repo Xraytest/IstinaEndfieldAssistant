@@ -222,7 +222,7 @@ class ReAcrtureClientGUI:
                 host=self.config['server']['host'],
                 port=self.config['server']['port'],
                 password=self.config.get('communication', {}).get('password', 'default_password'),
-                timeout=30
+                timeout=300
             )
             print("核心服务初始化成功")
         except Exception as e:

@@ -7,6 +7,9 @@
     "path": "3rd-part/ADB/adb.exe",
     "timeout": 10
   },
+  "git": {
+    "path": "3rd-part/Git/bin/git.exe"
+  },
   "screen": {
     "quality": 80,
     "max_size": 1024

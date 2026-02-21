@@ -73,6 +73,32 @@ class ReAcrtureClientGUI:
         # 加载任务队列
         self.load_task_queue()
         
+        # 启动时检查更新（仅在设置页面存在时）
+        if hasattr(self, 'settings_page_frame'):
+            self.root.after(1000, self.check_for_updates_on_startup)
+        
+    def check_for_updates_on_startup(self):
+        """启动时检查更新并显示提示"""
+        try:
+            current_version = self.load_local_version()
+            self.check_for_updates()
+            
+            # 等待几秒让检查完成，然后显示提示
+            self.root.after(3000, lambda: self.show_update_notification_if_needed(current_version))
+        except Exception as e:
+            self.log_message(f"启动时检查更新失败: {e}", "version", "ERROR")
+        
+    def show_update_notification_if_needed(self, old_version):
+        """如果需要，显示更新通知"""
+        try:
+            current_version = self.load_local_version()
+            if (old_version != 'unknown' and
+                current_version != 'unknown' and
+                old_version != current_version):
+                messagebox.showinfo("新版本可用", f"发现新版本！\n当前版本: {old_version}\n最新版本: {current_version}")
+        except Exception as e:
+            pass  # 忽略通知错误
+        
     def setup_styles(self):
         """设置UI样式"""
         style = ttk.Style()
@@ -91,14 +117,17 @@ class ReAcrtureClientGUI:
         # 页面框架
         self.execution_page_frame = ttk.Frame(self.notebook)
         self.log_page_frame = ttk.Frame(self.notebook)
+        self.settings_page_frame = ttk.Frame(self.notebook)
         
         # 添加页面
         self.notebook.add(self.execution_page_frame, text='执行控制台')
         self.notebook.add(self.log_page_frame, text='执行日志')
+        self.notebook.add(self.settings_page_frame, text='设置')
         
         # 设置各页面
         self.setup_execution_page()
         self.setup_log_page()
+        self.setup_settings_page()
         
         # 状态栏
         self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
@@ -340,6 +369,45 @@ class ReAcrtureClientGUI:
         self.log_text = self.main_log_text
         
         
+    def setup_settings_page(self):
+        """设置设置页面"""
+        frame = ttk.Frame(self.settings_page_frame, padding="20")
+        frame.pack(fill='both', expand=True)
+        
+        # 版本信息区域
+        version_frame = ttk.LabelFrame(frame, text="版本信息", padding="15")
+        version_frame.pack(fill='x', pady=(0, 20))
+        
+        # 当前版本
+        current_version_frame = ttk.Frame(version_frame)
+        current_version_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(current_version_frame, text="当前版本:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.current_version_label = ttk.Label(current_version_frame, text="加载中...", font=('Arial', 10))
+        self.current_version_label.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 最新版本
+        latest_version_frame = ttk.Frame(version_frame)
+        latest_version_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(latest_version_frame, text="最新版本:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
+        self.latest_version_label = ttk.Label(latest_version_frame, text="检查中...", font=('Arial', 10))
+        self.latest_version_label.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 更新状态
+        self.update_status_label = ttk.Label(version_frame, text="", foreground='blue', font=('Arial', 9))
+        self.update_status_label.pack(fill='x', pady=(5, 10))
+        
+        # 检查更新按钮
+        check_update_btn = ttk.Button(version_frame, text="检查更新", command=self.check_for_updates)
+        check_update_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        # 更新按钮
+        self.update_btn = ttk.Button(version_frame, text="更新到最新版本", command=self.update_client, state='disabled')
+        self.update_btn.pack(side=tk.LEFT)
+        
+        # 初始化版本信息
+        self.load_local_version()
+        self.check_for_updates()
+        
     def _load_config(self, config_file):
         """加载配置文件"""
         config_path = os.path.join(os.path.dirname(__file__), config_file)
@@ -382,6 +450,158 @@ class ReAcrtureClientGUI:
         except Exception as e:
             self.log_message(f"保存设备缓存失败: {e}", "device", "WARNING")
             
+    def load_local_version(self):
+        """加载本地版本信息"""
+        try:
+            ver_file = os.path.join(os.path.dirname(__file__), "data", "ver.json")
+            if os.path.exists(ver_file):
+                with open(ver_file, 'r', encoding='utf-8') as f:
+                    ver_data = json.load(f)
+                version = ver_data.get('version', 'unknown')
+                self.current_version_label.config(text=version)
+                return version
+            else:
+                # 如果文件不存在，创建默认版本文件
+                ver_data = {'version': 'alpha_0.0.1'}
+                os.makedirs(os.path.dirname(ver_file), exist_ok=True)
+                with open(ver_file, 'w', encoding='utf-8') as f:
+                    json.dump(ver_data, f, indent=2)
+                self.current_version_label.config(text='alpha_0.0.1')
+                return 'alpha_0.0.1'
+        except Exception as e:
+            self.log_message(f"加载本地版本失败: {e}", "version", "ERROR")
+            self.current_version_label.config(text="未知")
+            return "unknown"
+            
+    def check_for_updates(self):
+        """检查更新"""
+        try:
+            import urllib.request
+            import urllib.error
+            
+            # 构建API URL
+            server_host = self.config['server']['host']
+            web_port = 8000  # Web服务器端口
+            api_url = f"http://{server_host}:{web_port}/api/client/version"
+            
+            self.update_status_label.config(text="正在检查更新...", foreground='blue')
+            self.root.update()
+            
+            # 发送HTTP请求
+            req = urllib.request.Request(api_url)
+            req.add_header('User-Agent', 'ReAcrture-Client/1.0')
+            
+            with urllib.request.urlopen(req, timeout=10) as response:
+                if response.status == 200:
+                    data = json.loads(response.read().decode('utf-8'))
+                    if data.get('status') == 'success':
+                        latest_version = data.get('data', {}).get('version', 'unknown')
+                        self.latest_version_label.config(text=latest_version)
+                        
+                        # 比较版本
+                        current_version = self.load_local_version()
+                        if current_version != 'unknown' and latest_version != 'unknown' and current_version != latest_version:
+                            self.update_status_label.config(text="发现新版本！", foreground='green')
+                            self.update_btn.config(state='normal')
+                        else:
+                            self.update_status_label.config(text="已是最新版本", foreground='gray')
+                            self.update_btn.config(state='disabled')
+                    else:
+                        self.update_status_label.config(text=f"检查失败: {data.get('message', '未知错误')}", foreground='red')
+                else:
+                    self.update_status_label.config(text=f"检查失败: HTTP {response.status}", foreground='red')
+                    
+        except urllib.error.URLError as e:
+            self.update_status_label.config(text=f"网络错误: {str(e)}", foreground='red')
+            self.log_message(f"检查更新失败 - 网络错误: {e}", "version", "ERROR")
+        except Exception as e:
+            self.update_status_label.config(text=f"检查失败: {str(e)}", foreground='red')
+            self.log_message(f"检查更新失败: {e}", "version", "ERROR")
+            
+    def update_client(self):
+        """更新客户端"""
+        if messagebox.askyesno("确认更新", "确定要更新到最新版本吗？这将覆盖本地文件！"):
+            try:
+                import subprocess
+                import shutil
+                
+                self.update_status_label.config(text="正在更新...", foreground='blue')
+                self.update_btn.config(state='disabled')
+                self.root.update()
+                
+                # 获取当前工作目录
+                current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                
+                # 备份当前版本（可选）
+                backup_dir = os.path.join(current_dir, "backup_before_update")
+                if os.path.exists(backup_dir):
+                    shutil.rmtree(backup_dir)
+                shutil.copytree(current_dir, backup_dir)
+                
+                # 执行git clone覆盖
+                git_path = self.config.get('git', {}).get('path', 'git')
+                if not os.path.exists(git_path):
+                    git_path = 'git'  # 使用系统git
+                
+                # 克隆到临时目录
+                temp_dir = os.path.join(current_dir, "temp_update")
+                if os.path.exists(temp_dir):
+                    shutil.rmtree(temp_dir)
+                
+                cmd = [git_path, "clone", "https://github.com/Xraytest/IstinaEndfieldAssistant.git", temp_dir]
+                result = subprocess.run(cmd, capture_output=True, text=True, cwd=current_dir, timeout=300)
+                
+                if result.returncode == 0:
+                    # 复制新文件覆盖旧文件（保留data目录和cache目录）
+                    for item in os.listdir(temp_dir):
+                        src_path = os.path.join(temp_dir, item)
+                        dst_path = os.path.join(current_dir, item)
+                        
+                        # 跳过data和cache目录
+                        if item in ['data', 'cache']:
+                            continue
+                            
+                        if os.path.isdir(src_path):
+                            if os.path.exists(dst_path):
+                                shutil.rmtree(dst_path)
+                            shutil.copytree(src_path, dst_path)
+                        else:
+                            if os.path.exists(dst_path):
+                                os.remove(dst_path)
+                            shutil.copy2(src_path, dst_path)
+                    
+                    # 清理临时目录
+                    shutil.rmtree(temp_dir)
+                    
+                    # 更新版本文件
+                    ver_file = os.path.join(os.path.dirname(__file__), "data", "ver.json")
+                    latest_version = self.latest_version_label.cget("text")
+                    if latest_version and latest_version != "检查中...":
+                        with open(ver_file, 'w', encoding='utf-8') as f:
+                            json.dump({'version': latest_version}, f, indent=2)
+                        
+                        self.update_status_label.config(text="更新成功！请重启客户端", foreground='green')
+                        self.current_version_label.config(text=latest_version)
+                        messagebox.showinfo("更新成功", "客户端已更新到最新版本！\n请重启客户端以应用更改。")
+                    else:
+                        self.update_status_label.config(text="更新完成，但版本信息未更新", foreground='orange')
+                        messagebox.showinfo("更新完成", "客户端已更新！\n请重启客户端以应用更改。")
+                        
+                else:
+                    # 恢复备份
+                    if os.path.exists(backup_dir):
+                        shutil.rmtree(current_dir)
+                        shutil.move(backup_dir, current_dir)
+                    
+                    error_msg = result.stderr if result.stderr else result.stdout
+                    self.update_status_label.config(text=f"更新失败: {error_msg}", foreground='red')
+                    messagebox.showerror("更新失败", f"更新过程中发生错误:\n{error_msg}")
+                    
+            except Exception as e:
+                self.update_status_label.config(text=f"更新失败: {str(e)}", foreground='red')
+                self.log_message(f"更新失败: {e}", "version", "ERROR")
+                messagebox.showerror("更新失败", f"更新过程中发生错误:\n{str(e)}")
+                
     def init_adb(self):
         """初始化ADB"""
         try:
@@ -407,7 +627,7 @@ class ReAcrtureClientGUI:
                 host=self.config['server']['host'],
                 port=self.config['server']['port'],
                 password=self.config.get('communication', {}).get('password', 'default_password'),
-                timeout=30
+                timeout=300
             )
             self.log_message("ADB初始化成功", "system", "INFO")
         except Exception as e:
@@ -416,7 +636,6 @@ class ReAcrtureClientGUI:
             
     def check_login_status(self):
         """检查登录状态"""
-        print("[DEBUG] 检查登录状态...")
         
         # 检查多个可能的arkpass文件位置
         possible_paths = []
@@ -446,23 +665,30 @@ class ReAcrtureClientGUI:
                 unique_paths.append(path)
                 seen.add(path)
         
-        print(f"[DEBUG] 找到可能的arkpass文件: {unique_paths}")
         
         # 尝试每个arkpass文件
+        last_error = None
         for arkpass_path in unique_paths:
-            print(f"[DEBUG] 尝试使用arkpass文件: {arkpass_path}")
-            if self.auto_login_with_arkpass(arkpass_path):
-                print("[DEBUG] 自动登录成功")
+            result = self.auto_login_with_arkpass(arkpass_path)
+            if isinstance(result, tuple):
+                success, error_msg = result
+                if success:
+                    return
+                else:
+                    last_error = error_msg
+            elif result:
                 return
                 
-        print("[DEBUG] 未找到有效的登录信息或自动登录失败")
-        # 如果有arkpass文件但登录失败，显示错误提示
+        # 如果有arkpass文件但登录失败，显示错误提示并直接转到登录注册流程
         if unique_paths:
-            messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
-            print("[DEBUG] 自动登录失败，显示错误提示")
+            if last_error:
+                messagebox.showerror("自动登录失败", f"自动登录失败: {last_error}")
+            else:
+                messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
+            # 凭证无效时，直接转到登录注册流程
+            self.show_login_or_register_dialog()
         else:
             # 未找到arkpass文件，显示登录对话框
-            print("[DEBUG] 未找到ArkPass文件，显示登录对话框")
             self.show_login_or_register_dialog()
         
     def show_login_or_register_dialog(self):
@@ -542,7 +768,21 @@ class ReAcrtureClientGUI:
                 filetypes=[("ArkPass Files", "*.arkpass"), ("All Files", "*.*")]
             )
             if file_path:
-                if self.login_with_arkpass(file_path):
+                result = self.login_with_arkpass(file_path)
+                if isinstance(result, tuple):
+                    success, error_msg = result[:2]
+                    if success:
+                        messagebox.showinfo("登录成功", "登录成功！")
+                    else:
+                        # 如果是用户不存在或密钥错误，删除文件
+                        if len(result) > 2 and result[2] in ['user_not_found', 'invalid_api_key']:
+                            try:
+                                os.remove(file_path)
+                                self.log_message(f"已删除无效的ArkPass文件: {file_path}", "auth", "INFO")
+                            except Exception as e:
+                                self.log_message(f"删除ArkPass文件失败: {e}", "auth", "ERROR")
+                        messagebox.showerror("登录失败", f"登录失败: {error_msg}")
+                elif result:
                     messagebox.showinfo("登录成功", "登录成功！")
                 else:
                     messagebox.showerror("登录失败", "ArkPass文件无效或登录失败。")
@@ -552,14 +792,10 @@ class ReAcrtureClientGUI:
     def register_user(self, username):
         """注册用户"""
         try:
-            print(f"[DEBUG] 尝试注册用户: {username}")
-            print(f"[DEBUG] Communicator对象: {self.communicator}")
             if self.communicator is None:
-                print("[DEBUG] 错误: Communicator未初始化")
                 return False, "通信器未初始化"
             # 调用服务端注册接口
             response = self.communicator.send_request("register", {"user_id": username})
-            print(f"[DEBUG] 注册响应: {response}")
             if response and response.get('status') == 'success':
                 api_key = response.get('key')
                 if api_key:
@@ -572,19 +808,14 @@ class ReAcrtureClientGUI:
                     }
                     
                     cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-                    print(f"[DEBUG] 缓存目录: {cache_dir}")
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
-                        print(f"[DEBUG] 创建缓存目录")
                         
                     arkpass_path = os.path.join(cache_dir, f"{username}.arkpass")
-                    print(f"[DEBUG] ArkPass文件路径: {arkpass_path}")
                     try:
                         with open(arkpass_path, 'w', encoding='utf-8') as f:
                             json.dump(arkpass_data, f, indent=2)
-                        print(f"[DEBUG] ArkPass文件保存成功")
                     except Exception as e:
-                        print(f"[DEBUG] ArkPass文件保存失败: {e}")
                         return False
                         
                     # 更新UI状态
@@ -596,21 +827,15 @@ class ReAcrtureClientGUI:
                         self.user_info_text.delete(1.0, tk.END)
                         self.user_info_text.insert(tk.END, f"用户: {username}\n状态: 已连接\nAPI密钥: {api_key[:8]}...")
                     
-                    print(f"[DEBUG] 用户 {username} 注册成功")
                     return True, None
                 else:
-                    print("[DEBUG] 响应中缺少API密钥")
                     return False, "服务器响应中缺少API密钥"
             else:
                 error_msg = response.get('message', '未知错误')
-                print(f"[DEBUG] 注册失败，响应状态不正确: {response}")
-                print(f"[DEBUG] 错误信息: {error_msg}")
                 return False, error_msg
                     
         except Exception as e:
             import traceback
-            print(f"[DEBUG] 注册异常: {e}")
-            print(f"[DEBUG] 异常详情: {traceback.format_exc()}")
             self.log_message(f"注册失败: {e}", "auth", "ERROR")
             return False, str(e)
             
@@ -641,10 +866,10 @@ class ReAcrtureClientGUI:
                         'api_key': api_key
                     }
                 else:
-                    return False
+                    return False, "ArkPass文件格式无效"
             
             if not user_id or not api_key:
-                return False
+                return False, "ArkPass文件缺少必要信息"
                 
             # 调用服务端登录接口
             response = self.communicator.send_request("login", {
@@ -652,7 +877,10 @@ class ReAcrtureClientGUI:
                 "key": api_key
             })
             
-            if response and response.get('status') == 'success':
+            if response is None:
+                return False, "网络连接异常，请检查网络连接"
+                
+            if response.get('status') == 'success':
                 session_id = response.get('session_id')
                 if session_id:
                     # 缓存arkpass文件到本地
@@ -675,16 +903,42 @@ class ReAcrtureClientGUI:
                         self.user_info_text.delete(1.0, tk.END)
                         self.user_info_text.insert(tk.END, f"用户: {user_id}\n状态: 已连接\n会话ID: {session_id[:8]}...")
                     
-                    return True
+                    return True, None
+                    
+            else:
+                # 处理不同的错误类型
+                error_type = response.get('error_type', 'unknown')
+                error_message = response.get('message', '未知错误')
+                
+                if error_type in ['user_not_found', 'invalid_api_key']:
+                    # 用户不存在或密钥错误，应该删除缓存的arkpass文件
+                    return False, error_message, error_type
+                else:
+                    # 其他错误类型（如封禁等）
+                    return False, error_message, error_type
                     
         except Exception as e:
             self.log_message(f"登录失败: {e}", "auth", "ERROR")
+            return False, f"登录过程发生异常: {str(e)}"
             
-        return False
+        return False, "未知错误"
         
     def auto_login_with_arkpass(self, arkpass_path):
         """自动使用arkpass文件登录"""
-        return self.login_with_arkpass(arkpass_path)
+        result = self.login_with_arkpass(arkpass_path)
+        if isinstance(result, tuple):
+            success, error_msg, *error_type = result
+            if not success and len(error_type) > 0:
+                error_type_val = error_type[0]
+                # 如果是用户不存在或密钥错误，删除缓存的arkpass文件
+                if error_type_val in ['user_not_found', 'invalid_api_key']:
+                    try:
+                        os.remove(arkpass_path)
+                        self.log_message(f"已删除无效的ArkPass文件: {arkpass_path}", "auth", "INFO")
+                    except Exception as e:
+                        self.log_message(f"删除ArkPass文件失败: {e}", "auth", "ERROR")
+            return success, error_msg
+        return result
         
     def load_task_queue(self):
         """加载任务队列"""

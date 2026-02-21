@@ -15,7 +15,7 @@ import base64
 class ClientCommunicator:
     """客户端通信器 - 使用TCP与服务端通信"""
     
-    def __init__(self, host: str, port: int, password: str = "default_password", timeout: int = 30):
+    def __init__(self, host: str, port: int, password: str = "default_password", timeout: int = 300):
         """
         初始化客户端通信器
         
@@ -23,7 +23,7 @@ class ClientCommunicator:
             host: 服务端主机
             port: 服务端端口
             password: 加密密码
-            timeout: 连接和读取超时（秒）
+            timeout: 连接和读取超时（秒），默认300秒（5分钟）以支持长时间的LLM处理
         """
         self.host = host
         self.port = port
