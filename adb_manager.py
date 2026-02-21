@@ -134,6 +134,23 @@ class ADBDeviceManager:
         success, _ = self._run_adb_command(["-s", device_serial, "shell", "echo", "connected"])
         return success
         
+    def connect_device_manual(self, device_serial: str) -> bool:
+        """
+        手动连接指定设备（不验证设备是否在扫描列表中）
+        
+        Args:
+            device_serial: 设备序列号
+            
+        Returns:
+            连接是否成功
+        """
+        # 直接尝试连接，不验证设备是否存在
+        success, _ = self._run_adb_command(["-s", device_serial, "shell", "echo", "connected"])
+        if success:
+            # 如果连接成功，刷新设备列表以包含新设备
+            self.get_devices(force_refresh=True)
+        return success
+        
     def disconnect_device(self, device_serial: str) -> bool:
         """
         断开设备连接（对于网络设备）

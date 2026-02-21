@@ -56,6 +56,14 @@ class DeviceManager:
             return True
         return False
         
+    def connect_device_manual(self, device_serial):
+        """手动连接设备（不验证设备是否存在）"""
+        if self.adb_manager and self.adb_manager.connect_device_manual(device_serial):
+            self.current_device = device_serial
+            self._save_last_connected_device(device_serial)
+            return True
+        return False
+        
     def disconnect_device(self):
         """断开设备连接"""
         self.current_device = None

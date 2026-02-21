@@ -653,8 +653,16 @@ class ReAcrtureClientGUI:
     def init_adb(self):
         """初始化ADB"""
         try:
+            # 使用绝对路径确保正确找到ADB可执行文件
+            script_dir = os.path.dirname(os.path.abspath(__file__))
+            adb_path = os.path.join(script_dir, self.config['adb']['path'])
+            
+            # 验证ADB文件是否存在
+            if not os.path.exists(adb_path):
+                raise FileNotFoundError(f"ADB executable not found at: {adb_path}")
+                
             self.adb_manager = ADBDeviceManager(
-                adb_path=self.config['adb']['path'],
+                adb_path=adb_path,
                 timeout=self.config['adb']['timeout']
             )
             self.screen_capture = ScreenCapture(
@@ -1220,7 +1228,7 @@ class ReAcrtureClientGUI:
             messagebox.showwarning("警告", "请输入设备序列号")
             return
             
-        if self.adb_manager and self.adb_manager.connect_device(device_serial):
+        if self.adb_manager and self.adb_manager.connect_device_manual(device_serial):
             self.current_device = device_serial
             self.device_status_label.config(text=f"已连接: {device_serial}", foreground='green')
             if self.touch_executor:

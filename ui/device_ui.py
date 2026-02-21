@@ -139,7 +139,7 @@ class DeviceUI:
             messagebox.showwarning("警告", "请输入设备序列号")
             return
             
-        if self.device_manager.connect_device(device_serial):
+        if self.device_manager.connect_device_manual(device_serial):
             self.update_device_status(f"已连接: {device_serial}")
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
             # 更新屏幕预览
