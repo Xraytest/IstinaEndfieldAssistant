@@ -62,10 +62,13 @@ class ScreenCapture:
             if result.returncode != 0:
                 return None
                 
-            # 处理PNG数据（Windows可能需要替换\r\n为\n）
+            # 直接使用原始PNG数据，不要进行任何文本处理
             png_data = result.stdout
-            if b'\r\n' in png_data:
-                png_data = png_data.replace(b'\r\n', b'\n')
+            
+            # 验证PNG数据完整性（可选的安全检查）
+            if not png_data.startswith(b'\x89PNG\r\n\x1a\n'):
+                print(f"警告: 无效的PNG数据，长度: {len(png_data)}")
+                return None
                 
             # 处理图像
             image = Image.open(io.BytesIO(png_data))
