@@ -219,3 +219,95 @@ class AuthManager:
         except Exception as e:
             print(f"获取用户信息失败: {e}")
             return None
+            
+    def is_session_valid(self):
+        """
+        检查会话是否有效
+        
+        Returns:
+            bool: 会话是否有效
+        """
+        if not self.is_logged_in or not self.session_id:
+            return False
+            
+        try:
+            # 尝试获取用户信息来验证会话
+            response = self.communicator.send_request("get_user_info", {
+                "user_id": self.user_id,
+                "session_id": self.session_id
+            })
+            
+            if response and response.get('status') == 'success':
+                return True
+            else:
+                # 会话无效
+                return False
+                
+        except Exception as e:
+            print(f"检查会话有效性失败: {e}")
+            return False
+            
+    def ensure_valid_session(self):
+        """
+        确保会话有效，如果无效则尝试重新登录
+        
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        if not self.is_logged_in:
+            return False, "未登录"
+            
+        # 首先检查当前会话是否有效
+        if self.is_session_valid():
+            return True, "会话有效"
+            
+        # 会话无效，尝试重新登录
+        print("会话已过期，尝试重新登录...")
+        
+        # 检查多个可能的arkpass文件位置
+        possible_paths = []
+        
+        # 1. 客户端缓存目录
+        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        if os.path.exists(cache_dir):
+            cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
+            possible_paths.extend(cache_files)
+        
+        # 2. 项目根目录
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        if os.path.exists(project_root):
+            root_files = [os.path.join(project_root, f) for f in os.listdir(project_root) if f.endswith('.arkpass')]
+            possible_paths.extend(root_files)
+        
+        # 3. 当前工作目录
+        current_files = [f for f in os.listdir('.') if f.endswith('.arkpass')]
+        possible_paths.extend(current_files)
+        
+        # 去重
+        unique_paths = []
+        seen = set()
+        for path in possible_paths:
+            if path not in seen and os.path.exists(path):
+                unique_paths.append(path)
+                seen.add(path)
+        
+        # 尝试每个arkpass文件重新登录
+        for arkpass_path in unique_paths:
+            result = self.login_with_arkpass(arkpass_path)
+            if isinstance(result, tuple):
+                success, error_msg, *error_type = result
+                if success:
+                    return True, "重新登录成功"
+                elif len(error_type) > 0:
+                    error_type_val = error_type[0]
+                    # 如果是用户不存在或密钥错误，删除缓存的arkpass文件
+                    if error_type_val in ['user_not_found', 'invalid_api_key']:
+                        try:
+                            os.remove(arkpass_path)
+                            print(f"已删除无效的ArkPass文件: {arkpass_path}")
+                        except Exception as e:
+                            print(f"删除ArkPass文件失败: {e}")
+            elif result:
+                return True, "重新登录成功"
+                
+        return False, "重新登录失败"

@@ -139,17 +139,31 @@ class ADBDeviceManager:
         手动连接指定设备（不验证设备是否在扫描列表中）
         
         Args:
-            device_serial: 设备序列号
+            device_serial: 设备序列号或网络地址（如 192.168.1.100:5555）
             
         Returns:
             连接是否成功
         """
+        # 检测是否为网络地址格式（包含冒号且符合主机:端口格式）
+        if ':' in device_serial and self._is_network_address(device_serial):
+            # 先执行 adb connect 命令建立网络连接
+            connect_success, _ = self._run_adb_command(["connect", device_serial])
+            if not connect_success:
+                return False
+        
         # 直接尝试连接，不验证设备是否存在
         success, _ = self._run_adb_command(["-s", device_serial, "shell", "echo", "connected"])
         if success:
             # 如果连接成功，刷新设备列表以包含新设备
             self.get_devices(force_refresh=True)
         return success
+    
+    def _is_network_address(self, address: str) -> bool:
+        """检测是否为有效的网络地址格式（主机:端口）"""
+        import re
+        # 匹配 主机名:端口 或 IP:端口 格式
+        pattern = r'^[a-zA-Z0-9.-]+:\d+$'
+        return bool(re.match(pattern, address))
         
     def disconnect_device(self, device_serial: str) -> bool:
         """

@@ -249,9 +249,31 @@ class ReAcrtureClientGUI:
         # 保存任务队列到本地
         self.task_queue_manager.save_task_queue()
         
-        if self.execution_manager.is_running():
+        # 准确检测实际执行状态
+        execution_running = False
+        if hasattr(self, 'execution_manager') and self.execution_manager:
+            execution_running = self.execution_manager.is_running()
+            
+        if execution_running:
             if messagebox.askokcancel("确认", "执行正在进行中，确定要退出吗？"):
+                # 停止执行
                 self.execution_manager.stop_execution()
+                
+                # 等待执行线程完全结束（最多5秒）
+                max_wait_time = 5.0
+                wait_interval = 0.1
+                total_waited = 0.0
+                
+                while total_waited < max_wait_time:
+                    if not self.execution_manager.is_running():
+                        break
+                    time.sleep(wait_interval)
+                    total_waited += wait_interval
+                    
+                if self.execution_manager.is_running():
+                    self.log_message("警告: 执行线程未在预期时间内结束", "system", "WARNING")
+                    
+                # 安全关闭
                 self.root.destroy()
         else:
             self.root.destroy()

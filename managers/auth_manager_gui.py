@@ -22,6 +22,14 @@ class AuthManagerGUI:
         dialog.transient(self.parent)
         dialog.grab_set()
         
+        # 处理窗口关闭事件，使其与取消按钮行为一致
+        def on_close():
+            # 不登录注册，直接退出客户端
+            dialog.destroy()
+            self.parent.quit()
+            
+        dialog.protocol("WM_DELETE_WINDOW", on_close)
+        
         ttk.Label(dialog, text="请选择操作:", font=('Arial', 12, 'bold')).pack(pady=20)
         
         btn_frame = ttk.Frame(dialog)
@@ -52,6 +60,9 @@ class AuthManagerGUI:
         dialog.resizable(False, False)
         dialog.transient(self.parent)
         dialog.grab_set()
+        
+        # 处理窗口关闭事件，使其与取消按钮行为一致
+        dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
         
         ttk.Label(dialog, text="请输入用户名:", font=('Arial', 10)).pack(pady=10)
         

@@ -235,8 +235,7 @@ class MainGUIManager:
                    self.log_callback(f"连接上次设备 {last_device} 失败", "device", "ERROR")
            else:
                self.log_callback(f"上次连接的设备 {last_device} 不在可用设备列表中", "device", "WARNING")
-               # 清除无效的设备缓存
-               self.device_manager.clear_last_connected_device()
+               # 保留上次成功的设备缓存，即使当前不可用
                    
        except Exception as e:
            self.log_callback(f"自动扫描和连接设备时出错: {e}", "device", "ERROR")
