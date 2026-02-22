@@ -154,7 +154,13 @@ class ExecutionManager:
                 break
                 
         log_callback("自动化执行结束", "execution", "INFO")
-        update_ui_callback('stop_execution', None)
+        # 通知UI停止执行
+        if hasattr(update_ui_callback, '__call__'):
+            update_ui_callback('stop_execution', None)
+        else:
+            # 如果update_ui_callback是对象，调用其方法
+            if hasattr(update_ui_callback, 'stop_execution_ui'):
+                update_ui_callback.stop_execution_ui()
         
     def get_client_running_status(self):
         """获取客户端运行状态"""

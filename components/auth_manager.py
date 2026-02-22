@@ -147,8 +147,8 @@ class AuthManager:
             return success, error_msg
         return result
         
-    def check_login_status(self, root_window):
-        """检查登录状态"""
+    def check_login_status(self):
+        """检查登录状态 - 只返回布尔值，不处理UI"""
         # 检查多个可能的arkpass文件位置
         possible_paths = []
         
@@ -178,129 +178,16 @@ class AuthManager:
                 seen.add(path)
         
         # 尝试每个arkpass文件
-        last_error = None
         for arkpass_path in unique_paths:
             result = self.auto_login_with_arkpass(arkpass_path)
             if isinstance(result, tuple):
                 success, error_msg = result
                 if success:
                     return True
-                else:
-                    last_error = error_msg
             elif result:
                 return True
                 
-        # 如果有arkpass文件但登录失败，显示错误提示并直接转到登录注册流程
-        if unique_paths:
-            if last_error:
-                messagebox.showerror("自动登录失败", f"自动登录失败: {last_error}")
-            else:
-                messagebox.showerror("自动登录失败", "找到ArkPass文件但自动登录失败，请检查文件格式或网络连接。")
-            # 凭证无效时，直接转到登录注册流程
-            self.show_login_or_register_dialog(root_window)
-        else:
-            # 未找到arkpass文件，显示登录对话框
-            self.show_login_or_register_dialog(root_window)
-            
         return self.is_logged_in
-        
-    def show_login_or_register_dialog(self, parent_window):
-        """显示登录或注册选择对话框 - 不登录则退出"""
-        dialog = tk.Toplevel(parent_window)
-        dialog.title("账户认证")
-        dialog.geometry("300x150")
-        dialog.resizable(False, False)
-        dialog.transient(parent_window)
-        dialog.grab_set()
-        
-        ttk.Label(dialog, text="请选择操作:", font=('Arial', 12, 'bold')).pack(pady=20)
-        
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        
-        def on_register():
-            dialog.destroy()
-            self.show_register_dialog(parent_window)
-            
-        def on_login():
-            dialog.destroy()
-            self.show_login_dialog(parent_window)
-            
-        def on_cancel():
-            # 不登录注册，直接退出客户端
-            dialog.destroy()
-            parent_window.quit()
-            
-        ttk.Button(btn_frame, text="注册", command=on_register, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="登入", command=on_login, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
-        
-    def show_register_dialog(self, parent_window):
-        """显示注册对话框"""
-        dialog = tk.Toplevel(parent_window)
-        dialog.title("注册")
-        dialog.geometry("300x150")
-        dialog.resizable(False, False)
-        dialog.transient(parent_window)
-        dialog.grab_set()
-        
-        ttk.Label(dialog, text="请输入用户名:", font=('Arial', 10)).pack(pady=10)
-        
-        username_var = tk.StringVar()
-        username_entry = ttk.Entry(dialog, textvariable=username_var, width=30)
-        username_entry.pack(pady=5)
-        username_entry.focus()
-        
-        def on_submit():
-            username = username_var.get().strip()
-            if not username:
-                messagebox.showwarning("警告", "请输入有效的用户名")
-                return
-                
-            success, error_msg = self.register_user(username)
-            if success:
-                dialog.destroy()
-                messagebox.showinfo("注册成功", f"{username}注册成功！登入凭证已缓存于本地")
-            else:
-                error_display = error_msg if error_msg else "注册失败，请重试。"
-                messagebox.showerror("注册失败", f"注册失败: {error_display}")
-                
-        btn_frame = ttk.Frame(dialog)
-        btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="注册", command=on_submit, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
-        
-        # 绑定回车键
-        username_entry.bind('<Return>', lambda e: on_submit())
-        
-    def show_login_dialog(self, parent_window):
-        """显示登录对话框"""
-        def on_select_file():
-            file_path = filedialog.askopenfilename(
-                title="选择ArkPass文件",
-                filetypes=[("ArkPass Files", "*.arkpass"), ("All Files", "*.*")]
-            )
-            if file_path:
-                result = self.login_with_arkpass(file_path)
-                if isinstance(result, tuple):
-                    success, error_msg = result[:2]
-                    if success:
-                        messagebox.showinfo("登录成功", "登录成功！")
-                    else:
-                        # 如果是用户不存在或密钥错误，删除文件
-                        if len(result) > 2 and result[2] in ['user_not_found', 'invalid_api_key']:
-                            try:
-                                os.remove(file_path)
-                                print(f"已删除无效的ArkPass文件: {file_path}")
-                            except Exception as e:
-                                print(f"删除ArkPass文件失败: {e}")
-                        messagebox.showerror("登录失败", f"登录失败: {error_msg}")
-                elif result:
-                    messagebox.showinfo("登录成功", "登录成功！")
-                else:
-                    messagebox.showerror("登录失败", "ArkPass文件无效或登录失败。")
-                    
-        on_select_file()
         
     def get_login_status(self):
         """获取登录状态"""

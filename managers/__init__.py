@@ -1,0 +1,1 @@
+"""Managers package for GUI components"""

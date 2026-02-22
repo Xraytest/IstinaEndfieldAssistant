@@ -1,12 +1,13 @@
-"""设备管理UI组件"""
+"""设备管理GUI模块 - 处理设备连接和屏幕预览的UI逻辑"""
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import base64
 import io
 
-class DeviceUI:
-    """设备管理UI类"""
+
+class DeviceManagerGUI:
+    """设备管理GUI类"""
     
     def __init__(self, parent_frame, device_manager, screen_capture, log_callback):
         self.parent_frame = parent_frame
@@ -14,8 +15,6 @@ class DeviceUI:
         self.screen_capture = screen_capture
         self.log_callback = log_callback
         self.current_image = None
-        self.image_scale_x = 1.0
-        self.image_scale_y = 1.0
         
         # UI组件引用
         self.device_tree = None
@@ -54,14 +53,14 @@ class DeviceUI:
         device_list_frame.pack(fill='both', expand=True, pady=(0, 10))
         
         # 设备列表
-        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=6)
+        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=4)
         self.device_tree.heading('serial', text='设备序列号')
         self.device_tree.heading('model', text='设备型号')
         self.device_tree.heading('state', text='状态')
         self.device_tree.column('serial', width=200)
         self.device_tree.column('model', width=150)
         self.device_tree.column('state', width=100)
-        self.device_tree.pack(side=tk.LEFT, fill='both', expand=True)
+        self.device_tree.pack(side=tk.LEFT, fill='x', expand=True)
         
         # 滚动条
         device_scroll = ttk.Scrollbar(device_list_frame, orient=tk.VERTICAL, command=self.device_tree.yview)
@@ -70,7 +69,7 @@ class DeviceUI:
         
         # 设备操作按钮
         device_btn_frame = ttk.Frame(self.parent_frame)
-        device_btn_frame.pack(fill='x')
+        device_btn_frame.pack(fill='x', pady=(0, 10))
         
         connect_device_btn = ttk.Button(device_btn_frame, text="连接选中设备", command=self.connect_selected_device)
         connect_device_btn.pack(side=tk.LEFT, padx=(0, 10))
@@ -78,11 +77,11 @@ class DeviceUI:
         disconnect_device_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
         disconnect_device_btn.pack(side=tk.LEFT)
         
-        # 屏幕预览
+        # 屏幕预览（缩小比例）
         preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="10")
-        preview_frame.pack(fill='both', expand=True, pady=(10, 0))
+        preview_frame.pack(fill='both', expand=True)
         
-        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0)
+        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=200)
         self.preview_canvas.pack(fill='both', expand=True)
         
     def scan_devices(self):
@@ -183,9 +182,6 @@ class DeviceUI:
                     scale_x = canvas_width / img_width
                     scale_y = canvas_height / img_height
                     scale = min(scale_x, scale_y)
-                    
-                    # 缩小预览比例（使用0.8倍的原始缩放比例）
-                    scale = scale * 0.8
                     
                     new_width = int(img_width * scale)
                     new_height = int(img_height * scale)

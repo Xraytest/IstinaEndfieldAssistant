@@ -85,3 +85,19 @@ class TaskQueueManager:
         if self.task_manager:
             return self.task_manager.get_task_variables(task_id)
         return {}
+        
+    def save_task_queue(self):
+        """保存任务队列到本地"""
+        import os
+        import json
+        
+        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        if not os.path.exists(cache_dir):
+            os.makedirs(cache_dir)
+            
+        task_queue_file = os.path.join(cache_dir, "task_queue.json")
+        try:
+            with open(task_queue_file, 'w', encoding='utf-8') as f:
+                json.dump(self.task_queue, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            print(f"保存任务队列失败: {e}")
