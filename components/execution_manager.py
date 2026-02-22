@@ -26,10 +26,7 @@ class ExecutionManager:
             return False, "请先连接设备"
             
         if self.task_queue_manager.is_queue_empty():
-            # 自动加载默认任务
-            tasks = self.task_queue_manager.load_default_tasks()
-            if not tasks:
-                return False, "任务队列为空"
+            return False, "任务队列为空"
                 
         if self.client_running:
             return False, "执行已在进行中"

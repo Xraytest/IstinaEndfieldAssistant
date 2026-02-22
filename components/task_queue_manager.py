@@ -11,16 +11,6 @@ class TaskQueueManager:
         self.current_task_index = 0
         self.execution_count = 1
         
-    def load_default_tasks(self):
-        """加载默认任务到队列"""
-        if not self.task_manager:
-            return []
-            
-        tasks = self.task_manager.get_default_task_chain()
-        if tasks:
-            self.task_queue.extend(tasks)
-        return tasks
-        
     def add_task(self, task):
         """添加任务到队列"""
         self.task_queue.append(task)

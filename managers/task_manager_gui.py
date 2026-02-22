@@ -22,6 +22,8 @@ class TaskManagerGUI:
         self.llm_stop_btn = None
         
         self.setup_ui()
+        # 初始化后更新任务队列显示
+        self.update_queue_display()
         
     def setup_ui(self):
         """设置任务管理UI"""
@@ -57,7 +59,10 @@ class TaskManagerGUI:
         add_task_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         edit_task_btn = ttk.Button(queue_btn_frame, text="设置选中", command=self.show_edit_task_dialog)
-        edit_task_btn.pack(side=tk.LEFT)
+        edit_task_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        delete_task_btn = ttk.Button(queue_btn_frame, text="删除选中", command=self.delete_selected_task)
+        delete_task_btn.pack(side=tk.LEFT)
         
         # 执行控制
         exec_frame = ttk.LabelFrame(self.parent_frame, text="执行控制", padding="10")
@@ -287,18 +292,8 @@ class TaskManagerGUI:
     def add_task_to_queue(self, task_template=None):
         """添加任务到队列"""
         if task_template is None:
-            # 如果没有提供任务模板，使用默认任务
-            tasks = self.task_queue_manager.load_default_tasks()
-            if not tasks:
-                self.log_callback("未找到默认任务", "execution", "WARNING")
-                return
-                
-            for task in tasks:
-                self.task_queue_manager.add_task(task)
-            self.update_queue_display()
-            self.log_callback(f"已添加 {len(tasks)} 个默认任务到队列", "execution", "INFO")
-            # 保存到本地持久化存储
-            self.task_queue_manager.save_task_queue()
+            # 如果没有提供任务模板，不执行任何操作
+            return
         else:
             # 添加指定的任务模板
             import time
@@ -394,3 +389,32 @@ class TaskManagerGUI:
     def get_task_variables(self, task_id):
         """获取任务变量"""
         return self.task_queue_manager.get_task_variables(task_id)
+        
+    def delete_selected_task(self):
+        """删除选中的任务（带二次确认）"""
+        selection = self.task_queue_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("警告", "请先选择一个任务")
+            return
+            
+        # 获取选中任务的名称用于确认对话框
+        task_index = selection[0]
+        queue_info = self.task_queue_manager.get_queue_info()
+        if task_index < len(queue_info['tasks']):
+            task_name = queue_info['tasks'][task_index].get('name', '未知任务')
+        else:
+            task_name = '未知任务'
+            
+        # 二次确认
+        confirm = messagebox.askyesno(
+            "确认删除",
+            f"确定要删除任务 '{task_name}' 吗？\n此操作无法撤销！"
+        )
+        
+        if confirm:
+            removed_task = self.task_queue_manager.remove_task(task_index)
+            if removed_task:
+                self.update_queue_display()
+                self.log_callback(f"任务 '{removed_task['name']}' 已从队列中删除", "task", "INFO")
+                # 保存到本地持久化存储
+                self.task_queue_manager.save_task_queue()

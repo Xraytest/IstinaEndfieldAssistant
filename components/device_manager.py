@@ -75,3 +75,14 @@ class DeviceManager:
     def get_last_connected_device(self):
         """获取上次连接的设备"""
         return self.last_connected_device
+        
+    def clear_last_connected_device(self):
+        """清除上次连接的设备缓存"""
+        self.last_connected_device = None
+        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        device_cache_file = os.path.join(cache_dir, "last_device.json")
+        if os.path.exists(device_cache_file):
+            try:
+                os.remove(device_cache_file)
+            except Exception as e:
+                print(f"清除设备缓存失败: {e}")

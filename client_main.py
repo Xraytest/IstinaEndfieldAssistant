@@ -1,5 +1,5 @@
 """
-ReAcrture 客户端GUI - 重构后的模块化版本
+ReAcrture 客户端GUI
 """
 import tkinter as tk
 from tkinter import ttk, scrolledtext, messagebox, filedialog
@@ -66,9 +66,6 @@ class ReAcrtureClientGUI:
         
         # 检查登录状态
         self.check_login_status()
-        
-        # 加载任务队列
-        self.load_task_queue()
         
         # 启动时检查更新
         self.root.after(1000, self.check_for_updates_on_startup)
@@ -137,6 +134,8 @@ class ReAcrtureClientGUI:
             self.auth_manager = AuthManager(self.communicator, self.config)
             self.device_manager = DeviceManager(self.adb_manager, self.config)
             self.task_queue_manager = TaskQueueManager(self.task_manager)
+            # 加载任务队列缓存
+            self.load_task_queue()
             self.execution_manager = ExecutionManager(
                 self.device_manager,
                 self.screen_capture,
@@ -230,21 +229,6 @@ class ReAcrtureClientGUI:
             except Exception as e:
                 self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
                 
-    def save_task_queue(self):
-        """保存任务队列到本地"""
-        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
-            
-        task_queue_file = os.path.join(cache_dir, "task_queue.json")
-        try:
-            queue_info = self.task_queue_manager.get_queue_info()
-            with open(task_queue_file, 'w', encoding='utf-8') as f:
-                json.dump(queue_info['tasks'], f, ensure_ascii=False, indent=2)
-            self.log_message("任务队列已保存到本地", "task", "INFO")
-        except Exception as e:
-            self.log_message(f"保存任务队列失败: {e}", "task", "ERROR")
-        
     def log_message(self, message, category="general", level="INFO"):
         """记录日志消息"""
         timestamp = datetime.now().strftime("%H:%M:%S")
@@ -259,11 +243,11 @@ class ReAcrtureClientGUI:
             # 更新状态栏
             if hasattr(self.gui_manager, 'status_bar'):
                 self.gui_manager.status_bar.config(text=message)
-        
+    
     def on_closing(self):
         """窗口关闭事件"""
         # 保存任务队列到本地
-        self.save_task_queue()
+        self.task_queue_manager.save_task_queue()
         
         if self.execution_manager.is_running():
             if messagebox.askokcancel("确认", "执行正在进行中，确定要退出吗？"):
@@ -271,7 +255,6 @@ class ReAcrtureClientGUI:
                 self.root.destroy()
         else:
             self.root.destroy()
-
 
 if __name__ == "__main__":
     root = tk.Tk()

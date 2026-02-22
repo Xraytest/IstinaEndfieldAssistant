@@ -108,7 +108,8 @@ class DeviceManagerGUI:
                 
         if not last_device_selected and last_connected:
             # 如果上次连接的设备不在列表中，清空缓存
-            pass
+            self.device_manager.clear_last_connected_device()
+            self.log_callback(f"上次连接的设备 {last_connected} 不可用，已清除缓存", "device", "INFO")
             
         self.log_callback(f"发现 {len(devices)} 个设备", "device", "INFO")
         
