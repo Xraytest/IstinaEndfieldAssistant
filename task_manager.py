@@ -24,31 +24,14 @@ class TaskManager:
         """
         self.config_dir = config_dir
         self.data_dir = data_dir
-        self.tasks_dir = os.path.join(data_dir, "tasks")
         self.user_preferences_file = os.path.join(config_dir, "user_preferences.json")
         
         # 确保目录存在
         os.makedirs(self.config_dir, exist_ok=True)
-        os.makedirs(self.tasks_dir, exist_ok=True)
         
         # 加载用户偏好
         self.user_preferences = self._load_user_preferences()
         
-    def get_default_task_chain(self) -> List[Dict]:
-        """
-        获取默认任务链
-        
-        Returns:
-            任务模板列表
-        """
-        default_tasks_file = os.path.join(self.tasks_dir, "default_tasks.json")
-        if os.path.exists(default_tasks_file):
-            with open(default_tasks_file, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        else:
-            # 返回空任务链
-            return []
-            
     def add_task_to_chain(self, task_chain: List[Dict], task_template: Dict) -> List[Dict]:
         """
         向任务链添加任务
@@ -141,36 +124,3 @@ class TaskManager:
             "updated_at": time.time()
         }
         
-    def save_task_template(self, task_template: Dict):
-        """
-        保存任务模板到文件
-        
-        Args:
-            task_template: 任务模板字典
-        """
-        task_id = task_template['id']
-        task_file = os.path.join(self.tasks_dir, f"{task_id}.json")
-        try:
-            with open(task_file, 'w', encoding='utf-8') as f:
-                json.dump(task_template, f, ensure_ascii=False, indent=2)
-        except IOError as e:
-            print(f"保存任务模板失败: {e}")
-            
-    def load_task_template(self, task_id: str) -> Optional[Dict]:
-        """
-        从文件加载任务模板
-        
-        Args:
-            task_id: 任务ID
-            
-        Returns:
-            任务模板字典或None
-        """
-        task_file = os.path.join(self.tasks_dir, f"{task_id}.json")
-        if os.path.exists(task_file):
-            try:
-                with open(task_file, 'r', encoding='utf-8') as f:
-                    return json.load(f)
-            except (json.JSONDecodeError, IOError):
-                return None
-        return None
