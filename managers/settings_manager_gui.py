@@ -3,10 +3,14 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 import os
 import json
-import urllib.request
-import urllib.error
 import subprocess
 import shutil
+import sys
+from pathlib import Path
+
+# 导入communicator模块
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from communicator import ClientCommunicator
 
 
 class SettingsManagerGUI:
@@ -87,47 +91,40 @@ class SettingsManagerGUI:
     def check_for_updates(self):
         """检查更新"""
         try:
-            # 构建API URL
+            # 使用TCP端口连接服务器
             server_host = self.config['server']['host']
-            web_port = 8000  # Web服务器端口
-            api_url = f"http://{server_host}:{web_port}/api/client/version"
+            tcp_port = self.config['server']['port']
+            password = self.config.get('communication', {}).get('password', 'default_password')
             
             self.update_status_label.config(text="正在检查更新...", foreground='blue')
             self.parent_frame.update()
             
-            # 发送HTTP请求
-            req = urllib.request.Request(api_url)
-            req.add_header('User-Agent', 'ReAcrture-Client/1.0')
+            # 创建TCP通信器并发送请求
+            communicator = ClientCommunicator(server_host, tcp_port, password, timeout=10)
+            response = communicator.send_request('check_version', {})
             
-            with urllib.request.urlopen(req, timeout=10) as response:
-                if response.status == 200:
-                    data = json.loads(response.read().decode('utf-8'))
-                    if data.get('status') == 'success':
-                        latest_version = data.get('data', {}).get('version', 'unknown')
-                        self.latest_version_label.config(text=latest_version)
-                        
-                        # 比较版本
-                        current_version = self.load_local_version()
-                        if current_version != 'unknown' and latest_version != 'unknown' and current_version != latest_version:
-                            self.update_status_label.config(text="发现新版本！", foreground='green')
-                            self.update_btn.config(state='normal')
-                        else:
-                            self.update_status_label.config(text="已是最新版本", foreground='gray')
-                            self.update_btn.config(state='disabled')
-                    else:
-                        self.update_status_label.config(text=f"检查失败: {data.get('message', '未知错误')}", foreground='red')
+            if response and response.get('status') == 'success':
+                latest_version = response.get('data', {}).get('version', 'unknown')
+                self.latest_version_label.config(text=latest_version)
+                
+                # 比较版本
+                current_version = self.load_local_version()
+                if current_version != 'unknown' and latest_version != 'unknown' and current_version != latest_version:
+                    self.update_status_label.config(text="发现新版本！", foreground='green')
+                    self.update_btn.config(state='normal')
                 else:
-                    self.update_status_label.config(text=f"检查失败: HTTP {response.status}", foreground='red')
+                    self.update_status_label.config(text="已是最新版本", foreground='gray')
+                    self.update_btn.config(state='disabled')
+            else:
+                error_msg = response.get('message', '未知错误') if response else '连接服务器失败'
+                self.update_status_label.config(text=f"检查失败: {error_msg}", foreground='red')
                     
-        except urllib.error.URLError as e:
-            self.update_status_label.config(text=f"网络错误: {str(e)}", foreground='red')
-            self.log_callback(f"检查更新失败 - 网络错误: {e}", "version", "ERROR")
-            # 网络错误时直接退出客户端
-            messagebox.showerror("网络连接失败", "无法连接到更新服务器，请检查网络连接后重试。")
-            self.parent_frame.winfo_toplevel().quit()
         except Exception as e:
             self.update_status_label.config(text=f"检查失败: {str(e)}", foreground='red')
             self.log_callback(f"检查更新失败: {e}", "version", "ERROR")
+            # 网络错误时直接退出客户端
+            messagebox.showerror("网络连接失败", "无法连接到更新服务器，请检查网络连接后重试。")
+            self.parent_frame.winfo_toplevel().quit()
             
     def update_client(self):
         """更新客户端"""
@@ -157,7 +154,7 @@ class SettingsManagerGUI:
                     shutil.rmtree(temp_dir)
                 
                 cmd = [git_path, "clone", "https://github.com/Xraytest/IstinaEndfieldAssistant.git", temp_dir]
-                result = subprocess.run(cmd, capture_output=True, text=True, cwd=current_dir, timeout=300)
+                result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=current_dir, timeout=300)
                 
                 if result.returncode == 0:
                     # 复制新文件覆盖旧文件（保留data目录和cache目录）

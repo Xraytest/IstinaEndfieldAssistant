@@ -125,12 +125,23 @@ class ExecutionManager:
                         
                     if response.get('status') != 'success':
                         error_message = response.get('message', '未知错误')
-                        log_callback(f"服务端处理失败: {error_message}", "execution", "ERROR")
+                        error_type = response.get('error_type')
+                        
                         # 检查是否是会话过期错误
-                        if response.get('error_type') == 'session_expired':
-                            log_callback("检测到会话过期，将尝试重新登录", "execution", "WARNING")
-                            # 这里可以触发重新登录逻辑，但为了简单起见，我们只是记录并退出
-                        break
+                        if error_type == 'session_expired':
+                            log_callback("检测到会话过期，尝试自动重新认证...", "execution", "WARNING")
+                            reauth_success, reauth_message = self._handle_authentication_failure(log_callback)
+                            if reauth_success:
+                                log_callback("重新认证成功，继续执行任务", "execution", "INFO")
+                                # 更新会话ID并重试当前请求
+                                request_data["session_id"] = self.auth_manager.get_session_id()
+                                continue  # 重试当前任务
+                            else:
+                                log_callback(f"重新认证失败: {reauth_message}", "execution", "ERROR")
+                                break
+                        else:
+                            log_callback(f"服务端处理失败: {error_message}", "execution", "ERROR")
+                            break
                         
                     # 执行触控动作
                     touch_actions = response.get('data', {}).get('touch_actions', [])
@@ -172,6 +183,47 @@ class ExecutionManager:
             # 确保在任何情况下都正确重置执行状态
             self.client_running = False
         
+    def _handle_authentication_failure(self, log_callback):
+        """
+        处理认证失败情况，尝试自动重新认证
+        
+        Args:
+            log_callback: 日志回调函数
+            
+        Returns:
+            tuple: (success: bool, message: str)
+        """
+        try:
+            # 调用auth_manager的ensure_valid_session方法尝试重新认证
+            success, message = self.auth_manager.ensure_valid_session()
+            
+            if success:
+                # 更新会话ID
+                self.session_id = self.auth_manager.get_session_id()
+                return True, "重新认证成功"
+            else:
+                # 检查具体的错误类型并提供更详细的错误信息
+                user_info = self.auth_manager.get_user_info()
+                if not user_info:
+                    # 可能是用户不存在或API密钥错误
+                    return False, "用户不存在或API密钥无效"
+                
+                # 检查账户是否被封禁
+                if user_info.get('is_banned', False):
+                    ban_reason = user_info.get('ban_reason', '未知原因')
+                    ban_until = user_info.get('ban_until', 0)
+                    if ban_until > 0:
+                        return False, f"账户被封禁至 {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(ban_until))}，原因: {ban_reason}"
+                    else:
+                        return False, f"账户被永久封禁，原因: {ban_reason}"
+                
+                return False, message
+                
+        except Exception as e:
+            error_msg = f"重新认证过程中发生异常: {str(e)}"
+            log_callback(error_msg, "execution", "ERROR")
+            return False, error_msg
+
     def get_client_running_status(self):
         """获取客户端运行状态"""
         return self.client_running
