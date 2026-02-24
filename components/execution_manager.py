@@ -144,7 +144,7 @@ class ExecutionManager:
                         break
                     
                     if not response:
-                        log_callback("服务端处理失败: 无响应", "execution", "ERROR")
+                        log_callback("网络连接失败：无法连接到服务端（已尝试重连3次）", "execution", "ERROR")
                         break
                         
                     if response.get('status') != 'success':

@@ -91,7 +91,15 @@ class TaskQueueManager:
             
         task_queue_file = os.path.join(cache_dir, "task_queue.json")
         try:
+            # 创建不包含description的队列副本
+            queue_to_save = []
+            for task in self.task_queue:
+                task_copy = task.copy()
+                # 移除不需要缓存的字段
+                task_copy.pop('description', None)
+                queue_to_save.append(task_copy)
+            
             with open(task_queue_file, 'w', encoding='utf-8') as f:
-                json.dump(self.task_queue, f, ensure_ascii=False, indent=2)
+                json.dump(queue_to_save, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存任务队列失败: {e}")

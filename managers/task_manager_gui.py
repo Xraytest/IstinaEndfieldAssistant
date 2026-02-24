@@ -422,7 +422,8 @@ class TaskManagerGUI:
         else:
             # 添加指定的任务模板
             import time
-            # 创建新的任务实例，使用不同的ID但相同的模板
+            # 创建新的任务实例，使用带时间戳的ID确保队列中唯一性
+            # 服务端会自动从ID中提取原始模板ID（格式: template_id_timestamp）
             new_task = task_template.copy()
             new_task['id'] = f"{task_template['id']}_{int(time.time())}"
             new_task['name'] = task_template.get('name', '新任务')

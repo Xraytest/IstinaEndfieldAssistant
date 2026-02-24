@@ -45,6 +45,10 @@ class AuthManager:
                     self.is_logged_in = True
                     self.user_id = username
                     
+                    # 通知通信器登录成功，启用重连机制
+                    if self.communicator:
+                        self.communicator.set_logged_in(True)
+                    
                     return True, None
                 else:
                     return False, "服务器响应中缺少API密钥"
@@ -111,6 +115,10 @@ class AuthManager:
                     self.user_id = user_id
                     self.session_id = session_id
                     
+                    # 通知通信器登录成功，启用重连机制
+                    if self.communicator:
+                        self.communicator.set_logged_in(True)
+                    
                     return True, None
                     
             else:
@@ -144,11 +152,12 @@ class AuthManager:
                         print(f"已删除无效的ArkPass文件: {arkpass_path}")
                     except Exception as e:
                         print(f"删除ArkPass文件失败: {e}")
-            return success, error_msg
-        return result
+            # 返回包含网络错误信息的元组
+            return (success, error_msg) if len(error_type) == 0 else (success, error_msg, error_type[0])
+        return (result, None) if result else (False, "自动登录失败")
         
     def check_login_status(self):
-        """检查登录状态 - 只返回布尔值，不处理UI"""
+        """检查登录状态 - 返回 (is_logged_in, error_msg) 元组"""
         # 检查多个可能的arkpass文件位置
         possible_paths = []
         
@@ -178,16 +187,28 @@ class AuthManager:
                 seen.add(path)
         
         # 尝试每个arkpass文件
+        network_error = None
         for arkpass_path in unique_paths:
             result = self.auto_login_with_arkpass(arkpass_path)
             if isinstance(result, tuple):
-                success, error_msg = result
+                success, error_msg = result[:2]
                 if success:
-                    return True
+                    return True, None
+                # 检查是否为网络错误
+                if error_msg and ("网络连接异常" in error_msg or "网络错误" in error_msg):
+                    network_error = error_msg
             elif result:
-                return True
+                return True, None
                 
-        return self.is_logged_in
+        # 如果有网络错误，返回错误信息
+        if network_error:
+            return False, network_error
+        
+        # 如果没有arkpass文件，返回None表示需要显示登录窗口
+        if not unique_paths:
+            return False, None
+        
+        return self.is_logged_in, None
         
     def get_login_status(self):
         """获取登录状态"""
@@ -297,6 +318,9 @@ class AuthManager:
             if isinstance(result, tuple):
                 success, error_msg, *error_type = result
                 if success:
+                    # 通知通信器重新登录成功，启用重连机制
+                    if self.communicator:
+                        self.communicator.set_logged_in(True)
                     return True, "重新登录成功"
                 elif len(error_type) > 0:
                     error_type_val = error_type[0]
@@ -308,6 +332,9 @@ class AuthManager:
                         except Exception as e:
                             print(f"删除ArkPass文件失败: {e}")
             elif result:
+                # 通知通信器重新登录成功，启用重连机制
+                if self.communicator:
+                    self.communicator.set_logged_in(True)
                 return True, "重新登录成功"
                 
         return False, "重新登录失败"

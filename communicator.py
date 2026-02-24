@@ -41,6 +41,13 @@ class ClientCommunicator:
         self.password = password
         self.cipher = self._create_cipher(password)
         
+        # 登录状态跟踪（用于判断是否启用重连机制）
+        self.is_logged_in = False
+        
+        # 重连配置
+        self.max_retries = 3
+        self.retry_delay = 4  # 秒
+        
         self.logger.info(LogCategory.COMMUNICATION, "通信器初始化完成",
                         server=f"{host}:{port}", timeout_seconds=timeout)
         
@@ -56,6 +63,27 @@ class ClientCommunicator:
         )
         key = base64.urlsafe_b64encode(kdf.derive(password.encode()))
         return Fernet(key)
+    
+    def set_logged_in(self, logged_in: bool):
+        """
+        设置登录状态（用于启用重连机制）
+        
+        Args:
+            logged_in: 是否已登录
+        """
+        self.is_logged_in = logged_in
+        self.logger.info(LogCategory.COMMUNICATION,
+                        "登录状态已更新",
+                        is_logged_in=logged_in)
+    
+    def is_authenticated(self) -> bool:
+        """
+        检查是否已登录认证
+        
+        Returns:
+            是否已登录
+        """
+        return self.is_logged_in
     
     def _pack_message(self, data: bytes) -> bytes:
         """
@@ -186,7 +214,7 @@ class ClientCommunicator:
     
     def send_request(self, endpoint: str, data: Dict[str, Any]) -> Optional[Dict]:
         """
-        发送请求到服务端
+        发送请求到服务端（带自动重连机制）
         
         Args:
             endpoint: API端点标识
@@ -198,52 +226,99 @@ class ClientCommunicator:
         start_time = time.time()
         self.logger.debug(LogCategory.COMMUNICATION, "准备发送请求", endpoint=endpoint)
         
-        try:
-            # 准备请求数据
-            request_data = {
-                'endpoint': endpoint,
-                'data': data,
-                'timestamp': int(time.time() * 1000)
-            }
-            
-            # 序列化并加密
-            json_data = json.dumps(request_data).encode('utf-8')
-            json_size = len(json_data)
-            self.logger.debug(LogCategory.COMMUNICATION, "序列化请求数据",
-                            endpoint=endpoint, json_size=json_size)
-            
-            encrypted_data = self.cipher.encrypt(json_data)
-            encrypted_size = len(encrypted_data)
-            self.logger.debug(LogCategory.COMMUNICATION, "加密请求数据",
-                            endpoint=endpoint, encrypted_size=encrypted_size)
-            
-            # 打包并发送
-            message = self._pack_message(encrypted_data)
-            response_data = self._send_and_receive(message)
-            
-            if response_data:
-                # 解密响应
-                decrypted_response = self.cipher.decrypt(response_data)
-                response_json = json.loads(decrypted_response.decode('utf-8'))
+        # 登录请求不使用重连机制
+        is_login_request = endpoint == "login" or endpoint == "register"
+        
+        # 重连计数器
+        retry_count = 0
+        
+        while retry_count <= self.max_retries:
+            try:
+                # 准备请求数据
+                request_data = {
+                    'endpoint': endpoint,
+                    'data': data,
+                    'timestamp': int(time.time() * 1000)
+                }
                 
-                duration_ms = (time.time() - start_time) * 1000
-                self.logger.info(LogCategory.COMMUNICATION, "请求处理完成",
-                               endpoint=endpoint,
-                               duration_ms=round(duration_ms, 3))
+                # 序列化并加密
+                json_data = json.dumps(request_data).encode('utf-8')
+                json_size = len(json_data)
+                self.logger.debug(LogCategory.COMMUNICATION, "序列化请求数据",
+                                endpoint=endpoint, json_size=json_size)
                 
-                return response_json
-            else:
-                duration_ms = (time.time() - start_time) * 1000
-                self.logger.exception(LogCategory.COMMUNICATION, "请求处理异常",
-                                   endpoint=endpoint,
-                                   duration_ms=round(duration_ms, 3))
-                return None
+                encrypted_data = self.cipher.encrypt(json_data)
+                encrypted_size = len(encrypted_data)
+                self.logger.debug(LogCategory.COMMUNICATION, "加密请求数据",
+                                endpoint=endpoint, encrypted_size=encrypted_size)
                 
-        except Exception as e:
-            duration_ms = (time.time() - start_time) * 1000
-            self.logger.exception(LogCategory.COMMUNICATION, "请求处理异常",
-                               endpoint=endpoint,
-                               exception_type=type(e).__name__,
-                               duration_ms=round(duration_ms, 3),
-                               exc_info=True)
-            return None
+                # 打包并发送
+                message = self._pack_message(encrypted_data)
+                response_data = self._send_and_receive(message)
+                
+                if response_data:
+                    # 解密响应
+                    decrypted_response = self.cipher.decrypt(response_data)
+                    response_json = json.loads(decrypted_response.decode('utf-8'))
+                    
+                    duration_ms = (time.time() - start_time) * 1000
+                    
+                    # 如果有重连，记录成功重连
+                    if retry_count > 0:
+                        self.logger.info(LogCategory.COMMUNICATION, f"重连成功（第{retry_count}次重试）",
+                                       endpoint=endpoint,
+                                       duration_ms=round(duration_ms, 3))
+                    else:
+                        self.logger.info(LogCategory.COMMUNICATION, "请求处理完成",
+                                       endpoint=endpoint,
+                                       duration_ms=round(duration_ms, 3))
+                    
+                    return response_json
+                else:
+                    # 响应为空，检查是否需要重连
+                    if not is_login_request and self.is_logged_in and retry_count < self.max_retries:
+                        retry_count += 1
+                        self.logger.warning(LogCategory.COMMUNICATION,
+                                         f"请求失败，将在{self.retry_delay}秒后进行第{retry_count}次重试",
+                                         endpoint=endpoint,
+                                         retry_count=retry_count,
+                                         max_retries=self.max_retries)
+                        time.sleep(self.retry_delay)
+                        continue
+                    else:
+                        duration_ms = (time.time() - start_time) * 1000
+                        self.logger.exception(LogCategory.COMMUNICATION, "请求处理异常",
+                                           endpoint=endpoint,
+                                           duration_ms=round(duration_ms, 3))
+                        return None
+                    
+            except Exception as e:
+                # 发生异常，检查是否需要重连
+                if not is_login_request and self.is_logged_in and retry_count < self.max_retries:
+                    retry_count += 1
+                    duration_ms = (time.time() - start_time) * 1000
+                    self.logger.warning(LogCategory.COMMUNICATION,
+                                     f"通信异常（{type(e).__name__}），将在{self.retry_delay}秒后进行第{retry_count}次重试",
+                                     endpoint=endpoint,
+                                     exception_type=type(e).__name__,
+                                     retry_count=retry_count,
+                                     max_retries=self.max_retries,
+                                     duration_ms=round(duration_ms, 3))
+                    time.sleep(self.retry_delay)
+                    continue
+                else:
+                    duration_ms = (time.time() - start_time) * 1000
+                    self.logger.exception(LogCategory.COMMUNICATION, "请求处理异常",
+                                       endpoint=endpoint,
+                                       exception_type=type(e).__name__,
+                                       duration_ms=round(duration_ms, 3),
+                                       exc_info=True)
+                    return None
+        
+        # 达到最大重试次数，返回None
+        duration_ms = (time.time() - start_time) * 1000
+        self.logger.exception(LogCategory.COMMUNICATION,
+                           f"已达到最大重试次数（{self.max_retries}次），网络连接失败",
+                           endpoint=endpoint,
+                           duration_ms=round(duration_ms, 3))
+        return None

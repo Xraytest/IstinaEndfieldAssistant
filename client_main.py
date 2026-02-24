@@ -261,10 +261,17 @@ class ReAcrtureClientGUI:
         """检查登录状态"""
         self.logger.debug(LogCategory.MAIN, "检查登录状态")
         # 首先检查业务逻辑层的登录状态
-        if self.auth_manager.check_login_status():
+        is_logged_in, error_msg = self.auth_manager.check_login_status()
+        
+        if is_logged_in:
             # 如果已登录，直接更新UI
             self.logger.debug(LogCategory.MAIN, "已登录状态")
             self.on_login_success()
+        elif error_msg and ("网络连接异常" in error_msg or "网络错误" in error_msg):
+            # 如果是网络错误，弹出网络环境异常提示并退出
+            self.logger.warning(LogCategory.MAIN, "网络连接异常", error_msg=error_msg)
+            messagebox.showerror("网络环境异常", "无法连接到服务器，请检查网络连接后重试。")
+            self.root.quit()
         else:
             # 如果未登录，显示登录对话框
             self.logger.debug(LogCategory.MAIN, "未登录状态，显示登录对话框")
