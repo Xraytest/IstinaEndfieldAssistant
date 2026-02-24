@@ -89,7 +89,7 @@ class AuthManagerGUI:
                     messagebox.showerror("网络连接失败", "无法连接到服务器，请检查网络连接后重试。")
                     # 网络错误时直接退出客户端
                     dialog.destroy()
-                    self.parent.quit()
+                    self.parent.destroy()
                     return
                 else:
                     error_display = error_msg if error_msg else "注册失败，请重试。"
@@ -123,7 +123,7 @@ class AuthManagerGUI:
                         if "网络连接异常" in error_msg or "网络错误" in error_msg:
                             messagebox.showerror("网络连接失败", "无法连接到服务器，请检查网络连接后重试。")
                             # 网络错误时直接退出客户端
-                            self.parent.quit()
+                            self.parent.destroy()
                             return
                         # 如果是用户不存在或密钥错误，删除文件
                         if len(result) > 2 and result[2] in ['user_not_found', 'invalid_api_key']:

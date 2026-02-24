@@ -37,7 +37,9 @@ class ReAcrtureClientGUI:
     
     def __init__(self, root):
         self.root = root
-        self.root.title("ReAcrture - 分布式自动化客户端")
+        self.latest_version = None  # 存储最新版本号
+        # 将gui_manager引用添加到root，便于其他组件访问
+        self.root.gui_manager = None
         self.root.geometry("1200x800")
         self.root.minsize(1000, 700)
         
@@ -186,8 +188,11 @@ class ReAcrtureClientGUI:
                 self.execution_manager,
                 self.task_queue_manager,
                 self.config,
-                self.log_message
+                self.log_message,
+                self  # 传递自身引用以便更新标题
             )
+            # 将gui_manager引用添加到root，便于其他组件访问
+            self.root.gui_manager = self.gui_manager
             
             # 设置GUI日志处理器
             if hasattr(self.gui_manager, 'log_text'):
@@ -206,11 +211,28 @@ class ReAcrtureClientGUI:
         self.logger.debug(LogCategory.MAIN, "启动时检查更新")
         try:
             current_version = self.load_local_version()
+            self.update_window_title(current_version)
             # 这里会由SettingsManagerGUI自动处理更新检查
             self.logger.debug(LogCategory.MAIN, "版本检查完成", current_version=current_version)
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "启动时检查更新异常", exc_info=True)
             self.log_message(f"启动时检查更新失败: {e}", "version", "ERROR")
+            
+    def update_window_title(self, current_version=None):
+        """更新窗口标题"""
+        if current_version is None:
+            current_version = self.load_local_version()
+        
+        title = f"IstinaEndfieldArknights - {current_version}"
+        if self.latest_version and self.latest_version != current_version:
+            title += f" <发现新版本：{self.latest_version}>"
+        self.root.title(title)
+        
+    def set_latest_version(self, latest_version):
+        """设置最新版本号并更新标题"""
+        self.latest_version = latest_version
+        current_version = self.load_local_version()
+        self.update_window_title(current_version)
         
     def load_local_version(self):
         """加载本地版本信息"""

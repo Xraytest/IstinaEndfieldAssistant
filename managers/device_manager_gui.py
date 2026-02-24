@@ -22,6 +22,10 @@ class DeviceManagerGUI:
         self.preview_canvas = None
         self.manual_device_var = None
         
+        # 预览自动刷新相关
+        self.preview_refresh_job = None
+        self.preview_refresh_interval = 500  # 500毫秒刷新一次
+        
         self.setup_ui()
         
     def setup_ui(self):
@@ -125,8 +129,8 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device(device_serial):
             self.update_device_status(f"已连接: {device_serial}")
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
-            # 更新屏幕预览
-            self.update_screen_preview()
+            # 启动屏幕预览自动刷新
+            self.start_preview_refresh()
         else:
             messagebox.showerror("连接失败", "无法连接到选中的设备")
             self.log_callback(f"连接设备失败: {device_serial}", "device", "ERROR")
@@ -141,14 +145,16 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device_manual(device_serial):
             self.update_device_status(f"已连接: {device_serial}")
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
-            # 更新屏幕预览
-            self.update_screen_preview()
+            # 启动屏幕预览自动刷新
+            self.start_preview_refresh()
         else:
             messagebox.showerror("连接失败", f"无法连接到设备: {device_serial}")
             self.log_callback(f"连接设备失败: {device_serial}", "device", "ERROR")
             
     def disconnect_device(self):
         """断开设备连接"""
+        # 停止屏幕预览自动刷新
+        self.stop_preview_refresh()
         self.device_manager.disconnect_device()
         self.update_device_status("未连接设备")
         self.log_callback("设备连接已断开", "device", "INFO")
@@ -160,42 +166,72 @@ class DeviceManagerGUI:
         else:
             self.device_status_label.config(text=status_text, foreground=color)
             
-    def update_screen_preview(self):
-        """更新屏幕预览"""
+    def start_preview_refresh(self):
+        """启动屏幕预览自动刷新"""
+        if self.preview_refresh_job is None:
+            self.update_screen_preview()
+            
+    def stop_preview_refresh(self):
+        """停止屏幕预览自动刷新"""
+        if self.preview_refresh_job:
+            self.parent_frame.after_cancel(self.preview_refresh_job)
+            self.preview_refresh_job = None
+            
+    def update_screen_preview(self, screen_data=None):
+        """更新屏幕预览
+        
+        Args:
+            screen_data: 可选的屏幕数据（Base64编码），如果提供则直接使用，否则重新捕获
+        """
         current_device = self.device_manager.get_current_device()
         if not current_device or not self.screen_capture:
+            # 如果没有连接设备，停止自动刷新
+            if self.preview_refresh_job:
+                self.preview_refresh_job = None
             return
             
         try:
-            screen_data = self.screen_capture.capture_screen(current_device)
-            if screen_data:
-                # 解码Base64图像
-                image_data = base64.b64decode(screen_data)
-                image = Image.open(io.BytesIO(image_data))
+            # 如果没有提供screen_data，则重新捕获
+            if screen_data is None:
+                screen_data = self.screen_capture.capture_screen(current_device)
+                if not screen_data:
+                    # 安排下一次刷新尝试
+                    self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
+                    return
+            
+            # 解码Base64图像
+            image_data = base64.b64decode(screen_data)
+            image = Image.open(io.BytesIO(image_data))
+            
+            # 调整图像大小以适应预览区域
+            canvas_width = self.preview_canvas.winfo_width()
+            canvas_height = self.preview_canvas.winfo_height()
+            
+            if canvas_width > 1 and canvas_height > 1:
+                img_width, img_height = image.size
+                scale_x = canvas_width / img_width
+                scale_y = canvas_height / img_height
+                scale = min(scale_x, scale_y)
                 
-                # 调整图像大小以适应预览区域
-                canvas_width = self.preview_canvas.winfo_width()
-                canvas_height = self.preview_canvas.winfo_height()
+                new_width = int(img_width * scale)
+                new_height = int(img_height * scale)
                 
-                if canvas_width > 1 and canvas_height > 1:
-                    img_width, img_height = image.size
-                    scale_x = canvas_width / img_width
-                    scale_y = canvas_height / img_height
-                    scale = min(scale_x, scale_y)
-                    
-                    new_width = int(img_width * scale)
-                    new_height = int(img_height * scale)
-                    
-                    resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
-                    self.current_image = ImageTk.PhotoImage(resized_image)
-                    
-                    self.preview_canvas.delete("all")
-                    x = (canvas_width - new_width) // 2
-                    y = (canvas_height - new_height) // 2
-                    self.preview_canvas.create_image(x, y, anchor=tk.NW, image=self.current_image)
+                resized_image = image.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                self.current_image = ImageTk.PhotoImage(resized_image)
+                
+                self.preview_canvas.delete("all")
+                x = (canvas_width - new_width) // 2
+                y = (canvas_height - new_height) // 2
+                self.preview_canvas.create_image(x, y, anchor=tk.NW, image=self.current_image)
+            
+            # 安排下一次刷新（仅当没有提供screen_data时）
+            if screen_data is None:
+                self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
                     
         except Exception as e:
             self.log_callback(f"屏幕预览更新失败: {e}", "device", "ERROR")
+            # 出错后仍然安排下一次刷新尝试
+            self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
             
     def get_current_device(self):
         """获取当前连接的设备"""

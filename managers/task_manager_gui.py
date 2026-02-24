@@ -18,6 +18,7 @@ class TaskManagerGUI:
         self.queue_info_label = None
         self.execution_count_var = None
         self.execution_count_entry = None
+        self.infinite_loop_var = None
         self.llm_start_btn = None
         self.llm_stop_btn = None
         
@@ -86,6 +87,11 @@ class TaskManagerGUI:
         execution_count_spinbox.bind('<FocusOut>', lambda e: self.on_execution_count_changed())
         self.execution_count_entry = execution_count_spinbox
         
+        # 持续循环复选框
+        self.infinite_loop_var = tk.BooleanVar(value=False)
+        infinite_loop_check = ttk.Checkbutton(count_frame, text="持续循环", variable=self.infinite_loop_var, command=self.on_infinite_loop_changed)
+        infinite_loop_check.pack(side=tk.LEFT, padx=(10, 0))
+        
     def update_queue_display(self):
         """更新任务队列显示"""
         self.task_queue_listbox.delete(0, tk.END)
@@ -132,7 +138,7 @@ class TaskManagerGUI:
         
         # 填充任务列表
         for task in available_tasks:
-            task_listbox.insert(tk.END, f"{task.get('name', '未知任务')} - {task.get('description', '')}")
+            task_listbox.insert(tk.END, f"{task.get('name', '未知任务')}")
             
         def on_add():
             selection = task_listbox.curselection()
@@ -163,6 +169,21 @@ class TaskManagerGUI:
             
         task_index = selection[0]
         task = self.task_queue_manager.get_queue_info()['tasks'][task_index]
+        task_id = task.get('id', '')
+        
+        # 从服务器获取最新的任务定义
+        latest_task_def = self.get_task_definition_from_server(task_id)
+        if latest_task_def:
+            # 使用服务器最新的变量定义
+            variables = latest_task_def.get('variables', [])
+            # 保留用户已缓存的自定义变量值
+            cached_variables = task.get('custom_variables', {})
+            # 同步更新队列中的任务定义
+            task['variables'] = variables
+        else:
+            # 如果获取失败，使用本地缓存的数据
+            variables = task.get('variables', [])
+            cached_variables = task.get('custom_variables', {})
         
         # 创建对话框
         dialog = tk.Toplevel(self.parent_frame.winfo_toplevel())
@@ -177,13 +198,17 @@ class TaskManagerGUI:
         name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
         name_entry.pack(pady=5)
         
+        # 仅执行一次选项
+        execute_once_var = tk.BooleanVar(value=task.get('execute_once', False))
+        execute_once_check = ttk.Checkbutton(dialog, text="仅执行一次（在多轮循环中只执行一次）", variable=execute_once_var)
+        execute_once_check.pack(pady=(5, 10), anchor=tk.W)
+        
         # 任务变量
         ttk.Label(dialog, text="任务变量:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
         
         variables_frame = ttk.Frame(dialog)
         variables_frame.pack(fill='both', expand=True, padx=10, pady=5)
         
-        variables = task.get('variables', [])
         variable_entries = {}
         
         for var_def in variables:
@@ -191,9 +216,10 @@ class TaskManagerGUI:
             var_type = var_def.get('type', 'string')
             var_default = var_def.get('default', '')
             var_desc = var_def.get('desc', '')
+            var_options = var_def.get('options', [])
             
-            # 获取当前值（如果有）
-            current_value = task.get('custom_variables', {}).get(var_name, var_default)
+            # 优先使用用户缓存值，否则使用默认值
+            current_value = cached_variables.get(var_name, var_default)
             
             var_frame = ttk.Frame(variables_frame)
             var_frame.pack(fill='x', pady=2)
@@ -207,6 +233,14 @@ class TaskManagerGUI:
             elif var_type == 'int':
                 var_var = tk.StringVar(value=str(current_value))
                 var_entry = ttk.Entry(var_frame, textvariable=var_var, width=10)
+                var_entry.pack(side=tk.RIGHT)
+            elif var_type == 'select' and var_options:
+                # select类型，使用下拉选择框
+                # 如果当前值不在新选项中，使用第一个选项或默认值
+                if current_value not in var_options:
+                    current_value = var_options[0] if var_options else var_default
+                var_var = tk.StringVar(value=str(current_value) if current_value else (var_options[0] if var_options else ''))
+                var_entry = ttk.Combobox(var_frame, textvariable=var_var, values=var_options, width=15, state='readonly')
                 var_entry.pack(side=tk.RIGHT)
             else:  # string or other types
                 var_var = tk.StringVar(value=str(current_value))
@@ -229,6 +263,10 @@ class TaskManagerGUI:
             queue_info = self.task_queue_manager.get_queue_info()
             queue_info['tasks'][task_index]['custom_name'] = new_name
             queue_info['tasks'][task_index]['name'] = new_name
+            queue_info['tasks'][task_index]['execute_once'] = execute_once_var.get()
+            
+            # 同步最新的变量定义到任务对象
+            queue_info['tasks'][task_index]['variables'] = variables
             
             # 更新任务变量
             custom_vars = {}
@@ -263,6 +301,93 @@ class TaskManagerGUI:
         ttk.Button(btn_frame, text="保存", command=on_save, style='Action.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
         
+    def sync_all_tasks_definitions_from_server(self) -> bool:
+        """
+        从服务器同步所有队列任务的最新定义（启动时调用）
+        
+        Returns:
+            同步是否成功
+        """
+        if not self.execution_manager.auth_manager.get_login_status():
+            return False
+            
+        if not self.execution_manager.communicator:
+            self.log_callback("通信模块未初始化", "task", "ERROR")
+            return False
+        
+        queue_info = self.task_queue_manager.get_queue_info()
+        task_ids = [task.get('id', '') for task in queue_info['tasks'] if task.get('id')]
+        
+        if not task_ids:
+            return True  # 无需同步
+        
+        try:
+            # 批量请求所有任务定义
+            response = self.execution_manager.communicator.send_request(
+                "sync_all_tasks_definitions",
+                {"task_ids": task_ids}
+            )
+            
+            if response and response.get('status') == 'success':
+                tasks_map = response.get('tasks', {})
+                updated_count = 0
+                
+                # 更新队列中每个任务的变量定义
+                for task in queue_info['tasks']:
+                    task_id = task.get('id', '')
+                    if task_id in tasks_map:
+                        latest_def = tasks_map[task_id]
+                        # 更新variables定义
+                        task['variables'] = latest_def.get('variables', [])
+                        updated_count += 1
+                
+                # 保存更新后的队列
+                self.task_queue_manager.save_task_queue()
+                self.log_callback(f"启动时同步完成: {updated_count}个任务已更新", "task", "INFO")
+                return True
+            else:
+                error_msg = response.get('message', '未知错误') if response else '无响应'
+                self.log_callback(f"批量同步任务定义失败: {error_msg}", "task", "ERROR")
+                return False
+        except Exception as e:
+            self.log_callback(f"批量同步任务定义异常: {e}", "task", "ERROR")
+            return False
+    
+    def get_task_definition_from_server(self, task_id: str):
+        """
+        从服务器获取指定任务的最新定义（编辑时调用）
+        
+        Args:
+            task_id: 任务ID
+            
+        Returns:
+            任务定义字典或None（如果获取失败）
+        """
+        if not self.execution_manager.auth_manager.get_login_status():
+            return None
+            
+        if not self.execution_manager.communicator:
+            self.log_callback("通信模块未初始化", "task", "ERROR")
+            return None
+            
+        try:
+            # 发送请求获取任务定义
+            response = self.execution_manager.communicator.send_request(
+                "get_task_definition",
+                {"task_id": task_id}
+            )
+            if response and response.get('status') == 'success':
+                task = response.get('task')
+                self.log_callback(f"成功获取任务 '{task_id}' 的最新定义", "task", "INFO")
+                return task
+            else:
+                error_msg = response.get('message', '未知错误') if response else '无响应'
+                self.log_callback(f"获取任务定义失败: {error_msg}", "task", "ERROR")
+                return None
+        except Exception as e:
+            self.log_callback(f"获取任务定义异常: {e}", "task", "ERROR")
+            return None
+    
     def get_available_tasks_from_server(self):
         """从服务器获取可用任务列表"""
         if not self.execution_manager.auth_manager.get_login_status():
@@ -337,11 +462,39 @@ class TaskManagerGUI:
         except tk.TclError:
             pass
             
+    def on_infinite_loop_changed(self):
+        """持续循环选项改变时的处理"""
+        is_infinite = self.infinite_loop_var.get()
+        if is_infinite:
+            # 禁用执行次数输入框
+            self.execution_count_entry.config(state='disabled')
+            self.task_queue_manager.set_execution_count(-1)  # -1表示无限循环
+            self.log_callback("已启用持续循环模式", "execution", "INFO")
+        else:
+            # 启用执行次数输入框
+            self.execution_count_entry.config(state='normal')
+            count = self.execution_count_var.get()
+            self.task_queue_manager.set_execution_count(count)
+            self.log_callback(f"执行次数设置为: {count}", "execution", "INFO")
+            
     def start_llm_execution(self):
         """开始LLM执行"""
+        # 获取主GUI管理器以传递预览更新回调
+        main_gui = None
+        if hasattr(self.parent_frame, 'winfo_toplevel'):
+            root = self.parent_frame.winfo_toplevel()
+            if hasattr(root, 'gui_manager'):
+                main_gui = root.gui_manager
+        
+        # 创建预览更新回调
+        preview_update_callback = None
+        if main_gui and hasattr(main_gui, 'on_preview_update'):
+            preview_update_callback = main_gui.on_preview_update
+        
         success, message = self.execution_manager.start_execution(
             self.log_callback,
-            self.update_ui_callback
+            self.update_ui_callback,
+            preview_update_callback
         )
         if not success:
             messagebox.showwarning("警告", message)

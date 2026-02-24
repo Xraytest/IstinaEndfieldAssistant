@@ -17,7 +17,10 @@ class ExecutionManager:
         self.client_running = False
         self.client_thread = None
         
-    def start_execution(self, log_callback, update_ui_callback):
+        # 跟踪已执行一次的任务
+        self.executed_once_tasks = set()
+        
+    def start_execution(self, log_callback, update_ui_callback, preview_update_callback=None):
         """开始执行"""
         if not self.auth_manager.get_login_status():
             return False, "请先登录后再执行任务"
@@ -34,8 +37,8 @@ class ExecutionManager:
         self.client_running = True
         
         self.client_thread = threading.Thread(
-            target=self.run_automation, 
-            args=(log_callback, update_ui_callback),
+            target=self.run_automation,
+            args=(log_callback, update_ui_callback, preview_update_callback),
             daemon=True
         )
         self.client_thread.start()
@@ -45,22 +48,31 @@ class ExecutionManager:
     def stop_execution(self):
         """停止执行"""
         self.client_running = False
+        self.executed_once_tasks.clear()  # 清空已执行一次的任务记录
         
     def is_running(self):
         """检查是否正在运行"""
         return self.client_running
         
-    def run_automation(self, log_callback, update_ui_callback):
+    def run_automation(self, log_callback, update_ui_callback, preview_update_callback=None):
         """运行自动化流程"""
         try:
             log_callback("开始自动化执行...", "execution", "INFO")
             
             total_executions = self.task_queue_manager.get_execution_count()
-            for execution in range(total_executions):
+            is_infinite_loop = self.task_queue_manager.is_infinite_loop()
+            
+            execution = 0
+            self.executed_once_tasks.clear()  # 清空已执行一次的任务记录
+            
+            while self.client_running and (is_infinite_loop or execution < total_executions):
                 if not self.client_running:
                     break
                     
-                log_callback(f"执行第 {execution + 1}/{total_executions} 次", "execution", "INFO")
+                if is_infinite_loop:
+                    log_callback(f"执行第 {execution + 1} 次（持续循环模式）", "execution", "INFO")
+                else:
+                    log_callback(f"执行第 {execution + 1}/{total_executions} 次", "execution", "INFO")
                 
                 self.task_queue_manager.reset_current_task_index()
                 current_task_index = 0
@@ -72,6 +84,15 @@ class ExecutionManager:
                         break
                         
                     task_id = current_task['id']
+                    
+                    # 检查是否为"仅执行一次"任务且已执行过
+                    if current_task.get('execute_once', False) and task_id in self.executed_once_tasks:
+                        log_callback(f"跳过任务 '{current_task['name']}'（已执行一次）", "execution", "INFO")
+                        if self.task_queue_manager.advance_to_next_task():
+                            current_task_index += 1
+                        else:
+                            break
+                        continue
                     
                     update_ui_callback('current_task', f"当前任务: {current_task['name']}")
                     update_ui_callback('progress', f"进度: {current_task_index+1}/{total_tasks}")
@@ -92,6 +113,9 @@ class ExecutionManager:
                         if not screen_data:
                             log_callback("屏幕捕获失败", "execution", "ERROR")
                             break
+                        # 捕获成功后，调用预览更新回调
+                        if preview_update_callback:
+                            preview_update_callback(screen_data)
                     else:
                         log_callback("屏幕捕获模块未初始化或设备未连接", "execution", "ERROR")
                         break
@@ -155,6 +179,9 @@ class ExecutionManager:
                     task_completed = response.get('data', {}).get('task_completed', False)
                     if task_completed:
                         log_callback(f"任务 '{current_task['name']}' 完成", "execution", "INFO")
+                        # 如果是"仅执行一次"任务，记录已执行
+                        if current_task.get('execute_once', False):
+                            self.executed_once_tasks.add(task_id)
                         if self.task_queue_manager.advance_to_next_task():
                             current_task_index += 1
                         else:
@@ -165,6 +192,8 @@ class ExecutionManager:
                         
                 if not self.client_running:
                     break
+                    
+                execution += 1
                     
             log_callback("自动化执行结束", "execution", "INFO")
             # 通知UI停止执行

@@ -21,8 +21,8 @@ from managers.cloud_service_manager_gui import CloudServiceManagerGUI
 class MainGUIManager:
     """主GUI管理器类"""
     
-    def __init__(self, root, auth_manager, device_manager, execution_manager, 
-                 task_queue_manager, config, log_callback):
+    def __init__(self, root, auth_manager, device_manager, execution_manager,
+                 task_queue_manager, config, log_callback, client_main_ref=None):
         self.root = root
         self.auth_manager = auth_manager
         self.device_manager = device_manager
@@ -30,6 +30,7 @@ class MainGUIManager:
         self.task_queue_manager = task_queue_manager
         self.config = config
         self.log_callback = log_callback
+        self.client_main_ref = client_main_ref
         
         # UI组件引用
         self.notebook = None
@@ -40,7 +41,6 @@ class MainGUIManager:
         self.content_notebook = None
         self.log_text = None
         self.vision_canvas = None
-        self.full_content_text = None
         self.current_task_label = None
         self.progress_label = None
         self.progress_var = None
@@ -104,11 +104,14 @@ class MainGUIManager:
         
         # 创建任务管理GUI
         self.task_gui = TaskManagerGUI(
-            queue_frame, 
-            self.task_queue_manager, 
+            queue_frame,
+            self.task_queue_manager,
             self.execution_manager,
             self.log_callback
         )
+        
+        # 启动时同步所有任务定义
+        self.root.after(200, lambda: self._sync_tasks_on_startup())
         
         # 创建设备管理GUI
         self.device_gui = DeviceManagerGUI(
@@ -138,12 +141,6 @@ class MainGUIManager:
         self.vision_canvas = tk.Canvas(vision_frame, bg='black', highlightthickness=0)
         self.vision_canvas.pack(fill='both', expand=True)
         
-        # 完整上下文（最后一个标签页）
-        full_frame = ttk.Frame(self.content_notebook)
-        self.content_notebook.add(full_frame, text='🧠 完整上下文')
-        self.full_content_text = scrolledtext.ScrolledText(full_frame, wrap=tk.WORD, font=('Consolas', 9))
-        self.full_content_text.pack(fill='both', expand=True)
-        
         # 当前任务状态
         status_frame = ttk.Frame(frame)
         status_frame.pack(fill='x', pady=(10, 0))
@@ -160,7 +157,8 @@ class MainGUIManager:
         self.settings_gui = SettingsManagerGUI(
             self.settings_page_frame,
             self.config,
-            self.log_callback
+            self.log_callback,
+            self.client_main_ref
         )
         
     def setup_cloud_service_page(self):
@@ -183,10 +181,6 @@ class MainGUIManager:
         """获取日志文本控件"""
         return self.log_text
         
-    def get_full_content_text_widget(self):
-        """获取完整上下文文本控件"""
-        return self.full_content_text
-        
     def get_vision_canvas(self):
         """获取设备视觉画布"""
         return self.vision_canvas
@@ -199,6 +193,11 @@ class MainGUIManager:
         """更新进度显示"""
         self.progress_var.set(f"进度: {current}/{total}")
         
+    def _sync_tasks_on_startup(self):
+        """启动时同步所有任务定义"""
+        if self.task_gui and hasattr(self.task_gui, 'sync_all_tasks_definitions_from_server'):
+            self.task_gui.sync_all_tasks_definitions_from_server()
+    
     def auto_scan_and_connect_devices(self):
        """自动扫描设备并尝试连接上次的设备"""
        try:
@@ -245,3 +244,8 @@ class MainGUIManager:
        if self.task_gui:
            self.task_gui.llm_start_btn.config(state='normal')
            self.task_gui.llm_stop_btn.config(state='disabled')
+           
+    def on_preview_update(self, screen_data):
+        """预览更新回调 - 当执行过程中捕获屏幕时调用"""
+        if self.device_gui:
+            self.device_gui.update_screen_preview(screen_data)

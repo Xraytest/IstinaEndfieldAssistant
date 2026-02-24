@@ -59,12 +59,16 @@ class TaskQueueManager:
         
     def set_execution_count(self, count):
         """设置执行次数"""
-        if count > 0:
+        if count > 0 or count == -1:
             self.execution_count = count
             
     def get_execution_count(self):
         """获取执行次数"""
         return self.execution_count
+        
+    def is_infinite_loop(self):
+        """检查是否为无限循环模式"""
+        return self.execution_count == -1
         
     def is_queue_empty(self):
         """检查队列是否为空"""
