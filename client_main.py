@@ -21,7 +21,7 @@ if current_dir not in sys.path:
 from logger import init_logger, get_logger, LogCategory, LogLevel
 from adb_manager import ADBDeviceManager
 from screen_capture import ScreenCapture
-from touch_executor import TouchExecutor
+from maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
 from task_manager import TaskManager
 from communicator import ClientCommunicator
 from components.auth_manager import AuthManager
@@ -30,6 +30,7 @@ from components.execution_manager import ExecutionManager
 from components.task_queue_manager import TaskQueueManager
 from managers.main_gui_manager import MainGUIManager
 from managers.auth_manager_gui import AuthManagerGUI
+from theme import setup_ttk_styles, configure_tk_root, COLORS
 
 
 class ReAcrtureClientGUI:
@@ -84,12 +85,31 @@ class ReAcrtureClientGUI:
         
     def setup_styles(self):
         """设置UI样式"""
-        style = ttk.Style()
-        style.configure('Action.TButton', font=('Arial', 10, 'bold'))
-        style.configure('Security.TButton', font=('Arial', 10, 'bold'), foreground='green')
-        style.configure('Stop.TButton', font=('Arial', 10, 'bold'), foreground='red')
-        style.configure('Status.TLabel', font=('Arial', 9))
-        style.configure('Title.TLabel', font=('Arial', 12, 'bold'))
+        # 配置根窗口背景
+        configure_tk_root(self.root)
+
+        # 设置 ttk 样式
+        style = setup_ttk_styles()
+
+        # 配置窗口标题栏颜色（Windows 特定）
+        try:
+            import ctypes
+            from ctypes import wintypes
+
+            # 获取窗口句柄
+            hwnd = ctypes.windll.user32.GetForegroundWindow()
+
+            # 启用深色标题栏（Windows 10/11）
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_USE_IMMERSIVE_DARK_MODE,
+                ctypes.byref(ctypes.c_int(1)),
+                ctypes.sizeof(ctypes.c_int)
+            )
+        except (ImportError, AttributeError, OSError):
+            # 在非 Windows 系统或旧版本 Windows 上忽略
+            pass
         
     def _load_config(self, config_file):
         """加载配置文件"""
@@ -105,7 +125,28 @@ class ReAcrtureClientGUI:
                 "adb": {"path": "3rd-part/ADB/adb.exe", "timeout": 10},
                 "git": {"path": "3rd-part/Git/bin/git.exe"},
                 "screen": {"quality": 80, "max_size": 1024},
-                "security": {"press_duration_ms": 100, "press_jitter_px": 2},
+                "touch": {
+                    "touch_method": "maatouch",
+                    "maa_style": {
+                        "enabled": true,
+                        "press_duration_ms": 50,
+                        "press_jitter_px": 2,
+                        "swipe_delay_min_ms": 100,
+                        "swipe_delay_max_ms": 300,
+                        "use_normalized_coords": true
+                    },
+                    "swipe_duration_ms": 300,
+                    "long_press_duration_ms": 500,
+                    "minitouch": {
+                        "enabled": false,
+                        "binary_path": "device_control_system/minitouch_resources/armeabi-v7a/minitouch"
+                    },
+                    "maatouch": {
+                        "enabled": false,
+                        "binary_path": "device_control_system/minitouch_resources/maatouch/minitouch"
+                    }
+                },
+                "security": {"enable_safe_press": true, "enable_jitter": true},
                 "communication": {"password": "default_password"}
             }
             
@@ -131,16 +172,41 @@ class ReAcrtureClientGUI:
             self.logger.debug(LogCategory.MAIN, "初始化屏幕捕获模块")
             self.screen_capture = ScreenCapture(
                 adb_manager=self.adb_manager,
-                quality=self.config['screen']['quality'],
                 max_size=self.config['screen']['max_size']
             )
             
-            self.logger.debug(LogCategory.MAIN, "初始化触控执行模块")
+            self.logger.debug(LogCategory.MAIN, "初始化触控执行模块（MAA风格）")
+            # 导入MAA风格配置类
+            from maafw_touch_adapter import MaaFwTouchConfig
+
+            # 创建MAA风格触控配置
+            touch_config = self.config.get('touch', {})
+            maa_style_config = touch_config.get('maa_style', {})
+
+            # 获取失败处理选项
+            fail_on_error = touch_config.get('fail_on_error', True)
+
+            # 创建MAA风格配置
+            maa_config = MaaFwTouchConfig(
+                press_duration_ms=maa_style_config.get('press_duration_ms', 50),
+                press_jitter_px=maa_style_config.get('press_jitter_px', 2),
+                swipe_delay_min_ms=maa_style_config.get('swipe_delay_min_ms', 100),
+                swipe_delay_max_ms=maa_style_config.get('swipe_delay_max_ms', 300),
+                use_normalized_coords=maa_style_config.get('use_normalized_coords', True),
+                fail_on_error=fail_on_error
+            )
+            
+            self.logger.info(LogCategory.MAIN, "触控配置加载完成")
+            
             self.touch_executor = TouchExecutor(
                 adb_manager=self.adb_manager,
-                press_duration_ms=self.config['security']['press_duration_ms'],
-                press_jitter_px=self.config['security']['press_jitter_px']
+                config=maa_config
             )
+            
+            self.logger.info(LogCategory.MAIN, "触控执行器初始化完成（MAA风格）",
+                           press_duration_ms=maa_config.press_duration_ms,
+                           jitter_px=maa_config.press_jitter_px,
+                           normalized_coords=maa_config.use_normalized_coords)
             
             self.logger.debug(LogCategory.MAIN, "初始化任务管理模块")
             self.task_manager = TaskManager(

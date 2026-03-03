@@ -1,0 +1,937 @@
+[2026-03-02 23:33:29.572][DBG][Px111196][Tx61300][Logger] ----------------------------- 
+[2026-03-02 23:33:29.572][DBG][Px111196][Tx61300][Logger] MAA Process Start 
+[2026-03-02 23:33:29.572][DBG][Px111196][Tx61300][Logger] Version v5.3.0 
+[2026-03-02 23:33:29.572][DBG][Px111196][Tx61300][Logger] Built at Dec 31 2025 15:09:29 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][Logger] Windows x64 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][Logger] Working C:/Users/xray/Documents/ArkStudio/ReAcrture/client 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][Logger] Logging ./debug/maa.log 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][Logger] ----------------------------- 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][OptionMgr.cpp][L35][MaaNS::GlobalNS::OptionMgr::set_log_dir] | leave, 1ms 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 2ms 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 2ms 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-02 23:33:29.573][DBG][Px111196][Tx61300][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | enter 
+[2026-03-02 23:33:29.573][INF][Px111196][Tx61300][OptionMgr.cpp][L58][MaaNS::GlobalNS::OptionMgr::set_save_draw] Set save draw [save_draw_=false] 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | leave, 0ms 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:33:29.573][TRC][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | enter 
+[2026-03-02 23:33:29.574][INF][Px111196][Tx61300][OptionMgr.cpp][L108][MaaNS::GlobalNS::OptionMgr::set_save_on_error] Set save on error [save_on_error_=true] 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | enter 
+[2026-03-02 23:33:29.574][INF][Px111196][Tx61300][OptionMgr.cpp][L74][MaaNS::GlobalNS::OptionMgr::set_stdout_level] Set log stdout level [level=2] 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | enter 
+[2026-03-02 23:33:29.574][INF][Px111196][Tx61300][OptionMgr.cpp][L130][MaaNS::GlobalNS::OptionMgr::set_draw_quality] Set draw quality [draw_quality_=85] 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:33:29.574][DBG][Px111196][Tx61300][GlobalOptionConfig.cpp][L83][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] [bret=true] 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][GlobalOptionConfig.cpp][L67][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] | leave, 3ms 
+[2026-03-02 23:33:29.574][TRC][Px111196][Tx61300][GlobalOptionConfig.cpp][L17][MaaNS::ToolkitNS::GlobalOptionConfig::init] | leave, 14ms 
+[2026-03-02 23:33:29.578][DBG][Px111196][Tx61300][AdbDeviceFinder.cpp][L16][MaaNS::ToolkitNS::AdbDeviceFinder::find] | enter 
+[2026-03-02 23:33:29.578][DBG][Px111196][Tx61300][AdbDeviceFinder.cpp][L187][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] | enter 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L196][MaaNS::list_processes] Process size: 312 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=104] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=180] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=636] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=940] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=852] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=876] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1048] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1068] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1076] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1140] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1272] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1296] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1300] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1400] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1448] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1528] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1540] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1588] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1596] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1676] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1684] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1752] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1904] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1948] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2000] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2008] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2020] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1208] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1288] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2060] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2152] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2164] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2180] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2332] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2424] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2544] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2552] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2636] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2648] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2692] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2748] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2756] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2764] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2792] 
+[2026-03-02 23:33:29.614][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2928] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2936] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3016] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3024] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=744] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3148] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3168] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3228] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3308] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3364] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3372] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3560] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3624] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3632] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4024] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3516] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4132] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4160] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4340] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4516] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5060] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5068] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=844] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4596] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5012] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5196] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5340] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5508] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5516] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5524] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5536] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5544] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5552] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5564] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5576] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5588] 
+[2026-03-02 23:33:29.615][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5596] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5604] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5612] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5620] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5632] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5648] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5656] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5668] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5676] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5684] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5696] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5712] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5720] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5740] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5764] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5780] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5824] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5868] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5928] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6204] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6412] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6560] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6852] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7268] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7504] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7704] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5480] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8360] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8436] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8536] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9096] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9292] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9300] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9308] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9316] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9324] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9344] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9352] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9384] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10076] 
+[2026-03-02 23:33:29.616][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10504] 
+[2026-03-02 23:33:29.622][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10704] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10868] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10928] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11052] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11092] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11116] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11124] 
+[2026-03-02 23:33:29.623][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11144] 
+[2026-03-02 23:33:29.624][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11132] 
+[2026-03-02 23:33:29.625][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11384] 
+[2026-03-02 23:33:29.632][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13076] 
+[2026-03-02 23:33:29.632][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13084] 
+[2026-03-02 23:33:29.632][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13240] 
+[2026-03-02 23:33:29.632][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13248] 
+[2026-03-02 23:33:29.639][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10512] 
+[2026-03-02 23:33:29.639][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4852] 
+[2026-03-02 23:33:29.640][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5112] 
+[2026-03-02 23:33:29.642][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11484] 
+[2026-03-02 23:33:29.643][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13872] 
+[2026-03-02 23:33:29.643][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13392] 
+[2026-03-02 23:33:29.644][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=12632] 
+[2026-03-02 23:33:29.644][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=14184] 
+[2026-03-02 23:33:29.644][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13792] 
+[2026-03-02 23:33:29.646][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10484] 
+[2026-03-02 23:33:29.651][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2836] 
+[2026-03-02 23:33:29.670][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=15152] 
+[2026-03-02 23:33:29.678][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=22496] 
+[2026-03-02 23:33:29.679][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=33664] 
+[2026-03-02 23:33:29.679][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=32820] 
+[2026-03-02 23:33:29.679][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=34804] 
+[2026-03-02 23:33:29.691][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=36784] 
+[2026-03-02 23:33:29.705][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=47552] 
+[2026-03-02 23:33:29.705][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=60560] 
+[2026-03-02 23:33:29.708][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=92112] 
+[2026-03-02 23:33:29.710][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=104200] 
+[2026-03-02 23:33:29.738][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=117844] 
+[2026-03-02 23:33:29.738][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=120224] 
+[2026-03-02 23:33:29.738][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=119060] 
+[2026-03-02 23:33:29.738][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=118400] 
+[2026-03-02 23:33:29.740][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=118280] 
+[2026-03-02 23:33:29.741][DBG][Px111196][Tx61300][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=115160] 
+[2026-03-02 23:33:29.742][INF][Px111196][Tx61300][AdbDeviceFinder.cpp][L229][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] [result=[{"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","name":"MuMuPlayer12 v5","process_path":"C:/Program Files/Netease/MuMuPlayer/nx_device/12.0/shell/MuMuNxDevice.exe"}]] 
+[2026-03-02 23:33:29.743][TRC][Px111196][Tx61300][AdbDeviceFinder.cpp][L187][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] | leave, 164ms 
+[2026-03-02 23:33:29.743][DBG][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L64][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_by_emulator_tool] [emulator.name=MuMuPlayer12 v5] | enter 
+[2026-03-02 23:33:29.743][DBG][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L78][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] [emulator.name=MuMuPlayer12 v5] | enter 
+[2026-03-02 23:33:29.852][DBG][Px111196][Tx61300][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/MuMuManager.exe] [args_=["info","--vmindex","all"]] [child_.id()=110776] 
+[2026-03-02 23:33:31.512][DBG][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L94][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] [mumu_mgr_path=C:/Program Files/Netease/MuMuPlayer/nx_main/MuMuManager.exe] [mumu_mgr_args=["info","--vmindex","all"]] [output={
+  "0": {
+    "created_timestamp": 1769295169124711,
+    "disk_size_bytes": 30654120832,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "0",
+    "is_android_started": false,
+    "is_main": true,
+    "is_process_started": false,
+    "name": "Android Device"
+  },
+  "1": {
+    "created_timestamp": 1769300374676162,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "1",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_0"
+  },
+  "2": {
+    "created_timestamp": 1769300374962666,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "2",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_1"
+  },
+  "3": {
+    "created_timestamp": 1769300375210163,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "3",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_2"
+  },
+  "4": {
+    "adb_host_ip": "127.0.0.1",
+    "adb_port": 16512,
+    "created_timestamp": 1769300375435660,
+    "disk_size_bytes": 29089638695,
+    "error_code": 0,
+    "headless_pid": 72764,
+    "hyperv_enabled": true,
+    "index": "4",
+    "is_android_started": true,
+    "is_main": false,
+    "is_process_started": true,
+    "launch_err_code": 0,
+    "launch_err_msg": "",
+    "launch_time": 3284449,
+    "main_wnd": "001F02C0",
+    "name": "Endfield",
+    "pid": 73604,
+    "player_state": "start_finished",
+    "render_wnd": "000702BC",
+    "vt_enabled": true
+  }
+}
+] 
+[2026-03-02 23:33:31.512][WRN][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769295169124711,"disk_size_bytes":30654120832,"error_code":0,"hyperv_enabled":true,"index":"0","is_android_started":false,"is_main":true,"is_process_started":false,"name":"Android Device"}] 
+[2026-03-02 23:33:31.512][WRN][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300374676162,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"1","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_0"}] 
+[2026-03-02 23:33:31.512][WRN][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300374962666,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"2","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_1"}] 
+[2026-03-02 23:33:31.512][WRN][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300375210163,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"3","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_2"}] 
+[2026-03-02 23:33:31.512][INF][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L168][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] MuMu device [device={"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","config":{"extras":{"mumu":{"enable":true,"index":4,"path":"C:/Program Files/Netease/MuMuPlayer"}}},"input_methods":18446744073709551615,"name":"Endfield-MuMuPlayer12 v5","screencap_methods":64,"serial":"127.0.0.1:16512"}] 
+[2026-03-02 23:33:31.512][TRC][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L78][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] | leave, 1769ms 
+[2026-03-02 23:33:31.512][TRC][Px111196][Tx61300][AdbDeviceWin32Finder.cpp][L64][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_by_emulator_tool] | leave, 1769ms 
+[2026-03-02 23:33:31.582][INF][Px111196][Tx61300][AdbDeviceFinder.cpp][L57][MaaNS::ToolkitNS::AdbDeviceFinder::find] [result=[{"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","config":{"extras":{"mumu":{"enable":true,"index":4,"path":"C:/Program Files/Netease/MuMuPlayer"}}},"input_methods":18446744073709551615,"name":"Endfield-MuMuPlayer12 v5","screencap_methods":64,"serial":"127.0.0.1:16512"}]] 
+[2026-03-02 23:33:31.582][TRC][Px111196][Tx61300][AdbDeviceFinder.cpp][L16][MaaNS::ToolkitNS::AdbDeviceFinder::find] | leave, 2004ms 
+[2026-03-02 23:33:31.583][DBG][Px111196][Tx61300][MaaFramework.cpp][L20][MaaAdbControllerCreate] [adb_path=C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe] [address=127.0.0.1:16512] [screencap_methods=64] [input_methods=18446744073709551615] [config={"extras": {"mumu": {"enable": true, "index": 4, "path": "C:/Program Files/Netease/MuMuPlayer"}}}] [agent_path=C:\Users\xray\AppData\Roaming\Python\Python313\site-packages\maa\../MaaAgentBinary] | enter 
+[2026-03-02 23:33:31.583][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] [libname=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/MaaAdbControlUnit] | enter 
+[2026-03-02 23:33:31.584][INF][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L65][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] Loading library [libname=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/MaaAdbControlUnit] 
+[2026-03-02 23:33:31.633][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] | leave, 49ms 
+[2026-03-02 23:33:31.633][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitGetVersion] | enter 
+[2026-03-02 23:33:31.634][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:33:31.634][INF][Px111196][Tx61300][ControlUnit.cpp][L24][MaaNS::check_version] class MaaNS::AdbControlUnitLibraryHolder Library version: v5.3.0 
+[2026-03-02 23:33:31.634][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitCreate] | enter 
+[2026-03-02 23:33:31.634][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:33:31.634][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitDestroy] | enter 
+[2026-03-02 23:33:31.634][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:33:31.635][DBG][Px111196][Tx61300][AdbControlUnitAPI.cpp][L28][MaaAdbControlUnitCreate] [adb_path=C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe] [adb_serial=127.0.0.1:16512] [screencap_methods=64] [input_methods=18446744073709551615] [config={"extras": {"mumu": {"enable": true, "index": 4, "path": "C:/Program Files/Netease/MuMuPlayer"}}}] [agent_path=C:\Users\xray\AppData\Roaming\Python\Python313\site-packages\maa\../MaaAgentBinary] | enter 
+[2026-03-02 23:33:31.636][TRC][Px111196][Tx61300][AdbControlUnitAPI.cpp][L28][MaaAdbControlUnitCreate] | leave, 1ms 
+[2026-03-02 23:33:31.637][DBG][Px111196][Tx61300][ControllerAgent.cpp][L15][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] [control_unit_=000002695EBB1180] | enter 
+[2026-03-02 23:33:31.637][INF][Px111196][Tx61300][ControllerAgent.cpp][L18][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] [plugin_mgr.get_names()=["C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/plugins/MaaPluginDemo.dll"]] 
+[2026-03-02 23:33:31.637][INF][Px111196][Tx61300][Utils/EventDispatcher.hpp][L32][MaaNS::EventDispatcher::add_sink] [callback=true] [trans_arg=true] 
+[2026-03-02 23:33:31.637][TRC][Px111196][Tx61300][ControllerAgent.cpp][L15][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] | leave, 0ms 
+[2026-03-02 23:33:31.637][TRC][Px111196][Tx61300][MaaFramework.cpp][L20][MaaAdbControllerCreate] | leave, 54ms 
+[2026-03-02 23:33:31.637][DBG][Px111196][Tx61300][MaaController.cpp][L59][MaaControllerPostConnection] [ctrl=true] | enter 
+[2026-03-02 23:33:31.637][TRC][Px111196][Tx61300][MaaController.cpp][L59][MaaControllerPostConnection] | leave, 0ms 
+[2026-03-02 23:33:31.637][DBG][Px111196][Tx12555][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | enter 
+[2026-03-02 23:33:31.664][DBG][Px111196][Tx12555][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","settings get secure android_id"]] [child_.id()=116512] 
+[2026-03-02 23:33:31.817][DBG][Px111196][Tx12555][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=18] [duration=155ms] 
+[2026-03-02 23:33:31.817][DBG][Px111196][Tx12555][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+59e399de6b6ad0b0
+
+
+[2026-03-02 23:33:31.817][TRC][Px111196][Tx12555][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | leave, 180ms 
+[2026-03-02 23:33:31.818][INF][Px111196][Tx12555][ControllerAgent.cpp][L860][MaaNS::ControllerNS::ControllerAgent::run_action] {"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"} 
+[2026-03-02 23:33:31.818][INF][Px111196][Tx12555][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Starting] [details={"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:33:31.818][DBG][Px111196][Tx12555][Connection.cpp][L35][MaaNS::CtrlUnitNs::Connection::connect] | enter 
+[2026-03-02 23:33:31.823][DBG][Px111196][Tx12555][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["connect","127.0.0.1:16512"]] [child_.id()=121056] 
+[2026-03-02 23:33:31.878][DBG][Px111196][Tx12555][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=38] [duration=59ms] 
+[2026-03-02 23:33:31.878][DBG][Px111196][Tx12555][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+already connected to 127.0.0.1:16512
+
+
+[2026-03-02 23:33:31.878][INF][Px111196][Tx12555][Connection.cpp][L95][MaaNS::CtrlUnitNs::Connection::connect_remote] connected 
+[2026-03-02 23:33:31.878][DBG][Px111196][Tx12555][Connection.cpp][L64][MaaNS::CtrlUnitNs::Connection::test_connection] | enter 
+[2026-03-02 23:33:31.883][DBG][Px111196][Tx12555][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","echo Hello MaaFw!"]] [child_.id()=119200] 
+[2026-03-02 23:33:31.936][DBG][Px111196][Tx12555][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=14] [duration=56ms] 
+[2026-03-02 23:33:31.936][DBG][Px111196][Tx12555][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+Hello MaaFw!
+
+
+[2026-03-02 23:33:31.936][TRC][Px111196][Tx12555][Connection.cpp][L64][MaaNS::CtrlUnitNs::Connection::test_connection] | leave, 57ms 
+[2026-03-02 23:33:31.936][TRC][Px111196][Tx12555][Connection.cpp][L35][MaaNS::CtrlUnitNs::Connection::connect] | leave, 118ms 
+[2026-03-02 23:33:31.937][INF][Px111196][Tx12555][ScreencapAgent.cpp][L50][MaaNS::CtrlUnitNs::ScreencapAgent::ScreencapAgent] [methods=64] [method_set=["MuMuPlayerExtras","LDPlayerExtras"]] [agent_path=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/../MaaAgentBinary] 
+[2026-03-02 23:33:31.938][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L527][MaaNS::CtrlUnitNs::MuMuPlayerExtras::set_app_package] [package=] [cloned_index=0] 
+[2026-03-02 23:33:31.939][INF][Px111196][Tx12555][MuMuPlayerExtras.cpp][L53][MaaNS::CtrlUnitNs::MuMuPlayerExtras::parse] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [lib_path_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [mumu_index_=4] 
+[2026-03-02 23:33:31.939][INF][Px111196][Tx12555][LDPlayerExtras.cpp][L21][MaaNS::CtrlUnitNs::LDPlayerExtras::parse] extras.ld.enable is false, ignore 
+[2026-03-02 23:33:31.939][WRN][Px111196][Tx12555][ScreencapAgent.cpp][L118][MaaNS::CtrlUnitNs::ScreencapAgent::parse] failed to parse LDPlayerExtras 
+[2026-03-02 23:33:31.939][DBG][Px111196][Tx12555][ScreencapAgent.cpp][L128][MaaNS::CtrlUnitNs::ScreencapAgent::init] | enter 
+[2026-03-02 23:33:31.939][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:33:31.939][INF][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L65][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] Loading library [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] | leave, 85ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_connect] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_disconnect] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_capture_display] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_text] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_down] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_up] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_down] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_up] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_get_display_id] | enter 
+[2026-03-02 23:33:32.024][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.024][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [mumu_index_=4] | enter 
+[2026-03-02 23:33:32.047][TRC][Px111196][Tx12555][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] | leave, 23ms 
+[2026-03-02 23:33:32.055][INF][Px111196][Tx12555][MuMuPlayerExtras.cpp][L559][MaaNS::CtrlUnitNs::MuMuPlayerExtras::get_display_id] [display_id=0] 
+[2026-03-02 23:33:32.059][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L497][MaaNS::CtrlUnitNs::MuMuPlayerExtras::init_screencap] [display_width_=1920] [display_height_=1080] [display_buffer_.size()=8294400] 
+[2026-03-02 23:33:32.059][DBG][Px111196][Tx12555][ScreencapAgent.cpp][L196][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] | enter 
+[2026-03-02 23:33:32.059][INF][Px111196][Tx12555][ScreencapAgent.cpp][L223][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] Testing MuMuPlayerExtras 
+[2026-03-02 23:33:32.059][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L64][MaaNS::CtrlUnitNs::MuMuPlayerExtras::screencap] 
+[2026-03-02 23:33:32.132][INF][Px111196][Tx12555][ScreencapAgent.cpp][L207][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test::<lambda_1>::operator ()] [method=MuMuPlayerExtras] [duration=73ms] 
+[2026-03-02 23:33:32.132][INF][Px111196][Tx12555][ScreencapAgent.cpp][L237][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] The fastest method is MuMuPlayerExtras [cost=73ms] 
+[2026-03-02 23:33:32.132][TRC][Px111196][Tx12555][ScreencapAgent.cpp][L196][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] | leave, 73ms 
+[2026-03-02 23:33:32.133][TRC][Px111196][Tx12555][ScreencapAgent.cpp][L128][MaaNS::CtrlUnitNs::ScreencapAgent::init] | leave, 193ms 
+[2026-03-02 23:33:32.133][INF][Px111196][Tx12555][InputAgent.cpp][L35][MaaNS::CtrlUnitNs::InputAgent::InputAgent] [methods=18446744073709551615] [method_vector=["MuMuPlayerExtras","Maatouch","MinitouchAndAdbKey","AdbShell"]] [agent_path=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/../MaaAgentBinary] 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L527][MaaNS::CtrlUnitNs::MuMuPlayerExtras::set_app_package] [package=] [cloned_index=0] 
+[2026-03-02 23:33:32.135][INF][Px111196][Tx12555][MuMuPlayerExtras.cpp][L53][MaaNS::CtrlUnitNs::MuMuPlayerExtras::parse] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [lib_path_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [mumu_index_=4] 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][InputAgent.cpp][L94][MaaNS::CtrlUnitNs::InputAgent::init] | enter 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L60][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] Already loaded [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [ref_count_=2] 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_connect] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_disconnect] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_capture_display] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_text] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_down] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_up] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_down] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_up] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_get_display_id] | enter 
+[2026-03-02 23:33:32.135][TRC][Px111196][Tx12555][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:33:32.135][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [mumu_index_=4] | enter 
+[2026-03-02 23:33:32.136][TRC][Px111196][Tx12555][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] | leave, 0ms 
+[2026-03-02 23:33:32.136][INF][Px111196][Tx12555][MuMuPlayerExtras.cpp][L559][MaaNS::CtrlUnitNs::MuMuPlayerExtras::get_display_id] [display_id=0] 
+[2026-03-02 23:33:32.138][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L497][MaaNS::CtrlUnitNs::MuMuPlayerExtras::init_screencap] [display_width_=1920] [display_height_=1080] [display_buffer_.size()=8294400] 
+[2026-03-02 23:33:32.138][TRC][Px111196][Tx12555][InputAgent.cpp][L94][MaaNS::CtrlUnitNs::InputAgent::init] | leave, 2ms 
+[2026-03-02 23:33:32.138][DBG][Px111196][Tx12555][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | enter 
+[2026-03-02 23:33:32.141][DBG][Px111196][Tx12555][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","settings get secure android_id"]] [child_.id()=101356] 
+[2026-03-02 23:33:32.214][DBG][Px111196][Tx12555][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=18] [duration=75ms] 
+[2026-03-02 23:33:32.214][DBG][Px111196][Tx12555][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+59e399de6b6ad0b0
+
+
+[2026-03-02 23:33:32.214][TRC][Px111196][Tx12555][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | leave, 76ms 
+[2026-03-02 23:33:32.214][INF][Px111196][Tx12555][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Succeeded] [details={"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:33:32.220][DBG][Px111196][Tx61300][MaaController.cpp][L270][MaaControllerPostScreencap] [ctrl=true] | enter 
+[2026-03-02 23:33:32.220][TRC][Px111196][Tx61300][MaaController.cpp][L270][MaaControllerPostScreencap] | leave, 0ms 
+[2026-03-02 23:33:32.220][INF][Px111196][Tx12555][ControllerAgent.cpp][L860][MaaNS::ControllerNS::ControllerAgent::run_action] {"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"} 
+[2026-03-02 23:33:32.220][INF][Px111196][Tx12555][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Starting] [details={"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:33:32.220][DBG][Px111196][Tx12555][MuMuPlayerExtras.cpp][L64][MaaNS::CtrlUnitNs::MuMuPlayerExtras::screencap] 
+[2026-03-02 23:33:32.236][INF][Px111196][Tx12555][ControllerAgent.cpp][L971][MaaNS::ControllerNS::ControllerAgent::postproc_screenshot] Resolution changed [raw.cols=1920] [raw.rows=1080] [image_raw_width_=0] [image_raw_height_=0] 
+[2026-03-02 23:33:32.236][DBG][Px111196][Tx12555][ControllerAgent.cpp][L1001][MaaNS::ControllerNS::ControllerAgent::calc_target_image_size] Re-calc image target size: [image_target_long_side_=0] [image_target_short_side_=720] [image_raw_width_=1920] [image_raw_height_=1080] 
+[2026-03-02 23:33:32.236][INF][Px111196][Tx12555][ControllerAgent.cpp][L1027][MaaNS::ControllerNS::ControllerAgent::calc_target_image_size] [image_target_width_=1280] [image_target_height_=720] 
+[2026-03-02 23:33:32.239][INF][Px111196][Tx12555][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Succeeded] [details={"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:33:32.264][DBG][Px111196][Tx61300][MaaFramework.cpp][L145][MaaControllerDestroy] [ctrl=true] | enter 
+[2026-03-02 23:33:32.264][DBG][Px111196][Tx61300][ControllerAgent.cpp][L30][MaaNS::ControllerNS::ControllerAgent::~ControllerAgent] | enter 
+[2026-03-02 23:33:32.264][DBG][Px111196][Tx61300][Base/AsyncRunner.hpp][L198][MaaNS::AsyncRunner<struct MaaNS::ControllerNS::Action>::wait_all] | enter 
+[2026-03-02 23:33:32.264][TRC][Px111196][Tx61300][Base/AsyncRunner.hpp][L198][MaaNS::AsyncRunner<struct MaaNS::ControllerNS::Action>::wait_all] | leave, 0ms 
+[2026-03-02 23:33:32.264][TRC][Px111196][Tx61300][ControllerAgent.cpp][L30][MaaNS::ControllerNS::ControllerAgent::~ControllerAgent] | leave, 0ms 
+[2026-03-02 23:33:32.265][DBG][Px111196][Tx61300][AdbControlUnitAPI.cpp][L64][MaaAdbControlUnitDestroy] [handle=true] | enter 
+[2026-03-02 23:33:32.265][DBG][Px111196][Tx61300][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] [mumu_handle_=1] | enter 
+[2026-03-02 23:33:32.265][DBG][Px111196][Tx61300][MuMuPlayerExtras.cpp][L513][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] mumu_handle_ still has references [ref=1] 
+[2026-03-02 23:33:32.265][TRC][Px111196][Tx61300][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] | leave, 0ms 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L100][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] Still has references [ref_count_=1] 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][MaatouchInput.cpp][L143][MaaNS::CtrlUnitNs::MaatouchInput::remove_binary] 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][MinitouchInput.cpp][L137][MaaNS::CtrlUnitNs::MinitouchInput::remove_binary] 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:33:32.266][TRC][Px111196][Tx61300][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:33:32.266][DBG][Px111196][Tx61300][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] [mumu_handle_=1] | enter 
+[2026-03-02 23:33:32.267][TRC][Px111196][Tx61300][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] | leave, 1ms 
+[2026-03-02 23:33:32.268][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:33:32.268][INF][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L104][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] Unloading library [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] 
+[2026-03-02 23:33:32.268][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:33:32.268][DBG][Px111196][Tx61300][LDPlayerExtras.cpp][L122][MaaNS::CtrlUnitNs::LDPlayerExtras::release_ld_instance] [ld_handle_=false] | enter 
+[2026-03-02 23:33:32.268][TRC][Px111196][Tx61300][LDPlayerExtras.cpp][L122][MaaNS::CtrlUnitNs::LDPlayerExtras::release_ld_instance] | leave, 0ms 
+[2026-03-02 23:33:32.268][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] [libname_=] | enter 
+[2026-03-02 23:33:32.268][DBG][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L95][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] LibraryHolder already unloaded 
+[2026-03-02 23:33:32.268][TRC][Px111196][Tx61300][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:33:32.269][TRC][Px111196][Tx61300][AdbControlUnitAPI.cpp][L64][MaaAdbControlUnitDestroy] | leave, 3ms 
+[2026-03-02 23:33:32.269][TRC][Px111196][Tx61300][MaaFramework.cpp][L145][MaaControllerDestroy] | leave, 4ms 
+[2026-03-02 23:33:32.300][DBG][Px111196][Tx61300][Logger] ----------------------------- 
+[2026-03-02 23:33:32.300][DBG][Px111196][Tx61300][Logger] Close log 
+[2026-03-02 23:33:32.300][DBG][Px111196][Tx61300][Logger] ----------------------------- 
+[2026-03-02 23:34:20.899][DBG][Px121100][Tx12896][Logger] ----------------------------- 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] MAA Process Start 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] Version v5.3.0 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] Built at Dec 31 2025 15:09:29 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] Windows x64 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] Working C:/Users/xray/Documents/ArkStudio/ReAcrture/client 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] Logging ./debug/maa.log 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][Logger] ----------------------------- 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L35][MaaNS::GlobalNS::OptionMgr::set_log_dir] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 1ms 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | enter 
+[2026-03-02 23:34:20.900][INF][Px121100][Tx12896][OptionMgr.cpp][L58][MaaNS::GlobalNS::OptionMgr::set_save_draw] Set save draw [save_draw_=false] 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | enter 
+[2026-03-02 23:34:20.900][INF][Px121100][Tx12896][OptionMgr.cpp][L108][MaaNS::GlobalNS::OptionMgr::set_save_on_error] Set save on error [save_on_error_=true] 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | enter 
+[2026-03-02 23:34:20.900][INF][Px121100][Tx12896][OptionMgr.cpp][L74][MaaNS::GlobalNS::OptionMgr::set_stdout_level] Set log stdout level [level=2] 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | enter 
+[2026-03-02 23:34:20.900][INF][Px121100][Tx12896][OptionMgr.cpp][L130][MaaNS::GlobalNS::OptionMgr::set_draw_quality] Set draw quality [draw_quality_=85] 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-02 23:34:20.900][DBG][Px121100][Tx12896][GlobalOptionConfig.cpp][L83][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] [bret=true] 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][GlobalOptionConfig.cpp][L67][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] | leave, 1ms 
+[2026-03-02 23:34:20.900][TRC][Px121100][Tx12896][GlobalOptionConfig.cpp][L17][MaaNS::ToolkitNS::GlobalOptionConfig::init] | leave, 2ms 
+[2026-03-02 23:34:20.908][DBG][Px121100][Tx12896][AdbDeviceFinder.cpp][L16][MaaNS::ToolkitNS::AdbDeviceFinder::find] | enter 
+[2026-03-02 23:34:20.908][DBG][Px121100][Tx12896][AdbDeviceFinder.cpp][L187][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] | enter 
+[2026-03-02 23:34:20.943][DBG][Px121100][Tx12896][PlatformWin32.cpp][L196][MaaNS::list_processes] Process size: 312 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=104] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=180] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=636] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=940] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=852] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=876] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1048] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1068] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1076] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1140] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1272] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1296] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1300] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1400] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1448] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1528] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1540] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1588] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1596] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1676] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1684] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1752] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1904] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1948] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2000] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2008] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2020] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1208] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=1288] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2060] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2152] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2164] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2180] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2332] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2424] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2544] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2552] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2636] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2648] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2692] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2748] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2756] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2764] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2792] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2928] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2936] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3016] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3024] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=744] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3148] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3168] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3228] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3308] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3364] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3372] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3560] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3624] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3632] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4024] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=3516] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4132] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4160] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4340] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4516] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5060] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5068] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=844] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4596] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5012] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5196] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5340] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5508] 
+[2026-03-02 23:34:20.944][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5516] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5524] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5536] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5544] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5552] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5564] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5576] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5588] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5596] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5604] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5612] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5620] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5632] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5648] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5656] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5668] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5676] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5684] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5696] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5712] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5720] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5740] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5764] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5780] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5824] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5868] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5928] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6204] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6412] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6560] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=6852] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7268] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7504] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=7704] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5480] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8360] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8436] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=8536] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9096] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9292] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9300] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9308] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9316] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9324] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9344] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9352] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=9384] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10076] 
+[2026-03-02 23:34:20.945][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10504] 
+[2026-03-02 23:34:20.948][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10704] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10868] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10928] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11052] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11092] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11116] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11124] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11144] 
+[2026-03-02 23:34:20.949][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11132] 
+[2026-03-02 23:34:20.950][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11384] 
+[2026-03-02 23:34:20.954][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13076] 
+[2026-03-02 23:34:20.954][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13084] 
+[2026-03-02 23:34:20.954][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13240] 
+[2026-03-02 23:34:20.954][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13248] 
+[2026-03-02 23:34:20.958][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10512] 
+[2026-03-02 23:34:20.958][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=4852] 
+[2026-03-02 23:34:20.958][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5112] 
+[2026-03-02 23:34:20.959][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=11484] 
+[2026-03-02 23:34:20.960][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13872] 
+[2026-03-02 23:34:20.960][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13392] 
+[2026-03-02 23:34:20.960][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=12632] 
+[2026-03-02 23:34:20.960][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=14184] 
+[2026-03-02 23:34:20.960][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=13792] 
+[2026-03-02 23:34:20.962][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=10484] 
+[2026-03-02 23:34:20.965][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=2836] 
+[2026-03-02 23:34:20.972][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=15152] 
+[2026-03-02 23:34:20.976][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=22496] 
+[2026-03-02 23:34:20.976][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=33664] 
+[2026-03-02 23:34:20.976][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=32820] 
+[2026-03-02 23:34:20.976][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=34804] 
+[2026-03-02 23:34:20.980][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=36784] 
+[2026-03-02 23:34:20.985][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=47552] 
+[2026-03-02 23:34:20.985][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=60560] 
+[2026-03-02 23:34:20.987][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=92112] 
+[2026-03-02 23:34:20.987][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=104200] 
+[2026-03-02 23:34:20.999][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=117844] 
+[2026-03-02 23:34:21.000][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=120224] 
+[2026-03-02 23:34:21.000][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=119060] 
+[2026-03-02 23:34:21.000][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=118400] 
+[2026-03-02 23:34:21.000][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=118280] 
+[2026-03-02 23:34:21.001][DBG][Px121100][Tx12896][PlatformWin32.cpp][L213][MaaNS::list_processes] Failed to OpenProcess [error=5] [pid=5268] 
+[2026-03-02 23:34:21.002][INF][Px121100][Tx12896][AdbDeviceFinder.cpp][L229][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] [result=[{"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","name":"MuMuPlayer12 v5","process_path":"C:/Program Files/Netease/MuMuPlayer/nx_device/12.0/shell/MuMuNxDevice.exe"}]] 
+[2026-03-02 23:34:21.002][TRC][Px121100][Tx12896][AdbDeviceFinder.cpp][L187][MaaNS::ToolkitNS::AdbDeviceFinder::find_emulators] | leave, 94ms 
+[2026-03-02 23:34:21.002][DBG][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L64][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_by_emulator_tool] [emulator.name=MuMuPlayer12 v5] | enter 
+[2026-03-02 23:34:21.002][DBG][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L78][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] [emulator.name=MuMuPlayer12 v5] | enter 
+[2026-03-02 23:34:21.008][DBG][Px121100][Tx12896][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/MuMuManager.exe] [args_=["info","--vmindex","all"]] [child_.id()=121880] 
+[2026-03-02 23:34:21.208][DBG][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L94][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] [mumu_mgr_path=C:/Program Files/Netease/MuMuPlayer/nx_main/MuMuManager.exe] [mumu_mgr_args=["info","--vmindex","all"]] [output={
+  "0": {
+    "created_timestamp": 1769295169124711,
+    "disk_size_bytes": 30654120832,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "0",
+    "is_android_started": false,
+    "is_main": true,
+    "is_process_started": false,
+    "name": "Android Device"
+  },
+  "1": {
+    "created_timestamp": 1769300374676162,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "1",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_0"
+  },
+  "2": {
+    "created_timestamp": 1769300374962666,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "2",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_1"
+  },
+  "3": {
+    "created_timestamp": 1769300375210163,
+    "disk_size_bytes": 118489088,
+    "error_code": 0,
+    "hyperv_enabled": true,
+    "index": "3",
+    "is_android_started": false,
+    "is_main": false,
+    "is_process_started": false,
+    "name": "StarRail_2"
+  },
+  "4": {
+    "adb_host_ip": "127.0.0.1",
+    "adb_port": 16512,
+    "created_timestamp": 1769300375435660,
+    "disk_size_bytes": 29089638695,
+    "error_code": 0,
+    "headless_pid": 72764,
+    "hyperv_enabled": true,
+    "index": "4",
+    "is_android_started": true,
+    "is_main": false,
+    "is_process_started": true,
+    "launch_err_code": 0,
+    "launch_err_msg": "",
+    "launch_time": 3335309,
+    "main_wnd": "001F02C0",
+    "name": "Endfield",
+    "pid": 73604,
+    "player_state": "start_finished",
+    "render_wnd": "000702BC",
+    "vt_enabled": true
+  }
+}
+] 
+[2026-03-02 23:34:21.208][WRN][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769295169124711,"disk_size_bytes":30654120832,"error_code":0,"hyperv_enabled":true,"index":"0","is_android_started":false,"is_main":true,"is_process_started":false,"name":"Android Device"}] 
+[2026-03-02 23:34:21.208][WRN][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300374676162,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"1","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_0"}] 
+[2026-03-02 23:34:21.208][WRN][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300374962666,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"2","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_1"}] 
+[2026-03-02 23:34:21.208][WRN][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L124][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] Invalid MuMuManager info format [i={"created_timestamp":1769300375210163,"disk_size_bytes":118489088,"error_code":0,"hyperv_enabled":true,"index":"3","is_android_started":false,"is_main":false,"is_process_started":false,"name":"StarRail_2"}] 
+[2026-03-02 23:34:21.208][INF][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L168][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] MuMu device [device={"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","config":{"extras":{"mumu":{"enable":true,"index":4,"path":"C:/Program Files/Netease/MuMuPlayer"}}},"input_methods":18446744073709551615,"name":"Endfield-MuMuPlayer12 v5","screencap_methods":64,"serial":"127.0.0.1:16512"}] 
+[2026-03-02 23:34:21.208][TRC][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L78][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_mumu_devices] | leave, 205ms 
+[2026-03-02 23:34:21.208][TRC][Px121100][Tx12896][AdbDeviceWin32Finder.cpp][L64][MaaNS::ToolkitNS::AdbDeviceWin32Finder::find_by_emulator_tool] | leave, 205ms 
+[2026-03-02 23:34:21.275][INF][Px121100][Tx12896][AdbDeviceFinder.cpp][L57][MaaNS::ToolkitNS::AdbDeviceFinder::find] [result=[{"adb_path":"C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe","config":{"extras":{"mumu":{"enable":true,"index":4,"path":"C:/Program Files/Netease/MuMuPlayer"}}},"input_methods":18446744073709551615,"name":"Endfield-MuMuPlayer12 v5","screencap_methods":64,"serial":"127.0.0.1:16512"}]] 
+[2026-03-02 23:34:21.275][TRC][Px121100][Tx12896][AdbDeviceFinder.cpp][L16][MaaNS::ToolkitNS::AdbDeviceFinder::find] | leave, 366ms 
+[2026-03-02 23:34:21.275][DBG][Px121100][Tx12896][MaaFramework.cpp][L20][MaaAdbControllerCreate] [adb_path=C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe] [address=127.0.0.1:16512] [screencap_methods=64] [input_methods=18446744073709551615] [config={"extras": {"mumu": {"enable": true, "index": 4, "path": "C:/Program Files/Netease/MuMuPlayer"}}}] [agent_path=C:\Users\xray\AppData\Roaming\Python\Python313\site-packages\maa\../MaaAgentBinary] | enter 
+[2026-03-02 23:34:21.275][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] [libname=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/MaaAdbControlUnit] | enter 
+[2026-03-02 23:34:21.275][INF][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L65][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] Loading library [libname=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/MaaAdbControlUnit] 
+[2026-03-02 23:34:21.276][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::load_library] | leave, 0ms 
+[2026-03-02 23:34:21.276][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitGetVersion] | enter 
+[2026-03-02 23:34:21.276][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.276][INF][Px121100][Tx12896][ControlUnit.cpp][L24][MaaNS::check_version] class MaaNS::AdbControlUnitLibraryHolder Library version: v5.3.0 
+[2026-03-02 23:34:21.276][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitCreate] | enter 
+[2026-03-02 23:34:21.276][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.276][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] [func_name=MaaAdbControlUnitDestroy] | enter 
+[2026-03-02 23:34:21.276][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::AdbControlUnitLibraryHolder>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.276][DBG][Px121100][Tx12896][AdbControlUnitAPI.cpp][L28][MaaAdbControlUnitCreate] [adb_path=C:\Program Files\Netease\MuMuPlayer\nx_main\adb.exe] [adb_serial=127.0.0.1:16512] [screencap_methods=64] [input_methods=18446744073709551615] [config={"extras": {"mumu": {"enable": true, "index": 4, "path": "C:/Program Files/Netease/MuMuPlayer"}}}] [agent_path=C:\Users\xray\AppData\Roaming\Python\Python313\site-packages\maa\../MaaAgentBinary] | enter 
+[2026-03-02 23:34:21.276][TRC][Px121100][Tx12896][AdbControlUnitAPI.cpp][L28][MaaAdbControlUnitCreate] | leave, 0ms 
+[2026-03-02 23:34:21.277][DBG][Px121100][Tx12896][ControllerAgent.cpp][L15][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] [control_unit_=00000231EF0F6550] | enter 
+[2026-03-02 23:34:21.277][INF][Px121100][Tx12896][ControllerAgent.cpp][L18][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] [plugin_mgr.get_names()=["C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/bin/plugins/MaaPluginDemo.dll"]] 
+[2026-03-02 23:34:21.277][INF][Px121100][Tx12896][Utils/EventDispatcher.hpp][L32][MaaNS::EventDispatcher::add_sink] [callback=true] [trans_arg=true] 
+[2026-03-02 23:34:21.277][TRC][Px121100][Tx12896][ControllerAgent.cpp][L15][MaaNS::ControllerNS::ControllerAgent::ControllerAgent] | leave, 0ms 
+[2026-03-02 23:34:21.277][TRC][Px121100][Tx12896][MaaFramework.cpp][L20][MaaAdbControllerCreate] | leave, 1ms 
+[2026-03-02 23:34:21.277][DBG][Px121100][Tx12896][MaaController.cpp][L59][MaaControllerPostConnection] [ctrl=true] | enter 
+[2026-03-02 23:34:21.277][TRC][Px121100][Tx12896][MaaController.cpp][L59][MaaControllerPostConnection] | leave, 0ms 
+[2026-03-02 23:34:21.277][DBG][Px121100][Tx57756][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | enter 
+[2026-03-02 23:34:21.303][DBG][Px121100][Tx57756][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","settings get secure android_id"]] [child_.id()=121992] 
+[2026-03-02 23:34:21.377][DBG][Px121100][Tx57756][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=18] [duration=78ms] 
+[2026-03-02 23:34:21.377][DBG][Px121100][Tx57756][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+59e399de6b6ad0b0
+
+
+[2026-03-02 23:34:21.377][TRC][Px121100][Tx57756][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | leave, 100ms 
+[2026-03-02 23:34:21.377][INF][Px121100][Tx57756][ControllerAgent.cpp][L860][MaaNS::ControllerNS::ControllerAgent::run_action] {"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"} 
+[2026-03-02 23:34:21.377][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Starting] [details={"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:21.377][DBG][Px121100][Tx57756][Connection.cpp][L35][MaaNS::CtrlUnitNs::Connection::connect] | enter 
+[2026-03-02 23:34:21.382][DBG][Px121100][Tx57756][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["connect","127.0.0.1:16512"]] [child_.id()=122056] 
+[2026-03-02 23:34:21.429][DBG][Px121100][Tx57756][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=38] [duration=50ms] 
+[2026-03-02 23:34:21.429][DBG][Px121100][Tx57756][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+already connected to 127.0.0.1:16512
+
+
+[2026-03-02 23:34:21.429][INF][Px121100][Tx57756][Connection.cpp][L95][MaaNS::CtrlUnitNs::Connection::connect_remote] connected 
+[2026-03-02 23:34:21.429][DBG][Px121100][Tx57756][Connection.cpp][L64][MaaNS::CtrlUnitNs::Connection::test_connection] | enter 
+[2026-03-02 23:34:21.433][DBG][Px121100][Tx57756][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","echo Hello MaaFw!"]] [child_.id()=122116] 
+[2026-03-02 23:34:21.495][DBG][Px121100][Tx57756][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=14] [duration=65ms] 
+[2026-03-02 23:34:21.495][DBG][Px121100][Tx57756][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+Hello MaaFw!
+
+
+[2026-03-02 23:34:21.496][TRC][Px121100][Tx57756][Connection.cpp][L64][MaaNS::CtrlUnitNs::Connection::test_connection] | leave, 66ms 
+[2026-03-02 23:34:21.496][TRC][Px121100][Tx57756][Connection.cpp][L35][MaaNS::CtrlUnitNs::Connection::connect] | leave, 118ms 
+[2026-03-02 23:34:21.496][INF][Px121100][Tx57756][ScreencapAgent.cpp][L50][MaaNS::CtrlUnitNs::ScreencapAgent::ScreencapAgent] [methods=64] [method_set=["MuMuPlayerExtras","LDPlayerExtras"]] [agent_path=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/../MaaAgentBinary] 
+[2026-03-02 23:34:21.496][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L527][MaaNS::CtrlUnitNs::MuMuPlayerExtras::set_app_package] [package=] [cloned_index=0] 
+[2026-03-02 23:34:21.496][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L53][MaaNS::CtrlUnitNs::MuMuPlayerExtras::parse] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [lib_path_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [mumu_index_=4] 
+[2026-03-02 23:34:21.496][INF][Px121100][Tx57756][LDPlayerExtras.cpp][L21][MaaNS::CtrlUnitNs::LDPlayerExtras::parse] extras.ld.enable is false, ignore 
+[2026-03-02 23:34:21.496][WRN][Px121100][Tx57756][ScreencapAgent.cpp][L118][MaaNS::CtrlUnitNs::ScreencapAgent::parse] failed to parse LDPlayerExtras 
+[2026-03-02 23:34:21.496][DBG][Px121100][Tx57756][ScreencapAgent.cpp][L128][MaaNS::CtrlUnitNs::ScreencapAgent::init] | enter 
+[2026-03-02 23:34:21.496][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:34:21.496][INF][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L65][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] Loading library [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] | leave, 1ms 
+[2026-03-02 23:34:21.497][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_connect] | enter 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.497][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_disconnect] | enter 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.497][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_capture_display] | enter 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.497][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_text] | enter 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.497][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_down] | enter 
+[2026-03-02 23:34:21.497][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.498][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_up] | enter 
+[2026-03-02 23:34:21.498][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.498][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_down] | enter 
+[2026-03-02 23:34:21.498][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.498][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_up] | enter 
+[2026-03-02 23:34:21.498][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.498][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_get_display_id] | enter 
+[2026-03-02 23:34:21.498][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.498][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [mumu_index_=4] | enter 
+[2026-03-02 23:34:21.499][TRC][Px121100][Tx57756][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] | leave, 1ms 
+[2026-03-02 23:34:21.499][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L559][MaaNS::CtrlUnitNs::MuMuPlayerExtras::get_display_id] [display_id=0] 
+[2026-03-02 23:34:21.501][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L497][MaaNS::CtrlUnitNs::MuMuPlayerExtras::init_screencap] [display_width_=1920] [display_height_=1080] [display_buffer_.size()=8294400] 
+[2026-03-02 23:34:21.501][DBG][Px121100][Tx57756][ScreencapAgent.cpp][L196][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] | enter 
+[2026-03-02 23:34:21.501][INF][Px121100][Tx57756][ScreencapAgent.cpp][L223][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] Testing MuMuPlayerExtras 
+[2026-03-02 23:34:21.501][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L64][MaaNS::CtrlUnitNs::MuMuPlayerExtras::screencap] 
+[2026-03-02 23:34:21.526][INF][Px121100][Tx57756][ScreencapAgent.cpp][L207][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test::<lambda_1>::operator ()] [method=MuMuPlayerExtras] [duration=24ms] 
+[2026-03-02 23:34:21.526][INF][Px121100][Tx57756][ScreencapAgent.cpp][L237][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] The fastest method is MuMuPlayerExtras [cost=24ms] 
+[2026-03-02 23:34:21.526][TRC][Px121100][Tx57756][ScreencapAgent.cpp][L196][MaaNS::CtrlUnitNs::ScreencapAgent::speed_test] | leave, 24ms 
+[2026-03-02 23:34:21.526][TRC][Px121100][Tx57756][ScreencapAgent.cpp][L128][MaaNS::CtrlUnitNs::ScreencapAgent::init] | leave, 30ms 
+[2026-03-02 23:34:21.526][INF][Px121100][Tx57756][InputAgent.cpp][L35][MaaNS::CtrlUnitNs::InputAgent::InputAgent] [methods=18446744073709551615] [method_vector=["MuMuPlayerExtras","Maatouch","MinitouchAndAdbKey","AdbShell"]] [agent_path=C:/Users/xray/AppData/Roaming/Python/Python313/site-packages/maa/../MaaAgentBinary] 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L527][MaaNS::CtrlUnitNs::MuMuPlayerExtras::set_app_package] [package=] [cloned_index=0] 
+[2026-03-02 23:34:21.527][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L53][MaaNS::CtrlUnitNs::MuMuPlayerExtras::parse] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [lib_path_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [mumu_index_=4] 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][InputAgent.cpp][L94][MaaNS::CtrlUnitNs::InputAgent::init] | enter 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L60][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] Already loaded [libname=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] [ref_count_=2] 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L49][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::load_library] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_connect] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_disconnect] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_capture_display] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_text] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_down] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_finger_touch_up] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_down] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_input_event_key_up] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] [func_name=nemu_get_display_id] | enter 
+[2026-03-02 23:34:21.527][TRC][Px121100][Tx57756][MaaUtils/LibraryHolder.h][L113][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::get_function] | leave, 0ms 
+[2026-03-02 23:34:21.527][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] [mumu_path_=C:/Program Files/Netease/MuMuPlayer] [mumu_index_=4] | enter 
+[2026-03-02 23:34:21.528][TRC][Px121100][Tx57756][MuMuPlayerExtras.cpp][L451][MaaNS::CtrlUnitNs::MuMuPlayerExtras::connect_mumu] | leave, 0ms 
+[2026-03-02 23:34:21.529][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L559][MaaNS::CtrlUnitNs::MuMuPlayerExtras::get_display_id] [display_id=0] 
+[2026-03-02 23:34:21.531][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L497][MaaNS::CtrlUnitNs::MuMuPlayerExtras::init_screencap] [display_width_=1920] [display_height_=1080] [display_buffer_.size()=8294400] 
+[2026-03-02 23:34:21.531][TRC][Px121100][Tx57756][InputAgent.cpp][L94][MaaNS::CtrlUnitNs::InputAgent::init] | leave, 4ms 
+[2026-03-02 23:34:21.532][DBG][Px121100][Tx57756][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | enter 
+[2026-03-02 23:34:21.535][DBG][Px121100][Tx57756][ChildPipeIOStream.cpp][L84][MaaNS::ChildPipeIOStream::ChildPipeIOStream] [exec_=C:/Program Files/Netease/MuMuPlayer/nx_main/adb.exe] [args_=["-s","127.0.0.1:16512","shell","settings get secure android_id"]] [child_.id()=122240] 
+[2026-03-02 23:34:21.626][DBG][Px121100][Tx57756][UnitBase.cpp][L58][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] [output.size()=18] [duration=93ms] 
+[2026-03-02 23:34:21.626][DBG][Px121100][Tx57756][UnitBase.cpp][L60][MaaNS::CtrlUnitNs::UnitBase::startup_and_read_pipe] output:
+59e399de6b6ad0b0
+
+
+[2026-03-02 23:34:21.626][TRC][Px121100][Tx57756][DeviceInfo.cpp][L27][MaaNS::CtrlUnitNs::DeviceInfo::request_uuid] | leave, 94ms 
+[2026-03-02 23:34:21.626][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Succeeded] [details={"action":"connect","ctrl_id":100000001,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:21.635][DBG][Px121100][Tx12896][MaaController.cpp][L270][MaaControllerPostScreencap] [ctrl=true] | enter 
+[2026-03-02 23:34:21.635][TRC][Px121100][Tx12896][MaaController.cpp][L270][MaaControllerPostScreencap] | leave, 0ms 
+[2026-03-02 23:34:21.635][INF][Px121100][Tx57756][ControllerAgent.cpp][L860][MaaNS::ControllerNS::ControllerAgent::run_action] {"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"} 
+[2026-03-02 23:34:21.635][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Starting] [details={"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:21.635][DBG][Px121100][Tx57756][MuMuPlayerExtras.cpp][L64][MaaNS::CtrlUnitNs::MuMuPlayerExtras::screencap] 
+[2026-03-02 23:34:21.653][INF][Px121100][Tx57756][ControllerAgent.cpp][L971][MaaNS::ControllerNS::ControllerAgent::postproc_screenshot] Resolution changed [raw.cols=1920] [raw.rows=1080] [image_raw_width_=0] [image_raw_height_=0] 
+[2026-03-02 23:34:21.653][DBG][Px121100][Tx57756][ControllerAgent.cpp][L1001][MaaNS::ControllerNS::ControllerAgent::calc_target_image_size] Re-calc image target size: [image_target_long_side_=0] [image_target_short_side_=720] [image_raw_width_=1920] [image_raw_height_=1080] 
+[2026-03-02 23:34:21.653][INF][Px121100][Tx57756][ControllerAgent.cpp][L1027][MaaNS::ControllerNS::ControllerAgent::calc_target_image_size] [image_target_width_=1280] [image_target_height_=720] 
+[2026-03-02 23:34:21.656][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Succeeded] [details={"action":"screencap","ctrl_id":100000002,"param":null,"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:21.673][DBG][Px121100][Tx12896][MaaController.cpp][L71][MaaControllerPostClick] [ctrl=true] [x=100] [y=200] | enter 
+[2026-03-02 23:34:21.673][TRC][Px121100][Tx12896][MaaController.cpp][L71][MaaControllerPostClick] | leave, 0ms 
+[2026-03-02 23:34:21.673][INF][Px121100][Tx57756][ControllerAgent.cpp][L860][MaaNS::ControllerNS::ControllerAgent::run_action] {"action":"click","ctrl_id":100000003,"param":{"contact":0,"point":[100,200]},"uuid":"59e399de6b6ad0b0"} 
+[2026-03-02 23:34:21.673][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Starting] [details={"action":"click","ctrl_id":100000003,"param":{"contact":0,"point":[100,200]},"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:21.673][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L120][MaaNS::CtrlUnitNs::MuMuPlayerExtras::touch_down] [contact=0] [x=150] [y=300] [pressure=1] [display_id=0] 
+[2026-03-02 23:34:21.724][INF][Px121100][Tx57756][MuMuPlayerExtras.cpp][L167][MaaNS::CtrlUnitNs::MuMuPlayerExtras::touch_up] [contact=0] [display_id=0] 
+[2026-03-02 23:34:21.724][INF][Px121100][Tx57756][Utils/EventDispatcher.hpp][L59][MaaNS::EventDispatcher::notify] !!!OnEventNotify!!! [handle=true] [msg=Controller.Action.Succeeded] [details={"action":"click","ctrl_id":100000003,"param":{"contact":0,"point":[100,200]},"uuid":"59e399de6b6ad0b0"}] 
+[2026-03-02 23:34:22.016][DBG][Px121100][Tx12896][MaaFramework.cpp][L145][MaaControllerDestroy] [ctrl=true] | enter 
+[2026-03-02 23:34:22.016][DBG][Px121100][Tx12896][ControllerAgent.cpp][L30][MaaNS::ControllerNS::ControllerAgent::~ControllerAgent] | enter 
+[2026-03-02 23:34:22.016][DBG][Px121100][Tx12896][Base/AsyncRunner.hpp][L198][MaaNS::AsyncRunner<struct MaaNS::ControllerNS::Action>::wait_all] | enter 
+[2026-03-02 23:34:22.016][TRC][Px121100][Tx12896][Base/AsyncRunner.hpp][L198][MaaNS::AsyncRunner<struct MaaNS::ControllerNS::Action>::wait_all] | leave, 0ms 
+[2026-03-02 23:34:22.016][TRC][Px121100][Tx12896][ControllerAgent.cpp][L30][MaaNS::ControllerNS::ControllerAgent::~ControllerAgent] | leave, 0ms 
+[2026-03-02 23:34:22.017][DBG][Px121100][Tx12896][AdbControlUnitAPI.cpp][L64][MaaAdbControlUnitDestroy] [handle=true] | enter 
+[2026-03-02 23:34:22.017][DBG][Px121100][Tx12896][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] [mumu_handle_=1] | enter 
+[2026-03-02 23:34:22.017][DBG][Px121100][Tx12896][MuMuPlayerExtras.cpp][L513][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] mumu_handle_ still has references [ref=1] 
+[2026-03-02 23:34:22.017][TRC][Px121100][Tx12896][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] | leave, 0ms 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L100][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] Still has references [ref_count_=1] 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][MaatouchInput.cpp][L143][MaaNS::CtrlUnitNs::MaatouchInput::remove_binary] 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][MinitouchInput.cpp][L137][MaaNS::CtrlUnitNs::MinitouchInput::remove_binary] 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | enter 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][InvokeApp.cpp][L149][MaaNS::CtrlUnitNs::InvokeApp::remove] Not pushed, skip remove 
+[2026-03-02 23:34:22.018][TRC][Px121100][Tx12896][InvokeApp.cpp][L146][MaaNS::CtrlUnitNs::InvokeApp::remove] | leave, 0ms 
+[2026-03-02 23:34:22.018][DBG][Px121100][Tx12896][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] [mumu_handle_=1] | enter 
+[2026-03-02 23:34:22.019][TRC][Px121100][Tx12896][MuMuPlayerExtras.cpp][L504][MaaNS::CtrlUnitNs::MuMuPlayerExtras::disconnect_mumu] | leave, 1ms 
+[2026-03-02 23:34:22.020][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] | enter 
+[2026-03-02 23:34:22.020][INF][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L104][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] Unloading library [libname_=C:/Program Files/Netease/MuMuPlayer/nx_main/sdk/external_renderer_ipc.dll] 
+[2026-03-02 23:34:22.020][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::MuMuPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:34:22.020][DBG][Px121100][Tx12896][LDPlayerExtras.cpp][L122][MaaNS::CtrlUnitNs::LDPlayerExtras::release_ld_instance] [ld_handle_=false] | enter 
+[2026-03-02 23:34:22.020][TRC][Px121100][Tx12896][LDPlayerExtras.cpp][L122][MaaNS::CtrlUnitNs::LDPlayerExtras::release_ld_instance] | leave, 0ms 
+[2026-03-02 23:34:22.020][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] [libname_=] | enter 
+[2026-03-02 23:34:22.020][DBG][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L95][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] LibraryHolder already unloaded 
+[2026-03-02 23:34:22.020][TRC][Px121100][Tx12896][MaaUtils/LibraryHolder.h][L90][MaaNS::LibraryHolder<class MaaNS::CtrlUnitNs::LDPlayerExtras>::unload_library] | leave, 0ms 
+[2026-03-02 23:34:22.020][TRC][Px121100][Tx12896][AdbControlUnitAPI.cpp][L64][MaaAdbControlUnitDestroy] | leave, 3ms 
+[2026-03-02 23:34:22.020][TRC][Px121100][Tx12896][MaaFramework.cpp][L145][MaaControllerDestroy] | leave, 4ms 
+[2026-03-02 23:34:22.046][DBG][Px121100][Tx12896][Logger] ----------------------------- 
+[2026-03-02 23:34:22.046][DBG][Px121100][Tx12896][Logger] Close log 
+[2026-03-02 23:34:22.046][DBG][Px121100][Tx12896][Logger] ----------------------------- 

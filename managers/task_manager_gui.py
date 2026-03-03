@@ -2,6 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import json
+from theme import configure_listbox
 
 
 class TaskManagerGUI:
@@ -29,7 +30,7 @@ class TaskManagerGUI:
     def setup_ui(self):
         """设置任务管理UI"""
         # 任务队列管理
-        task_queue_frame = ttk.LabelFrame(self.parent_frame, text="任务队列", padding="10")
+        task_queue_frame = ttk.LabelFrame(self.parent_frame, text="任务队列", padding="6")
         task_queue_frame.pack(fill='both', expand=True)
         
         # 任务队列列表
@@ -41,45 +42,45 @@ class TaskManagerGUI:
         
         self.task_queue_listbox = tk.Listbox(
             list_container,
-            height=8,
-            font=('Arial', 10),
+            height=10,
             yscrollcommand=scrollbar.set
         )
+        configure_listbox(self.task_queue_listbox)
         self.task_queue_listbox.pack(side=tk.LEFT, fill='both', expand=True)
         scrollbar.config(command=self.task_queue_listbox.yview)
         
         # 队列信息显示
-        self.queue_info_label = ttk.Label(task_queue_frame, text="队列: 0个任务", font=('Arial', 9))
+        self.queue_info_label = ttk.Label(task_queue_frame, text="队列: 0个任务", style='Muted.TLabel')
         self.queue_info_label.pack(anchor=tk.W, pady=(5, 0))
         
         # 任务队列操作按钮
         queue_btn_frame = ttk.Frame(self.parent_frame)
-        queue_btn_frame.pack(fill='x', pady=(10, 0))
+        queue_btn_frame.pack(fill='x', pady=(6, 0))
         
-        add_task_btn = ttk.Button(queue_btn_frame, text="添加任务", command=self.show_add_task_dialog)
+        add_task_btn = ttk.Button(queue_btn_frame, text="添加任务", command=self.show_add_task_dialog, style='Primary.TButton')
         add_task_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        edit_task_btn = ttk.Button(queue_btn_frame, text="设置选中", command=self.show_edit_task_dialog)
+        edit_task_btn = ttk.Button(queue_btn_frame, text="设置选中", command=self.show_edit_task_dialog, style='Outline.TButton')
         edit_task_btn.pack(side=tk.LEFT, padx=(0, 10))
         
-        delete_task_btn = ttk.Button(queue_btn_frame, text="删除选中", command=self.delete_selected_task)
+        delete_task_btn = ttk.Button(queue_btn_frame, text="删除选中", command=self.delete_selected_task, style='Danger.TButton')
         delete_task_btn.pack(side=tk.LEFT)
         
         # 执行控制
-        exec_frame = ttk.LabelFrame(self.parent_frame, text="执行控制", padding="10")
-        exec_frame.pack(fill='x', pady=(10, 0))
+        exec_frame = ttk.LabelFrame(self.parent_frame, text="执行控制", padding="6")
+        exec_frame.pack(fill='x', pady=(6, 0))
         
-        self.llm_start_btn = ttk.Button(exec_frame, text="▶ 启动推理", command=self.start_llm_execution, style='Security.TButton')
+        self.llm_start_btn = ttk.Button(exec_frame, text="▶ 启动推理", command=self.start_llm_execution, style='Success.TButton')
         self.llm_start_btn.pack(fill='x', pady=(0, 5))
         
-        self.llm_stop_btn = ttk.Button(exec_frame, text="■ 停止执行", command=self.stop_llm_execution, style='Stop.TButton')
+        self.llm_stop_btn = ttk.Button(exec_frame, text="■ 停止执行", command=self.stop_llm_execution, style='Danger.TButton')
         self.llm_stop_btn.pack(fill='x', pady=(5, 0))
         self.llm_stop_btn.config(state='disabled')
         
         # 执行次数设置
         count_frame = ttk.Frame(exec_frame)
         count_frame.pack(fill='x', pady=(5, 0))
-        ttk.Label(count_frame, text="执行次数:", font=('Arial', 9)).pack(side=tk.LEFT)
+        ttk.Label(count_frame, text="执行次数:", style='Muted.TLabel').pack(side=tk.LEFT)
         self.execution_count_var = tk.IntVar(value=self.task_queue_manager.get_execution_count())
         execution_count_spinbox = ttk.Spinbox(count_frame, from_=1, to=99, textvariable=self.execution_count_var, width=5)
         execution_count_spinbox.pack(side=tk.LEFT, padx=(5, 0))
@@ -118,9 +119,11 @@ class TaskManagerGUI:
         dialog.geometry("500x400")
         dialog.transient(self.parent_frame.winfo_toplevel())
         dialog.grab_set()
+        # 设置对话框背景色
+        dialog.configure(bg=COLORS['surface_container_high'])
         
         # 任务列表
-        ttk.Label(dialog, text="选择要添加的任务:", font=('Arial', 10, 'bold')).pack(pady=10)
+        ttk.Label(dialog, text="选择要添加的任务:", style='Header.TLabel').pack(pady=10)
         
         list_frame = ttk.Frame(dialog)
         list_frame.pack(fill='both', expand=True, padx=10, pady=5)
@@ -130,9 +133,9 @@ class TaskManagerGUI:
         
         task_listbox = tk.Listbox(
             list_frame,
-            font=('Arial', 10),
             yscrollcommand=scrollbar.set
         )
+        configure_listbox(task_listbox)
         task_listbox.pack(side=tk.LEFT, fill='both', expand=True)
         scrollbar.config(command=task_listbox.yview)
         
@@ -157,7 +160,7 @@ class TaskManagerGUI:
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=10)
         
-        ttk.Button(btn_frame, text="添加", command=on_add, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="添加", command=on_add, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
         
     def show_edit_task_dialog(self):
@@ -193,7 +196,7 @@ class TaskManagerGUI:
         dialog.grab_set()
         
         # 任务名称
-        ttk.Label(dialog, text="任务名称:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
+        ttk.Label(dialog, text="任务名称:", style='Header.TLabel').pack(pady=(10, 5))
         name_var = tk.StringVar(value=task.get('custom_name', task.get('name', '')))
         name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
         name_entry.pack(pady=5)
@@ -204,7 +207,7 @@ class TaskManagerGUI:
         execute_once_check.pack(pady=(5, 10), anchor=tk.W)
         
         # 任务变量
-        ttk.Label(dialog, text="任务变量:", font=('Arial', 10, 'bold')).pack(pady=(10, 5))
+        ttk.Label(dialog, text="任务变量:", style='Header.TLabel').pack(pady=(10, 5))
         
         variables_frame = ttk.Frame(dialog)
         variables_frame.pack(fill='both', expand=True, padx=10, pady=5)
@@ -298,7 +301,7 @@ class TaskManagerGUI:
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=10)
         
-        ttk.Button(btn_frame, text="保存", command=on_save, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="保存", command=on_save, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
         
     def sync_all_tasks_definitions_from_server(self) -> bool:

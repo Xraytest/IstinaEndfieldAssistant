@@ -26,19 +26,20 @@ except ImportError:
 class ScreenCapture:
     """屏幕捕获器"""
     
-    def __init__(self, adb_manager: ADBDeviceManager, quality: int = 80, max_size: int = 1024):
+    def __init__(self, adb_manager: ADBDeviceManager, max_size: int = 1024):
         """
         初始化屏幕捕获器
         
         Args:
             adb_manager: ADB设备管理器实例
-            quality: JPEG压缩质量 (1-100)
             max_size: 图像最大尺寸（像素）
         """
         self.adb_manager = adb_manager
-        self.quality = quality
         self.max_size = max_size
         self.logger = get_logger()
+        self.last_image_size = None  # 存储最后一次处理的图像尺寸
+        self.last_capture_time = 0   # 上次截图时间戳
+        self.min_interval = 1.0      # 最小截图间隔（秒）
         
     def capture_screen(self, device_serial: str) -> Optional[bytes]:
         """
@@ -54,7 +55,17 @@ class ScreenCapture:
             self.logger.exception(LogCategory.MAIN, "PIL库未初始化")
             return None
         
-        start_time = time.time()
+        current_time = time.time()
+        # 检查截图间隔
+        time_since_last = current_time - self.last_capture_time
+        if time_since_last < self.min_interval:
+            wait_time = self.min_interval - time_since_last
+            self.logger.debug(LogCategory.MAIN, f"截图间隔不足，等待 {wait_time:.3f} 秒",
+                           device_serial=device_serial)
+            time.sleep(wait_time)
+            current_time = time.time()
+        
+        start_time = current_time
         self.logger.debug(LogCategory.MAIN, "开始屏幕捕获", device_serial=device_serial)
             
         # 执行ADB截图命令
@@ -92,12 +103,15 @@ class ScreenCapture:
             original_size = image.size
             processed_image = self._process_image(image)
             processed_size = processed_image.size
-            
+
+            # 存储实际发送给服务端的图像尺寸
+            self.last_image_size = processed_size
+
             self.logger.debug(LogCategory.MAIN, "图像处理完成",
                            device_serial=device_serial,
                            original_size=f"{original_size[0]}x{original_size[1]}",
                            processed_size=f"{processed_size[0]}x{processed_size[1]}",
-                           quality=self.quality)
+                           format="PNG")
             
             # 转换为Base64
             base64_data = self._image_to_base64(processed_image)
@@ -111,6 +125,9 @@ class ScreenCapture:
             
             self.logger.log_performance("screen_capture", total_duration_ms,
                                       device_serial=device_serial)
+            
+            # 更新最后截图时间（截图完成后的时间，确保延时从上次截图完成后开始计时）
+            self.last_capture_time = time.time()
             
             return base64_data
             
@@ -157,7 +174,7 @@ class ScreenCapture:
         
     def _image_to_base64(self, image) -> bytes:
         """
-        将PIL图像转换为Base64编码的JPEG
+        将PIL图像转换为Base64编码的PNG（无损压缩）
         
         Args:
             image: PIL图像
@@ -168,37 +185,39 @@ class ScreenCapture:
         start_time = time.time()
         
         buffer = io.BytesIO()
-        image.save(buffer, format='JPEG', quality=self.quality, optimize=True)
-        jpeg_data = buffer.getvalue()
-        base64_data = base64.b64encode(jpeg_data)
+        image.save(buffer, format='PNG')
+        png_data = buffer.getvalue()
+        base64_data = base64.b64encode(png_data)
         
         duration_ms = (time.time() - start_time) * 1000
-        self.logger.log_performance("image_to_base64", duration_ms, quality=self.quality)
+        self.logger.log_performance("image_to_base64", duration_ms, format="PNG")
         
         return base64_data
         
     def get_device_info(self, device_serial: str) -> dict:
         """
         获取设备信息
-        
+
         Args:
             device_serial: 设备序列号
-            
+
         Returns:
-            包含分辨率和型号的字典
+            包含分辨率、型号和图像尺寸的字典
         """
         self.logger.debug(LogCategory.MAIN, "获取设备信息", device_serial=device_serial)
         resolution = self.adb_manager.get_device_resolution(device_serial)
         model = self.adb_manager.get_device_model(device_serial)
-        
+
         device_info = {
             'resolution': list(resolution) if resolution else [0, 0],
-            'model': model
+            'model': model,
+            'image_size': list(self.last_image_size) if self.last_image_size else None
         }
-        
+
         self.logger.debug(LogCategory.MAIN, "设备信息获取完成",
                         device_serial=device_serial,
                         resolution=device_info['resolution'],
-                        model=model)
-        
+                        model=model,
+                        image_size=device_info['image_size'])
+
         return device_info

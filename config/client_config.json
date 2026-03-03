@@ -11,12 +11,22 @@
     "path": "3rd-part/Git/bin/git.exe"
   },
   "screen": {
-    "quality": 80,
     "max_size": 1024
   },
+  "touch": {
+    "maa_style": {
+      "enabled": true,
+      "press_duration_ms": 50,
+      "press_jitter_px": 2,
+      "swipe_delay_min_ms": 100,
+      "swipe_delay_max_ms": 300,
+      "use_normalized_coords": true
+    },
+    "fail_on_error": true
+  },
   "security": {
-    "press_duration_ms": 100,
-    "press_jitter_px": 2
+    "enable_safe_press": true,
+    "enable_jitter": true
   },
   "communication": {
     "password": "default_password"

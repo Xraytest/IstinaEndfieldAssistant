@@ -33,6 +33,51 @@ class SettingsManagerGUI:
         
     def setup_ui(self):
         """设置设置页面UI"""
+        # 触控设置区域
+        touch_frame = ttk.LabelFrame(self.parent_frame, text="触控设置", padding="15")
+        touch_frame.pack(fill='x', pady=(0, 20))
+        
+        # 触控方式选择
+        touch_method_frame = ttk.Frame(touch_frame)
+        touch_method_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(touch_method_frame, text="触控方式:", style='Header.TLabel').pack(side=tk.LEFT)
+        
+        self.touch_method_var = tk.StringVar()
+        touch_method_options = ["maatouch", "adb_input"]
+        self.touch_method_combo = ttk.Combobox(
+            touch_method_frame,
+            textvariable=self.touch_method_var,
+            values=touch_method_options,
+            state="readonly",
+            width=20
+        )
+        self.touch_method_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 设置当前值
+        current_touch_method = self.config.get('touch', {}).get('touch_method', 'maatouch')
+        self.touch_method_var.set(current_touch_method)
+        
+        # 失败处理选项
+        fail_on_error_frame = ttk.Frame(touch_frame)
+        fail_on_error_frame.pack(fill='x', pady=(0, 10))
+        self.fail_on_error_var = tk.BooleanVar()
+        current_fail_on_error = self.config.get('touch', {}).get('fail_on_error', True)
+        self.fail_on_error_var.set(current_fail_on_error)
+        
+        ttk.Checkbutton(
+            fail_on_error_frame,
+            text="失败时停止执行（不回退到ADB）",
+            variable=self.fail_on_error_var,
+            style='TCheckbutton'
+        ).pack(side=tk.LEFT)
+        
+        # 保存按钮
+        save_btn = ttk.Button(touch_frame, text="保存设置", command=self.save_touch_settings, style='Primary.TButton')
+        save_btn.pack(side=tk.LEFT, pady=(10, 0))
+        
+        # 分隔线
+        ttk.Separator(self.parent_frame, orient='horizontal').pack(fill='x', pady=10)
+        
         # 版本信息区域
         version_frame = ttk.LabelFrame(self.parent_frame, text="版本信息", padding="15")
         version_frame.pack(fill='x', pady=(0, 20))
@@ -40,27 +85,27 @@ class SettingsManagerGUI:
         # 当前版本
         current_version_frame = ttk.Frame(version_frame)
         current_version_frame.pack(fill='x', pady=(0, 10))
-        ttk.Label(current_version_frame, text="当前版本:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
-        self.current_version_label = ttk.Label(current_version_frame, text="加载中...", font=('Arial', 10))
+        ttk.Label(current_version_frame, text="当前版本:", style='Header.TLabel').pack(side=tk.LEFT)
+        self.current_version_label = ttk.Label(current_version_frame, text="加载中...", style='Muted.TLabel')
         self.current_version_label.pack(side=tk.LEFT, padx=(10, 0))
         
         # 最新版本
         latest_version_frame = ttk.Frame(version_frame)
         latest_version_frame.pack(fill='x', pady=(0, 10))
-        ttk.Label(latest_version_frame, text="最新版本:", font=('Arial', 10, 'bold')).pack(side=tk.LEFT)
-        self.latest_version_label = ttk.Label(latest_version_frame, text="检查中...", font=('Arial', 10))
+        ttk.Label(latest_version_frame, text="最新版本:", style='Header.TLabel').pack(side=tk.LEFT)
+        self.latest_version_label = ttk.Label(latest_version_frame, text="检查中...", style='Muted.TLabel')
         self.latest_version_label.pack(side=tk.LEFT, padx=(10, 0))
         
         # 更新状态
-        self.update_status_label = ttk.Label(version_frame, text="", foreground='blue', font=('Arial', 9))
+        self.update_status_label = ttk.Label(version_frame, text="", style='Muted.TLabel')
         self.update_status_label.pack(fill='x', pady=(5, 10))
         
         # 检查更新按钮
-        check_update_btn = ttk.Button(version_frame, text="检查更新", command=self.check_for_updates)
+        check_update_btn = ttk.Button(version_frame, text="检查更新", command=self.check_for_updates, style='Outline.TButton')
         check_update_btn.pack(side=tk.LEFT, padx=(0, 10))
         
         # 更新按钮
-        self.update_btn = ttk.Button(version_frame, text="更新到最新版本", command=self.update_client, state='disabled')
+        self.update_btn = ttk.Button(version_frame, text="更新到最新版本", command=self.update_client, state='disabled', style='Primary.TButton')
         self.update_btn.pack(side=tk.LEFT)
         
         # 初始化版本信息
@@ -243,3 +288,26 @@ class SettingsManagerGUI:
         except Exception as e:
             self.log_callback(f"重启客户端失败: {e}", "version", "ERROR")
             messagebox.showerror("重启失败", f"重启客户端时发生错误:\n{str(e)}\n请手动重启客户端。")
+            
+    def save_touch_settings(self):
+        """保存触控设置"""
+        try:
+            # 更新配置
+            if 'touch' not in self.config:
+                self.config['touch'] = {}
+            
+            self.config['touch']['touch_method'] = self.touch_method_var.get()
+            self.config['touch']['fail_on_error'] = self.fail_on_error_var.get()
+            
+            # 保存到文件
+            config_path = os.path.join(os.path.dirname(__file__), "..", "config", "client_config.json")
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2, ensure_ascii=False)
+            
+            # 显示成功消息
+            messagebox.showinfo("设置已保存", "触控设置已成功保存！\n更改将在下次启动时生效。")
+            self.log_callback("触控设置已保存", "settings", "INFO")
+            
+        except Exception as e:
+            self.log_callback(f"保存触控设置失败: {e}", "settings", "ERROR")
+            messagebox.showerror("保存失败", f"保存触控设置时发生错误:\n{str(e)}")

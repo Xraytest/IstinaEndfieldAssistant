@@ -14,6 +14,11 @@ class ExecutionManager:
         self.communicator = communicator
         self.auth_manager = auth_manager
         
+        # 运行中操作跟踪
+        self.running_operations = {}  # {operation_id: operation_info}
+        self.next_operation_id = 1
+        self.running_operations_lock = threading.Lock()
+        
         self.client_running = False
         self.client_thread = None
         
@@ -48,7 +53,96 @@ class ExecutionManager:
     def stop_execution(self):
         """停止执行"""
         self.client_running = False
-        self.executed_once_tasks.clear()  # 清空已执行一次的任务记录
+        
+    def _start_operation(self, action_type: str, params: dict) -> int:
+        """开始一个操作并返回操作ID"""
+        with self.running_operations_lock:
+            operation_id = self.next_operation_id
+            self.next_operation_id += 1
+            
+            operation_info = {
+                'id': operation_id,
+                'action_type': action_type,
+                'params': params.copy(),
+                'start_time': time.time(),
+                'status': 'running'
+            }
+            self.running_operations[operation_id] = operation_info
+            return operation_id
+    
+    def _complete_operation(self, operation_id: int):
+        """标记操作完成"""
+        with self.running_operations_lock:
+            if operation_id in self.running_operations:
+                self.running_operations[operation_id]['status'] = 'completed'
+                self.running_operations[operation_id]['end_time'] = time.time()
+    
+    def get_running_operations(self) -> list:
+        """获取当前运行中的操作列表"""
+        with self.running_operations_lock:
+            return list(self.running_operations.values())
+    
+    def cancel_operation(self, operation_id: int) -> bool:
+        """取消指定的操作（目前仅标记为已取消，实际取消需要在触控执行器中实现）"""
+        with self.running_operations_lock:
+            if operation_id in self.running_operations:
+                self.running_operations[operation_id]['status'] = 'cancelled'
+                self.running_operations[operation_id]['end_time'] = time.time()
+                return True
+            return False
+    
+    def update_operation_params(self, operation_id: int, new_params: dict) -> bool:
+        """更新操作参数（仅对仍在运行的操作有效）"""
+        with self.running_operations_lock:
+            if (operation_id in self.running_operations and
+                self.running_operations[operation_id]['status'] == 'running'):
+                self.running_operations[operation_id]['params'].update(new_params)
+                return True
+            return False
+    
+    def query_running_operations(self) -> list:
+        """向服务器查询当前运行中的操作"""
+        if not self.communicator:
+            return []
+        
+        request_data = {
+            "user_id": self.auth_manager.get_user_id(),
+            "session_id": self.auth_manager.get_session_id()
+        }
+        
+        response = self.communicator.send_request("get_running_operations", request_data)
+        if response and response.get('status') == 'success':
+            return response.get('data', {}).get('running_operations', [])
+        return []
+    
+    def cancel_remote_operation(self, operation_id: int) -> bool:
+        """取消远程服务器上的操作"""
+        if not self.communicator:
+            return False
+        
+        request_data = {
+            "user_id": self.auth_manager.get_user_id(),
+            "session_id": self.auth_manager.get_session_id(),
+            "operation_id": operation_id
+        }
+        
+        response = self.communicator.send_request("cancel_operation", request_data)
+        return response and response.get('status') == 'success'
+    
+    def update_remote_operation_params(self, operation_id: int, new_params: dict) -> bool:
+        """更新远程服务器上操作的参数"""
+        if not self.communicator:
+            return False
+        
+        request_data = {
+            "user_id": self.auth_manager.get_user_id(),
+            "session_id": self.auth_manager.get_session_id(),
+            "operation_id": operation_id,
+            "new_params": new_params
+        }
+        
+        response = self.communicator.send_request("update_operation_params", request_data)
+        return response and response.get('status') == 'success'
         
     def is_running(self):
         """检查是否正在运行"""
@@ -113,6 +207,8 @@ class ExecutionManager:
                         if not screen_data:
                             log_callback("屏幕捕获失败", "execution", "ERROR")
                             break
+                        # 获取实际发送的图像尺寸
+                        image_size = self.screen_capture.last_image_size
                         # 捕获成功后，调用预览更新回调
                         if preview_update_callback:
                             preview_update_callback(screen_data)
@@ -123,8 +219,11 @@ class ExecutionManager:
                     # 获取设备信息
                     if self.screen_capture and current_device:
                         device_info = self.screen_capture.get_device_info(current_device)
+                        # 确保 image_size 在 device_info 中
+                        if 'image_size' not in device_info or device_info['image_size'] is None:
+                            device_info['image_size'] = image_size
                     else:
-                        device_info = {'resolution': [1080, 1920], 'model': 'Unknown'}
+                        device_info = {'resolution': [1080, 1920], 'model': 'Unknown', 'image_size': image_size}
                     
                     # 构建请求数据
                     request_data = {
@@ -170,10 +269,35 @@ class ExecutionManager:
                     # 执行触控动作
                     touch_actions = response.get('data', {}).get('touch_actions', [])
                     if touch_actions and self.touch_executor and current_device:
-                        success = self.touch_executor.execute_touch_actions(current_device, touch_actions)
-                        if not success:
-                            log_callback("触控执行失败", "execution", "ERROR")
-                            break
+                        # 使用新的 execute_tool_call 方法
+                        for action in touch_actions:
+                            action_type = action.get('action', '')
+                            params = action.get('parameters', {})
+                            
+                            # 转换坐标格式（兼容旧格式）
+                            if 'coordinates' in action:
+                                params['coordinates'] = action['coordinates']
+                            if 'end_coordinates' in action.get('parameters', {}):
+                                params['end_coordinates'] = action['parameters']['end_coordinates']
+                            
+                            # 生成操作ID并记录运行中操作
+                            operation_id = self._start_operation(action_type, params)
+                            
+                            # 执行工具调用
+                            success = self.touch_executor.execute_tool_call(
+                                current_device, action_type, params
+                            )
+                            
+                            # 标记操作完成
+                            self._complete_operation(operation_id)
+                            
+                            if not success:
+                                # 根据动作类型显示更准确的错误消息
+                                if action_type in ('click', 'swipe', 'long_press', 'drag'):
+                                    log_callback(f"MaaTouch 执行失败: {action_type}", "execution", "ERROR")
+                                else:
+                                    log_callback(f"操作执行失败: {action_type}", "execution", "ERROR")
+                                break
                             
                     # 检查任务是否完成
                     task_completed = response.get('data', {}).get('task_completed', False)

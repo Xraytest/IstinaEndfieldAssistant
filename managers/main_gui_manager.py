@@ -16,6 +16,7 @@ from managers.device_manager_gui import DeviceManagerGUI
 from managers.task_manager_gui import TaskManagerGUI
 from managers.settings_manager_gui import SettingsManagerGUI
 from managers.cloud_service_manager_gui import CloudServiceManagerGUI
+from theme import configure_scrolledtext, configure_canvas
 
 
 class MainGUIManager:
@@ -40,7 +41,6 @@ class MainGUIManager:
         self.status_bar = None
         self.content_notebook = None
         self.log_text = None
-        self.vision_canvas = None
         self.current_task_label = None
         self.progress_label = None
         self.progress_var = None
@@ -58,7 +58,7 @@ class MainGUIManager:
         """设置主UI"""
         # 主notebook
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=5, pady=5)
+        self.notebook.pack(fill='both', expand=True, padx=3, pady=3)
         
         # 页面框架
         self.execution_page_frame = ttk.Frame(self.notebook)
@@ -71,7 +71,7 @@ class MainGUIManager:
         self.notebook.add(self.cloud_service_page_frame, text='云服务')
         
         # 状态栏
-        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W)
+        self.status_bar = ttk.Label(self.root, text="就绪", relief=tk.SUNKEN, anchor=tk.W, style='Status.TLabel')
         self.status_bar.pack(side=tk.BOTTOM, fill=tk.X)
         
         # 设置各页面
@@ -87,7 +87,7 @@ class MainGUIManager:
         
     def setup_execution_page(self):
         """设置执行控制台页面"""
-        frame = ttk.Frame(self.execution_page_frame, padding="10")
+        frame = ttk.Frame(self.execution_page_frame, padding="6")
         frame.pack(fill='both', expand=True)
         
         # 左右分栏：任务队列在左，设备管理在右
@@ -123,31 +123,26 @@ class MainGUIManager:
         
         # Content Notebook（保持在设备管理区域下方）
         content_frame = ttk.Frame(device_frame)
-        content_frame.pack(fill='both', expand=True, pady=(10, 0))
+        content_frame.pack(fill='both', expand=True, pady=(6, 0))
         
         # Content Notebook
         self.content_notebook = ttk.Notebook(content_frame)
         self.content_notebook.pack(fill='both', expand=True)
-        
-        # 执行日志（第一个标签页）
+
+        # 执行日志
         log_frame = ttk.Frame(self.content_notebook)
         self.content_notebook.add(log_frame, text='📋 执行日志')
-        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD, font=('Consolas', 9))
+        self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD)
+        configure_scrolledtext(self.log_text)
         self.log_text.pack(fill='both', expand=True)
-        
-        # 设备视觉
-        vision_frame = ttk.Frame(self.content_notebook)
-        self.content_notebook.add(vision_frame, text='📱 设备视觉')
-        self.vision_canvas = tk.Canvas(vision_frame, bg='black', highlightthickness=0)
-        self.vision_canvas.pack(fill='both', expand=True)
-        
+
         # 当前任务状态
         status_frame = ttk.Frame(frame)
-        status_frame.pack(fill='x', pady=(10, 0))
-        
+        status_frame.pack(fill='x', pady=(6, 0))
+
         self.current_task_label = ttk.Label(status_frame, text="当前任务: 无", style='Status.TLabel')
         self.current_task_label.pack(side=tk.LEFT)
-        
+
         self.progress_var = tk.StringVar(value="进度: 0/0")
         self.progress_label = ttk.Label(status_frame, textvariable=self.progress_var, style='Status.TLabel')
         self.progress_label.pack(side=tk.RIGHT)
@@ -180,11 +175,7 @@ class MainGUIManager:
     def get_log_text_widget(self):
         """获取日志文本控件"""
         return self.log_text
-        
-    def get_vision_canvas(self):
-        """获取设备视觉画布"""
-        return self.vision_canvas
-        
+
     def update_current_task_display(self, task_name):
         """更新当前任务显示"""
         self.current_task_label.config(text=f"当前任务: {task_name}")
@@ -217,24 +208,18 @@ class MainGUIManager:
                self.log_callback(f"已有设备连接: {current_device}，跳过自动连接", "device", "INFO")
                return
                
-           # 检查上次的设备是否可用
-           devices = self.device_manager.scan_devices()
-           available_devices = [d['serial'] for d in devices]
-           self.log_callback(f"扫描到 {len(available_devices)} 个可用设备", "device", "INFO")
+           # 直接尝试连接上次设备（不验证是否在可用设备列表中）
+           self.log_callback(f"尝试自动连接上次设备: {last_device}", "device", "INFO")
            
-           if last_device in available_devices:
-               # 自动连接设备
-               if self.device_manager.connect_device(last_device):
-                   # 更新GUI状态
-                   if self.device_gui:
-                       self.device_gui.update_device_status(f"已连接: {last_device}", 'green')
-                       self.device_gui.update_screen_preview()
-                   self.log_callback(f"自动连接到上次的设备: {last_device}", "device", "INFO")
-               else:
-                   self.log_callback(f"连接上次设备 {last_device} 失败", "device", "ERROR")
+           # 使用手动连接模式，不验证设备是否存在
+           if self.device_manager.connect_device_manual(last_device):
+               # 更新GUI状态
+               if self.device_gui:
+                   self.device_gui.update_device_status(f"已连接: {last_device}", 'green')
+                   self.device_gui.start_preview_refresh()
+               self.log_callback(f"自动连接到上次的设备: {last_device}", "device", "INFO")
            else:
-               self.log_callback(f"上次连接的设备 {last_device} 不在可用设备列表中", "device", "WARNING")
-               # 保留上次成功的设备缓存，即使当前不可用
+               self.log_callback(f"连接上次设备 {last_device} 失败", "device", "ERROR")
                    
        except Exception as e:
            self.log_callback(f"自动扫描和连接设备时出错: {e}", "device", "ERROR")

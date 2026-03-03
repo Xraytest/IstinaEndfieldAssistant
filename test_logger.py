@@ -63,7 +63,9 @@ def test_logger_initialization():
     
     assert logger is not None, "日志系统初始化失败"
     assert logger._config["enabled"] == True, "日志系统未启用"
-    assert logger._config["log_dir"] == "test_logs", "日志目录配置错误"
+    # log_dir现在会被转换为绝对路径
+    expected_log_dir = os.path.join(current_dir, "test_logs")
+    assert logger._config["log_dir"] == expected_log_dir, f"日志目录配置错误: {logger._config['log_dir']} != {expected_log_dir}"
     
     print("[PASS] 日志系统初始化测试通过")
     

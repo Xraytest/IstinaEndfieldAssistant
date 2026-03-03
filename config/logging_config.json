@@ -2,6 +2,7 @@
   "enabled": true,
   "log_dir": "logs",
   "retention_days": 3,
+  "cleanup_interval_hours": 24,
   "global_level": "DEBUG",
   "handlers": {
     "file": {

@@ -4,6 +4,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import base64
 import io
+from theme import configure_canvas
 
 
 class DeviceManagerGUI:
@@ -31,8 +32,8 @@ class DeviceManagerGUI:
     def setup_ui(self):
         """设置设备管理UI"""
         # 设备连接区域
-        conn_frame = ttk.LabelFrame(self.parent_frame, text="设备连接", padding="10")
-        conn_frame.pack(fill='x', pady=(0, 10))
+        conn_frame = ttk.LabelFrame(self.parent_frame, text="设备连接", padding="6")
+        conn_frame.pack(fill='x', pady=(0, 6))
         
         # 扫描设备按钮和手动输入
         scan_btn = ttk.Button(conn_frame, text="扫描设备", command=self.scan_devices)
@@ -49,15 +50,15 @@ class DeviceManagerGUI:
         manual_connect_btn.pack(side=tk.LEFT)
         
         # 连接状态
-        self.device_status_label = ttk.Label(conn_frame, text="未连接设备", foreground='gray')
+        self.device_status_label = ttk.Label(conn_frame, text="未连接设备", style='Muted.TLabel')
         self.device_status_label.pack(side=tk.LEFT)
         
         # 设备列表
-        device_list_frame = ttk.LabelFrame(self.parent_frame, text="可用设备", padding="10")
-        device_list_frame.pack(fill='both', expand=True, pady=(0, 10))
+        device_list_frame = ttk.LabelFrame(self.parent_frame, text="可用设备", padding="6")
+        device_list_frame.pack(fill='both', expand=True, pady=(0, 6))
         
         # 设备列表
-        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=4)
+        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=3)
         self.device_tree.heading('serial', text='设备序列号')
         self.device_tree.heading('model', text='设备型号')
         self.device_tree.heading('state', text='状态')
@@ -73,7 +74,7 @@ class DeviceManagerGUI:
         
         # 设备操作按钮
         device_btn_frame = ttk.Frame(self.parent_frame)
-        device_btn_frame.pack(fill='x', pady=(0, 10))
+        device_btn_frame.pack(fill='x', pady=(0, 6))
         
         connect_device_btn = ttk.Button(device_btn_frame, text="连接选中设备", command=self.connect_selected_device)
         connect_device_btn.pack(side=tk.LEFT, padx=(0, 10))
@@ -82,10 +83,11 @@ class DeviceManagerGUI:
         disconnect_device_btn.pack(side=tk.LEFT)
         
         # 屏幕预览（缩小比例）
-        preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="10")
+        preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="6")
         preview_frame.pack(fill='both', expand=True)
         
-        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=200)
+        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=150)
+        configure_canvas(self.preview_canvas)
         self.preview_canvas.pack(fill='both', expand=True)
         
     def scan_devices(self):
@@ -96,6 +98,9 @@ class DeviceManagerGUI:
         for item in self.device_tree.get_children():
             self.device_tree.delete(item)
             
+        # 获取上次连接的设备
+        last_connected = self.device_manager.get_last_connected_device()
+        
         # 添加设备到列表
         last_device_selected = False
         for device in devices:
@@ -105,7 +110,6 @@ class DeviceManagerGUI:
                 device['state']
             ))
             # 如果这是上次连接的设备，自动选中它
-            last_connected = self.device_manager.get_last_connected_device()
             if last_connected and device['serial'] == last_connected:
                 self.device_tree.selection_set(item_id)
                 last_device_selected = True
@@ -117,9 +121,23 @@ class DeviceManagerGUI:
         self.log_callback(f"发现 {len(devices)} 个设备", "device", "INFO")
         
     def connect_selected_device(self):
-        """连接选中的设备"""
+        """连接选中的设备，如果没有选中则尝试连接上次设备"""
         selection = self.device_tree.selection()
+        
+        # 如果没有选中设备，尝试连接上次连接的设备
         if not selection:
+            last_connected = self.device_manager.get_last_connected_device()
+            if last_connected:
+                self.log_callback(f"未选择设备，尝试连接上次设备: {last_connected}", "device", "INFO")
+                # 使用手动连接模式，不验证设备是否存在
+                if self.device_manager.connect_device_manual(last_connected):
+                    self.update_device_status(f"已连接: {last_connected}", color='success')
+                    self.log_callback(f"成功连接到上次设备: {last_connected}", "device", "INFO")
+                    # 启动屏幕预览自动刷新
+                    self.start_preview_refresh()
+                    return
+                else:
+                    self.log_callback(f"连接上次设备失败: {last_connected}", "device", "ERROR")
             messagebox.showwarning("警告", "请先选择一个设备")
             return
             
@@ -127,7 +145,7 @@ class DeviceManagerGUI:
         device_serial = item['values'][0]
         
         if self.device_manager.connect_device(device_serial):
-            self.update_device_status(f"已连接: {device_serial}")
+            self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
             # 启动屏幕预览自动刷新
             self.start_preview_refresh()
@@ -143,7 +161,7 @@ class DeviceManagerGUI:
             return
             
         if self.device_manager.connect_device_manual(device_serial):
-            self.update_device_status(f"已连接: {device_serial}")
+            self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
             # 启动屏幕预览自动刷新
             self.start_preview_refresh()
@@ -159,12 +177,16 @@ class DeviceManagerGUI:
         self.update_device_status("未连接设备")
         self.log_callback("设备连接已断开", "device", "INFO")
         
-    def update_device_status(self, status_text, color='gray'):
+    def update_device_status(self, status_text, color='muted'):
         """更新设备状态显示"""
-        if color == 'green':
-            self.device_status_label.config(text=status_text, foreground='green')
+        if color == 'success':
+            self.device_status_label.config(text=status_text, style='Success.TLabel')
+        elif color == 'warning':
+            self.device_status_label.config(text=status_text, style='Warning.TLabel')
+        elif color == 'danger':
+            self.device_status_label.config(text=status_text, style='Danger.TLabel')
         else:
-            self.device_status_label.config(text=status_text, foreground=color)
+            self.device_status_label.config(text=status_text, style='Muted.TLabel')
             
     def start_preview_refresh(self):
         """启动屏幕预览自动刷新"""

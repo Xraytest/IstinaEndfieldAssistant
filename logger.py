@@ -313,14 +313,31 @@ class ClientLogger:
         self._handlers: List[LogHandler] = []
         self._device_context = ""
         self._config = self._load_config(config_path)
+        
+        # 将日志目录转换为绝对路径
+        log_dir = self._config.get("log_dir", "logs")
+        if not os.path.isabs(log_dir):
+            # 获取logger.py所在的目录（client目录）
+            client_dir = os.path.dirname(os.path.abspath(__file__))
+            log_dir = os.path.join(client_dir, log_dir)
+        self._config["log_dir"] = log_dir
+        
         self._performance_monitor = PerformanceMonitor()
         self._rotator = LogRotator(
-            self._config.get("log_dir", "logs"),
+            log_dir,
             self._config.get("retention_days", 3)
         )
         
+        # 自动清理线程控制
+        self._cleanup_thread = None
+        self._cleanup_stop_event = threading.Event()
+        self._cleanup_interval = self._config.get("cleanup_interval_hours", 24) * 3600  # 默认24小时
+        
         self._setup_handlers()
         self._clean_old_logs_on_startup()
+        
+        # 启动定期清理线程
+        self._start_cleanup_thread()
     
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         """加载配置"""
@@ -328,6 +345,7 @@ class ClientLogger:
             "enabled": True,
             "log_dir": "logs",
             "retention_days": 3,
+            "cleanup_interval_hours": 24,
             "global_level": "DEBUG",
             "handlers": {
                 "file": {
@@ -400,6 +418,53 @@ class ClientLogger:
                 LogLevel.INFO,
                 LogCategory.MAIN,
                 f"清理旧日志文件: {', '.join(removed)}"
+            )
+    
+    def _start_cleanup_thread(self) -> None:
+        """启动定期清理日志的后台线程"""
+        if self._cleanup_interval > 0:
+            self._cleanup_thread = threading.Thread(
+                target=self._cleanup_worker,
+                daemon=True,
+                name="LogCleanupThread"
+            )
+            self._cleanup_thread.start()
+            self.log(
+                LogLevel.INFO,
+                LogCategory.MAIN,
+                f"日志自动清理线程已启动，清理间隔: {self._cleanup_interval // 3600}小时"
+            )
+    
+    def _cleanup_worker(self) -> None:
+        """定期清理日志的工作线程"""
+        while not self._cleanup_stop_event.is_set():
+            # 等待清理间隔或停止事件
+            self._cleanup_stop_event.wait(self._cleanup_interval)
+            
+            if self._cleanup_stop_event.is_set():
+                break
+            
+            # 执行清理
+            try:
+                removed = self._rotator.clean_old_logs()
+                if removed:
+                    self.log(
+                        LogLevel.INFO,
+                        LogCategory.MAIN,
+                        f"定期清理旧日志文件: {', '.join(removed)}"
+                    )
+            except Exception as e:
+                print(f"定期清理日志异常: {e}")
+    
+    def stop_cleanup_thread(self) -> None:
+        """停止定期清理线程"""
+        if self._cleanup_thread and self._cleanup_thread.is_alive():
+            self._cleanup_stop_event.set()
+            self._cleanup_thread.join(timeout=5)
+            self.log(
+                LogLevel.INFO,
+                LogCategory.MAIN,
+                "日志自动清理线程已停止"
             )
     
     def set_gui_handler(self, log_widget) -> None:
@@ -476,6 +541,14 @@ class ClientLogger:
     def warning(self, category: LogCategory, message: str, **extra) -> None:
         """WARNING级别日志"""
         self.log(LogLevel.WARNING, category, message, extra if extra else None)
+    
+    def error(self, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
+        """ERROR级别日志"""
+        exception_text = None
+        if exc_info:
+            exception_text = traceback.format_exc()
+        
+        self.log(LogLevel.EXCEPTION, category, message, extra if extra else None, exception_text)
     
     def exception(self, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
         """EXCEPTION级别日志"""

@@ -30,7 +30,7 @@ class AuthManagerGUI:
             
         dialog.protocol("WM_DELETE_WINDOW", on_close)
         
-        ttk.Label(dialog, text="请选择操作:", font=('Arial', 12, 'bold')).pack(pady=20)
+        ttk.Label(dialog, text="请选择操作:", style='Header.TLabel').pack(pady=20)
         
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=10)
@@ -48,8 +48,8 @@ class AuthManagerGUI:
             dialog.destroy()
             self.parent.quit()
             
-        ttk.Button(btn_frame, text="注册", command=on_register, style='Action.TButton').pack(side=tk.LEFT, padx=5)
-        ttk.Button(btn_frame, text="登入", command=on_login, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="注册", command=on_register, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="登入", command=on_login, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
         
     def show_register_dialog(self):
@@ -64,7 +64,7 @@ class AuthManagerGUI:
         # 处理窗口关闭事件，使其与取消按钮行为一致
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
         
-        ttk.Label(dialog, text="请输入用户名:", font=('Arial', 10)).pack(pady=10)
+        ttk.Label(dialog, text="请输入用户名:", style='Header.TLabel').pack(pady=10)
         
         username_var = tk.StringVar()
         username_entry = ttk.Entry(dialog, textvariable=username_var, width=30)
@@ -97,7 +97,7 @@ class AuthManagerGUI:
                 
         btn_frame = ttk.Frame(dialog)
         btn_frame.pack(pady=10)
-        ttk.Button(btn_frame, text="注册", command=on_submit, style='Action.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="注册", command=on_submit, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
         ttk.Button(btn_frame, text="取消", command=dialog.destroy).pack(side=tk.LEFT, padx=5)
         
         # 绑定回车键
