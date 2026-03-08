@@ -11,7 +11,7 @@
     "path": "3rd-part/Git/bin/git.exe"
   },
   "screen": {
-    "max_size": 1024
+    "use_original_resolution": true
   },
   "touch": {
     "maa_style": {

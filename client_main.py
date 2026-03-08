@@ -39,7 +39,6 @@ class ReAcrtureClientGUI:
     def __init__(self, root):
         self.root = root
         self.latest_version = None  # 存储最新版本号
-        # 将gui_manager引用添加到root，便于其他组件访问
         self.root.gui_manager = None
         self.root.geometry("1200x800")
         self.root.minsize(1000, 700)
@@ -171,15 +170,12 @@ class ReAcrtureClientGUI:
             
             self.logger.debug(LogCategory.MAIN, "初始化屏幕捕获模块")
             self.screen_capture = ScreenCapture(
-                adb_manager=self.adb_manager,
-                max_size=self.config['screen']['max_size']
+                adb_manager=self.adb_manager
             )
             
             self.logger.debug(LogCategory.MAIN, "初始化触控执行模块（MAA风格）")
-            # 导入MAA风格配置类
             from maafw_touch_adapter import MaaFwTouchConfig
 
-            # 创建MAA风格触控配置
             touch_config = self.config.get('touch', {})
             maa_style_config = touch_config.get('maa_style', {})
 
@@ -257,10 +253,8 @@ class ReAcrtureClientGUI:
                 self.log_message,
                 self  # 传递自身引用以便更新标题
             )
-            # 将gui_manager引用添加到root，便于其他组件访问
             self.root.gui_manager = self.gui_manager
             
-            # 设置GUI日志处理器
             if hasattr(self.gui_manager, 'log_text'):
                 get_logger().set_gui_handler(self.gui_manager.log_text)
             
@@ -330,7 +324,6 @@ class ReAcrtureClientGUI:
         is_logged_in, error_msg = self.auth_manager.check_login_status()
         
         if is_logged_in:
-            # 如果已登录，直接更新UI
             self.logger.debug(LogCategory.MAIN, "已登录状态")
             self.on_login_success()
         elif error_msg and ("网络连接异常" in error_msg or "网络错误" in error_msg):
@@ -359,7 +352,6 @@ class ReAcrtureClientGUI:
     def load_task_queue(self):
         """加载任务队列"""
         self.logger.debug(LogCategory.MAIN, "加载任务队列")
-        # 从本地文件加载持久化的任务队列
         cache_dir = os.path.join(os.path.dirname(__file__), "cache")
         task_queue_file = os.path.join(cache_dir, "task_queue.json")
         
@@ -416,11 +408,9 @@ class ReAcrtureClientGUI:
         """窗口关闭事件"""
         self.logger.info(LogCategory.MAIN, "程序关闭请求")
         
-        # 保存任务队列到本地
         self.task_queue_manager.save_task_queue()
         self.logger.debug(LogCategory.MAIN, "任务队列已保存")
         
-        # 准确检测实际执行状态
         execution_running = False
         if hasattr(self, 'execution_manager') and self.execution_manager:
             execution_running = self.execution_manager.is_running()
@@ -447,7 +437,6 @@ class ReAcrtureClientGUI:
                     self.logger.warning(LogCategory.MAIN, "执行线程未在预期时间内结束")
                     self.log_message("警告: 执行线程未在预期时间内结束", "system", "WARNING")
                     
-                # 安全关闭
                 run_duration = (time.time() - self.start_time) * 1000
                 self.logger.info(LogCategory.MAIN, "程序关闭", run_duration_ms=round(run_duration, 3))
                 self.root.destroy()
