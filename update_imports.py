@@ -22,14 +22,14 @@ IMPORT_MAPPINGS = {
     r'^from communicator import': 'from client.core.communication.communicator import',
     r'^import communicator$': 'from client.core.communication import communicator',
 
-    # Business模块
-    r'^from task_manager import': 'from client.business.task_manager import',
-    r'^import task_manager$': 'from client.business import task_manager',
-    r'^from components\.auth_manager import': 'from client.business.managers.auth_manager import',
-    r'^from components\.device_manager import': 'from client.business.managers.device_manager import',
-    r'^from components\.execution_manager import': 'from client.business.managers.execution_manager import',
-    r'^from components\.task_queue_manager import': 'from client.business.managers.task_queue_manager import',
-    r'^from components\.log_manager import': 'from client.business.managers.log_manager import',
+    # Cloud模块（原Business模块）
+    r'^from task_manager import': 'from client.cloud.task_manager import',
+    r'^import task_manager$': 'from client.cloud import task_manager',
+    r'^from components\.auth_manager import': 'from client.cloud.managers.auth_manager import',
+    r'^from components\.device_manager import': 'from client.cloud.managers.device_manager import',
+    r'^from components\.execution_manager import': 'from client.cloud.managers.execution_manager import',
+    r'^from components\.task_queue_manager import': 'from client.cloud.managers.task_queue_manager import',
+    r'^from components\.log_manager import': 'from client.cloud.managers.log_manager import',
 
     # UI模块
     r'^from theme import': 'from client.ui.theme import',
@@ -61,20 +61,20 @@ def update_file_imports(file_path):
             content, count = pattern.subn(new_import, content)
             if count > 0:
                 modified = True
-                print(f"  ✓ 更新 {count} 处: {old_pattern}")
+                print(f"  OK, Update {count}: {old_pattern}")
 
         # 如果有修改，写回文件
         if modified:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
-            print(f"  已保存: {file_path}")
+            print(f"  Saved: {file_path}")
             return True
         else:
-            print(f"  无需修改: {file_path}")
+            print(f"  No changes: {file_path}")
             return False
 
     except Exception as e:
-        print(f"  ✗ 处理文件失败: {file_path} - {e}")
+        print(f"  ERROR: {file_path} - {e}")
         return False
 
 def process_directory(directory, file_extensions={'.py'}):
