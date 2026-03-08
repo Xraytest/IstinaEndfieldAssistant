@@ -11,7 +11,7 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 import base64
-from logger import get_logger, LogCategory
+from client.core.logger import get_logger, LogCategory
 
 class ClientCommunicator:
     """客户端通信器 - 使用TCP与服务端通信"""

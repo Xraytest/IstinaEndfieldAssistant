@@ -6,7 +6,7 @@ import os
 import time
 import json
 from typing import List, Dict, Optional, Tuple
-from logger import get_logger, LogCategory, LogLevel
+from client.core.logger import get_logger, LogCategory, LogLevel
 
 class ADBDeviceManager:
     """ADB设备管理器"""

@@ -20,8 +20,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from touch_adapter import TouchExecutor, MaaTouchConfig, TouchMethod
-from logger import init_logger, get_logger, LogCategory
+from client.core.touch.touch_adapter import TouchExecutor, MaaTouchConfig, TouchMethod
+from client.core.logger import init_logger, get_logger, LogCategory
 
 
 def test_maa_touch_config():

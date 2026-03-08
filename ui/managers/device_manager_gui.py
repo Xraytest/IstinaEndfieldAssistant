@@ -4,7 +4,7 @@ from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import base64
 import io
-from theme import configure_canvas
+from client.ui.theme import configure_canvas
 
 
 class DeviceManagerGUI:

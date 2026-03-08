@@ -17,7 +17,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from logger import init_logger, get_logger, LogCategory, LogLevel, ClientLogger
+from client.core.logger import init_logger, get_logger, LogCategory, LogLevel, ClientLogger
 
 
 def test_logger_initialization():

@@ -18,19 +18,19 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from logger import init_logger, get_logger, LogCategory, LogLevel
-from adb_manager import ADBDeviceManager
-from screen_capture import ScreenCapture
-from maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
-from task_manager import TaskManager
-from communicator import ClientCommunicator
-from components.auth_manager import AuthManager
-from components.device_manager import DeviceManager
-from components.execution_manager import ExecutionManager
-from components.task_queue_manager import TaskQueueManager
-from managers.main_gui_manager import MainGUIManager
-from managers.auth_manager_gui import AuthManagerGUI
-from theme import setup_ttk_styles, configure_tk_root, COLORS
+from client.core.logger import init_logger, get_logger, LogCategory, LogLevel
+from client.core.adb_manager import ADBDeviceManager
+from client.core.screen_capture import ScreenCapture
+from client.core.touch.maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
+from client.cloud.task_manager import TaskManager
+from client.core.communication.communicator import ClientCommunicator
+from client.cloud.managers.auth_manager import AuthManager
+from client.cloud.managers.device_manager import DeviceManager
+from client.cloud.managers.execution_manager import ExecutionManager
+from client.cloud.managers.task_queue_manager import TaskQueueManager
+from client.ui.managers.main_gui_manager import MainGUIManager
+from client.ui.managers.auth_manager_gui import AuthManagerGUI
+from client.ui.theme import setup_ttk_styles, configure_tk_root, COLORS
 
 
 class ReAcrtureClientGUI:
@@ -348,27 +348,86 @@ class ReAcrtureClientGUI:
         # 更新云服务页面的用户信息显示
         if hasattr(self.gui_manager, 'cloud_service_gui'):
             self.gui_manager.cloud_service_gui.update_user_info_display()
-            
-    def load_task_queue(self):
-        """加载任务队列"""
-        self.logger.debug(LogCategory.MAIN, "加载任务队列")
-        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-        task_queue_file = os.path.join(cache_dir, "task_queue.json")
-        
-        if os.path.exists(task_queue_file):
-            try:
-                with open(task_queue_file, 'r', encoding='utf-8') as f:
-                    task_queue = json.load(f)
-                    for task in task_queue:
-                        self.task_queue_manager.add_task(task)
-                self.logger.info(LogCategory.MAIN, "任务队列加载完成", task_count=len(task_queue))
-                self.log_message("已从本地加载任务队列", "task", "INFO")
-            except Exception as e:
-                self.logger.exception(LogCategory.MAIN, "任务队列加载异常", exc_info=True)
-                self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
-        else:
-            self.logger.debug(LogCategory.MAIN, "任务队列文件不存在", task_queue_file=task_queue_file)
+            def load_task_queue(self):
+                """加载任务队列"""
+                self.logger.debug(LogCategory.MAIN, "加载任务队列")
+                cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+                task_queue_file = os.path.join(cache_dir, "task_queue.json")
                 
+                if os.path.exists(task_queue_file):
+                    try:
+                        with open(task_queue_file, 'r', encoding='utf-8') as f:
+                            task_queue = json.load(f)
+                            for task in task_queue:
+                                self.task_queue_manager.add_task(task)
+                        self.logger.info(LogCategory.MAIN, "任务队列加载完成", task_count=len(task_queue))
+                        self.log_message("已从本地加载任务队列", "task", "INFO")
+                    except Exception as e:
+                        self.logger.exception(LogCategory.MAIN, "任务队列加载异常", exc_info=True)
+                        self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
+                else:
+                    self.logger.debug(LogCategory.MAIN, "任务队列文件不存在，创建推荐日常任务链")
+                    # 创建推荐的日常任务链
+                    recommended_task_chain = [
+                        {
+                            'id': 'task_visit_friends',
+                            'name': '访问好友',
+                            'variables': {
+                                '优先偷菜': '是',
+                                '访问数量': '全部',
+                                '交换线索': '是'
+                            }
+                        },
+                        {
+                            'id': 'task_dijiang_rewards',
+                            'name': '帝江号奖励',
+                            'variables': {
+                                '自动开始交换': '否',
+                                '无控制中枢生产助力': '否',
+                                '线索设置': '是',
+                                '线索发送数量': '3',
+                                '线索库存上限': '3',
+                                '培养目标': '任意',
+                                '自动提取种子': '否'
+                            }
+                        },
+                        {
+                            'id': 'task_credit_shopping',
+                            'name': '积分购物',
+                            'variables': {
+                                '优先购买': '嵌晶玉|武库配额',
+                                '自动领取积分': '是',
+                                '折扣要求': '不限',
+                                '购买黑名单物品': '否',
+                                '黑名单': '',
+                                '保留积分': '否'
+                            }
+                        },
+                        {
+                            'id': 'task_sell_product',
+                            'name': '出售产品',
+                            'variables': {
+                                '出售地区': '四号谷地',
+                                '保留数量': '0'
+                            }
+                        },
+                        {
+                            'id': 'task_daily_rewards',
+                            'name': '每日奖励领取',
+                            'variables': {
+                                '领取邮件奖励': '是',
+                                '领取任务奖励': '是',
+                                '领取送货奖励': '是',
+                                '领取活动奖励': '是',
+                                '领取协议通行证奖励': '是'
+                            }
+                        }
+                    ]
+                    
+                    for task in recommended_task_chain:
+                        self.task_queue_manager.add_task(task)
+                    self.logger.info(LogCategory.MAIN, "推荐日常任务链创建完成", task_count=len(recommended_task_chain))
+                    self.log_message("已创建推荐日常任务链", "task", "INFO")
     def log_message(self, message, category="general", level="INFO"):
         """记录日志消息（兼容旧接口）"""
         # 映射旧的category到新的LogCategory

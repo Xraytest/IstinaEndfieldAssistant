@@ -11,7 +11,7 @@ from pathlib import Path
 
 # 导入communicator模块
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from communicator import ClientCommunicator
+from client.core.communication.communicator import ClientCommunicator
 
 
 class SettingsManagerGUI:
