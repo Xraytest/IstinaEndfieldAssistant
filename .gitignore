@@ -1,3 +1,14 @@
 3rd-part/ADB
 3rd-part/Git
 cache/
+# 日志文件
+core/logs/
+logs/
+debug/
+
+# 测试缓存
+.pytest_cache/
+
+# 其他临时文件
+*.log
+*.tmp

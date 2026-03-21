@@ -17,7 +17,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from client.core.logger import get_logger, LogCategory
+from ..logger import get_logger, LogCategory
 
 
 class MaaFwTouchConfig:
@@ -501,17 +501,39 @@ class MaaFwTouchExecutor:
         if mapped_action == "safe_press" or action == "click":
             # 获取坐标（支持归一化坐标和像素坐标）
             coordinates = params.get("coordinates", {})
+            
+            print(f"[MaaFw触控] click处理: coordinates={coordinates}, type={type(coordinates)}")
 
-            # 归一化坐标
-            if "start" in coordinates and isinstance(coordinates["start"], list):
+            # 情况1: coordinates是列表 [x, y]（VLM返回的归一化坐标格式）
+            if isinstance(coordinates, list) and len(coordinates) >= 2:
+                x, y = coordinates[0], coordinates[1]
+                print(f"[MaaFw触控] 列表格式坐标: x={x}, y={y}")
+                # 判断是归一化坐标还是像素坐标
+                if 0 <= x <= 1 and 0 <= y <= 1:
+                    device_x, device_y = self._normalize_to_pixel_coords(device_serial, x, y)
+                    print(f"[MaaFw触控] 归一化坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
+                else:
+                    device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                    print(f"[MaaFw触控] 像素坐标验证: ({x}, {y}) -> ({device_x}, {device_y})")
+            # 情况2: MAA风格字典格式 {"start": [x, y]}
+            elif isinstance(coordinates, dict) and "start" in coordinates and isinstance(coordinates["start"], list):
                 norm_x, norm_y = coordinates["start"]
                 # 转换为像素坐标
                 device_x, device_y = self._normalize_to_pixel_coords(device_serial, norm_x, norm_y)
+                print(f"[MaaFw触控] MAA格式坐标: ({norm_x}, {norm_y}) -> ({device_x}, {device_y})")
+            # 情况3: 旧格式参数
             else:
-                # 兼容旧格式
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
-                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                x = params.get("x", 0)
+                y = params.get("y", 0)
+                if x == 0 and y == 0 and isinstance(coordinates, list) and len(coordinates) >= 2:
+                    x, y = coordinates[0], coordinates[1]
+                # 判断是归一化坐标还是像素坐标
+                if 0 <= x <= 1 and 0 <= y <= 1:
+                    device_x, device_y = self._normalize_to_pixel_coords(device_serial, x, y)
+                    print(f"[MaaFw触控] 旧格式归一化坐标: ({x}, {y}) -> ({device_x}, {device_y})")
+                else:
+                    device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                    print(f"[MaaFw触控] 旧格式像素坐标: ({x}, {y}) -> ({device_x}, {device_y})")
 
             purpose = params.get("purpose", "点击")
 

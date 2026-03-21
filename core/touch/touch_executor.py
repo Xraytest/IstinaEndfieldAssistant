@@ -22,8 +22,8 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
 
-from client.core.adb_manager import ADBDeviceManager
-from client.core.logger import get_logger, LogCategory
+from ..adb_manager import ADBDeviceManager
+from ..logger import get_logger, LogCategory
 
 
 class TouchMethod(Enum):
@@ -105,6 +105,9 @@ class TouchExecutor:
         Returns:
             操作是否成功
         """
+        # 调试日志：打印点击坐标
+        print(f"[触控执行] safe_press: 目标坐标=({x}, {y}), 目的={purpose}")
+        
         # 应用MAA风格抖动
         jitter = self.config.press_jitter_px
         jitter_x = random.randint(-jitter, jitter)
@@ -114,6 +117,8 @@ class TouchExecutor:
         start_y = y + jitter_y
         end_x = x
         end_y = y
+        
+        print(f"[触控执行] safe_press: 起点=({start_x}, {start_y}), 终点=({end_x}, {end_y})")
         
         # 确保起点和终点不同（避免滑动距离为0）
         if start_x == end_x and start_y == end_y:
@@ -1045,6 +1050,8 @@ class TouchExecutor:
         Returns:
             操作是否成功
         """
+        # 调试日志：打印完整的工具调用信息
+        print(f"[触控执行] 执行工具调用: action={action}, params={params}")
         self.logger.debug(LogCategory.MAIN,
                         f"执行工具调用: {action}")
         
@@ -1066,20 +1073,39 @@ class TouchExecutor:
             # 获取坐标（支持归一化坐标和像素坐标）
             coordinates = params.get("coordinates", {})
             
-            # MAA风格：归一化坐标
-            if "start" in coordinates and isinstance(coordinates["start"], list):
+            print(f"[触控执行] click处理: coordinates={coordinates}, type={type(coordinates)}")
+            
+            # 情况1: coordinates是列表 [x, y]（VLM返回的归一化坐标格式）
+            if isinstance(coordinates, list) and len(coordinates) >= 2:
+                x, y = coordinates[0], coordinates[1]
+                print(f"[触控执行] 列表格式坐标: x={x}, y={y}")
+                # 判断是归一化坐标还是像素坐标
+                if 0 <= x <= 1 and 0 <= y <= 1:
+                    device_x, device_y = self._to_pixel_coords(device_serial, x, y)
+                    print(f"[触控执行] 归一化坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
+                else:
+                    device_x, device_y = self._convert_coordinates(device_serial, x, y)
+                    print(f"[触控执行] 像素坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
+            # 情况2: MAA风格字典格式 {"start": [x, y]}
+            elif isinstance(coordinates, dict) and "start" in coordinates:
                 norm_x, norm_y = coordinates["start"]
-                # 转换为像素坐标
                 device_x, device_y = self._to_pixel_coords(device_serial, norm_x, norm_y)
+                print(f"[触控执行] MAA格式坐标: ({norm_x}, {norm_y}) -> ({device_x}, {device_y})")
+            # 情况3: 旧格式参数
             else:
-                # 兼容旧格式
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
+                x = params.get("x", 0)
+                y = params.get("y", 0)
+                if x == 0 and y == 0:
+                    # 尝试从coordinates获取
+                    if isinstance(coordinates, list) and len(coordinates) >= 2:
+                        x, y = coordinates[0], coordinates[1]
                 device_x, device_y = self._convert_coordinates(device_serial, x, y)
+                print(f"[触控执行] 旧格式坐标: ({x}, {y}) -> ({device_x}, {device_y})")
             
             purpose = params.get("purpose", "点击")
             
             # 执行MAA风格安全按压
+            print(f"[触控执行] 最终执行: device=({device_x}, {device_y})")
             return self.safe_press(device_serial, device_x, device_y, purpose)
         
         elif mapped_action == "safe_swipe" or action == "swipe" or action == "drag":

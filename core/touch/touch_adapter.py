@@ -22,7 +22,7 @@ maa_integration_path = os.path.join(current_dir, 'maa_integration')
 if maa_integration_path not in sys.path:
     sys.path.insert(0, maa_integration_path)
 
-from client.core.logger import get_logger, LogCategory
+from ..logger import get_logger, LogCategory
 
 
 try:

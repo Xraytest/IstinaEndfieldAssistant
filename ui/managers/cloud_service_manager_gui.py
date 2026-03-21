@@ -1,11 +1,11 @@
-"""云服务管理GUI模块 - 处理用户信息和配额显示的UI逻辑"""
+"""云服务管理GUI模块 - MAA风格"""
 import tkinter as tk
 from tkinter import ttk, messagebox
-from client.ui.theme import get_tier_color, get_status_color
+from ..theme import get_tier_color, COLORS, get_font
 
 
 class CloudServiceManagerGUI:
-    """云服务管理GUI类"""
+    """云服务管理GUI类 - MAA风格"""
     
     def __init__(self, parent_frame, auth_manager, log_callback):
         self.parent_frame = parent_frame
@@ -24,41 +24,145 @@ class CloudServiceManagerGUI:
         self.setup_ui()
         
     def setup_ui(self):
-        """设置云服务页面UI"""
-        # 用户信息区域
-        user_info_frame = ttk.LabelFrame(self.parent_frame, text="用户信息", padding="15")
-        user_info_frame.pack(fill='x', pady=(0, 20))
+        """设置云服务页面UI - MAA风格卡片式布局"""
+        # 主容器
+        main_container = tk.Frame(self.parent_frame, bg=COLORS['surface'])
+        main_container.pack(fill='both', expand=True, padx=15, pady=15)
+        
+        # 用户信息区域 - 卡片式
+        user_info_frame = tk.Frame(
+            main_container,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        user_info_frame.pack(fill='x', pady=(0, 15))
+        
+        # 标题栏
+        header_frame = tk.Frame(user_info_frame, bg=COLORS['surface'], height=40)
+        header_frame.pack(fill='x')
+        header_frame.pack_propagate(False)
+        
+        title_label = tk.Label(
+            header_frame,
+            text="👤 用户信息",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        title_label.pack(side=tk.LEFT, fill='y', padx=15, pady=10)
+        
+        # 内容区域
+        content_frame = tk.Frame(user_info_frame, bg=COLORS['surface'])
+        content_frame.pack(fill='x', padx=15, pady=15)
         
         # 用户名
-        self.username_label = ttk.Label(user_info_frame, text="用户名: 未登录", style='Header.TLabel')
-        self.username_label.pack(anchor=tk.W, pady=(0, 5))
+        self.username_label = tk.Label(
+            content_frame,
+            text="用户名: 未登录",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_medium', bold=True),
+            anchor=tk.W
+        )
+        self.username_label.pack(fill='x', pady=(0, 8))
         
         # 用户层级
-        self.tier_label = ttk.Label(user_info_frame, text="用户层级: -", style='Muted.TLabel')
-        self.tier_label.pack(anchor=tk.W, pady=(0, 5))
+        self.tier_label = tk.Label(
+            content_frame,
+            text="用户层级: -",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_medium'),
+            anchor=tk.W
+        )
+        self.tier_label.pack(fill='x', pady=(0, 15))
+        
+        # 分隔线
+        separator = tk.Frame(content_frame, bg=COLORS['border_color'], height=1)
+        separator.pack(fill='x', pady=(0, 15))
+        
+        # 配额使用情况标题
+        quota_title = tk.Label(
+            content_frame,
+            text="📊 配额使用情况",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_small', bold=True),
+            anchor=tk.W
+        )
+        quota_title.pack(fill='x', pady=(0, 10))
         
         # 配额使用情况 - 每日
-        self.daily_quota_label = ttk.Label(user_info_frame, text="每日配额: -/-", style='Muted.TLabel')
-        self.daily_quota_label.pack(anchor=tk.W, pady=(0, 2))
+        self.daily_quota_label = tk.Label(
+            content_frame,
+            text="每日配额: -/-",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_medium'),
+            anchor=tk.W
+        )
+        self.daily_quota_label.pack(fill='x', pady=(0, 5))
         
         # 配额使用情况 - 每周
-        self.weekly_quota_label = ttk.Label(user_info_frame, text="每周配额: -/-", style='Muted.TLabel')
-        self.weekly_quota_label.pack(anchor=tk.W, pady=(0, 2))
+        self.weekly_quota_label = tk.Label(
+            content_frame,
+            text="每周配额: -/-",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_medium'),
+            anchor=tk.W
+        )
+        self.weekly_quota_label.pack(fill='x', pady=(0, 5))
         
         # 配额使用情况 - 每月
-        self.monthly_quota_label = ttk.Label(user_info_frame, text="每月配额: -/-", style='Muted.TLabel')
-        self.monthly_quota_label.pack(anchor=tk.W, pady=(0, 5))
+        self.monthly_quota_label = tk.Label(
+            content_frame,
+            text="每月配额: -/-",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_medium'),
+            anchor=tk.W
+        )
+        self.monthly_quota_label.pack(fill='x', pady=(0, 15))
         
         # Token用量统计
-        self.token_label = ttk.Label(user_info_frame, text="Token用量: -", style='Muted.TLabel')
-        self.token_label.pack(anchor=tk.W, pady=(0, 5))
+        self.token_label = tk.Label(
+            content_frame,
+            text="Token用量: -",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_medium'),
+            anchor=tk.W
+        )
+        self.token_label.pack(fill='x', pady=(0, 10))
         
         # 到期时间（仅高层级用户显示）
-        self.expiry_label = ttk.Label(user_info_frame, text="", style='Danger.TLabel')
-        self.expiry_label.pack(anchor=tk.W, pady=(0, 5))
+        self.expiry_label = tk.Label(
+            content_frame,
+            text="",
+            bg=COLORS['surface'],
+            fg=COLORS['warning'],
+            font=get_font('body_small'),
+            anchor=tk.W
+        )
+        self.expiry_label.pack(fill='x', pady=(0, 10))
         
-        # 刷新按钮
-        refresh_btn = ttk.Button(user_info_frame, text="🔄 刷新信息", command=self.refresh_user_info, style='Outline.TButton')
+        # 刷新按钮 - 浅灰色背景带圆角
+        refresh_btn = tk.Button(
+            content_frame,
+            text="🔄 刷新信息",
+            command=self.refresh_user_info,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_medium', bold=True),
+            relief='solid',
+            borderwidth=1,
+            padx=20,
+            pady=8,
+            cursor='hand2'
+        )
         refresh_btn.pack(anchor=tk.W, pady=(10, 0))
         
         # 初始化用户信息显示
@@ -122,14 +226,14 @@ class CloudServiceManagerGUI:
 
         # 根据用户层级设置颜色
         tier_color = get_tier_color(tier)
-        self.tier_label.config(foreground=tier_color)
+        self.tier_label.config(fg=tier_color)
 
         # 更新每日配额使用情况
         quota_used = user_info.get('quota_used', 0)
-        quota_daily = user_info.get('quota_daily', 1000)  # 使用正确的默认值1000
+        quota_daily = user_info.get('quota_daily', 1000)
         self.daily_quota_label.config(text=f"每日配额: {quota_used}/{quota_daily}")
 
-        # 更新每周配额使用情况（目前服务器不跟踪周/月使用量，只显示配额上限）
+        # 更新每周配额使用情况
         quota_weekly = user_info.get('quota_weekly', 6000)
         self.weekly_quota_label.config(text=f"每周配额: 0/{quota_weekly}")
 
@@ -146,6 +250,6 @@ class CloudServiceManagerGUI:
         if premium_until > 0:
             from datetime import datetime
             expiry_date = datetime.fromtimestamp(premium_until)
-            self.expiry_label.config(text=f"高级权限到期: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
+            self.expiry_label.config(text=f"⏰ 高级权限到期: {expiry_date.strftime('%Y-%m-%d %H:%M:%S')}")
         else:
             self.expiry_label.config(text="")

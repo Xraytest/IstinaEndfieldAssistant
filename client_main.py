@@ -13,15 +13,18 @@ from PIL import Image, ImageTk
 import io
 import sys
 
-# 添加当前目录到Python路径
+# 添加当前目录和项目根目录到Python路径
 current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
 if current_dir not in sys.path:
     sys.path.insert(0, current_dir)
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
 
 from client.core.logger import init_logger, get_logger, LogCategory, LogLevel
 from client.core.adb_manager import ADBDeviceManager
 from client.core.screen_capture import ScreenCapture
-from client.core.touch.maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
+from client.core.touch import MaaFwTouchExecutor as TouchExecutor, MaaFwTouchConfig
 from client.cloud.task_manager import TaskManager
 from client.core.communication.communicator import ClientCommunicator
 from client.cloud.managers.auth_manager import AuthManager
@@ -83,14 +86,14 @@ class ReAcrtureClientGUI:
         self.root.after(1000, self.check_for_updates_on_startup)
         
     def setup_styles(self):
-        """设置UI样式"""
+        """设置UI样式 - MAA风格浅色主题"""
         # 配置根窗口背景
         configure_tk_root(self.root)
 
         # 设置 ttk 样式
         style = setup_ttk_styles()
 
-        # 配置窗口标题栏颜色（Windows 特定）
+        # 配置窗口标题栏颜色（Windows 特定）- 使用浅色标题栏
         try:
             import ctypes
             from ctypes import wintypes
@@ -98,12 +101,12 @@ class ReAcrtureClientGUI:
             # 获取窗口句柄
             hwnd = ctypes.windll.user32.GetForegroundWindow()
 
-            # 启用深色标题栏（Windows 10/11）
+            # 启用浅色标题栏（Windows 10/11）
             DWMWA_USE_IMMERSIVE_DARK_MODE = 20
             ctypes.windll.dwmapi.DwmSetWindowAttribute(
                 hwnd,
                 DWMWA_USE_IMMERSIVE_DARK_MODE,
-                ctypes.byref(ctypes.c_int(1)),
+                ctypes.byref(ctypes.c_int(0)),  # 0 = 浅色模式
                 ctypes.sizeof(ctypes.c_int)
             )
         except (ImportError, AttributeError, OSError):
@@ -174,7 +177,6 @@ class ReAcrtureClientGUI:
             )
             
             self.logger.debug(LogCategory.MAIN, "初始化触控执行模块（MAA风格）")
-            from maafw_touch_adapter import MaaFwTouchConfig
 
             touch_config = self.config.get('touch', {})
             maa_style_config = touch_config.get('maa_style', {})
@@ -220,13 +222,15 @@ class ReAcrtureClientGUI:
             
             # 初始化业务逻辑组件
             self.logger.debug(LogCategory.MAIN, "初始化认证管理模块")
-            self.auth_manager = AuthManager(self.communicator, self.config)
+            # 计算缓存目录路径
+            cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+            self.auth_manager = AuthManager(self.communicator, self.config, cache_dir)
             
             self.logger.debug(LogCategory.MAIN, "初始化设备管理模块")
-            self.device_manager = DeviceManager(self.adb_manager, self.config)
+            self.device_manager = DeviceManager(self.adb_manager, self.config, cache_dir)
             
             self.logger.debug(LogCategory.MAIN, "初始化任务队列管理模块")
-            self.task_queue_manager = TaskQueueManager(self.task_manager)
+            self.task_queue_manager = TaskQueueManager(self.task_manager, cache_dir)
             
             # 加载任务队列缓存
             self.load_task_queue()
@@ -348,86 +352,87 @@ class ReAcrtureClientGUI:
         # 更新云服务页面的用户信息显示
         if hasattr(self.gui_manager, 'cloud_service_gui'):
             self.gui_manager.cloud_service_gui.update_user_info_display()
-            def load_task_queue(self):
-                """加载任务队列"""
-                self.logger.debug(LogCategory.MAIN, "加载任务队列")
-                cache_dir = os.path.join(os.path.dirname(__file__), "cache")
-                task_queue_file = os.path.join(cache_dir, "task_queue.json")
-                
-                if os.path.exists(task_queue_file):
-                    try:
-                        with open(task_queue_file, 'r', encoding='utf-8') as f:
-                            task_queue = json.load(f)
-                            for task in task_queue:
-                                self.task_queue_manager.add_task(task)
-                        self.logger.info(LogCategory.MAIN, "任务队列加载完成", task_count=len(task_queue))
-                        self.log_message("已从本地加载任务队列", "task", "INFO")
-                    except Exception as e:
-                        self.logger.exception(LogCategory.MAIN, "任务队列加载异常", exc_info=True)
-                        self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
-                else:
-                    self.logger.debug(LogCategory.MAIN, "任务队列文件不存在，创建推荐日常任务链")
-                    # 创建推荐的日常任务链
-                    recommended_task_chain = [
-                        {
-                            'id': 'task_visit_friends',
-                            'name': '访问好友',
-                            'variables': {
-                                '优先偷菜': '是',
-                                '访问数量': '全部',
-                                '交换线索': '是'
-                            }
-                        },
-                        {
-                            'id': 'task_dijiang_rewards',
-                            'name': '帝江号奖励',
-                            'variables': {
-                                '自动开始交换': '否',
-                                '无控制中枢生产助力': '否',
-                                '线索设置': '是',
-                                '线索发送数量': '3',
-                                '线索库存上限': '3',
-                                '培养目标': '任意',
-                                '自动提取种子': '否'
-                            }
-                        },
-                        {
-                            'id': 'task_credit_shopping',
-                            'name': '积分购物',
-                            'variables': {
-                                '优先购买': '嵌晶玉|武库配额',
-                                '自动领取积分': '是',
-                                '折扣要求': '不限',
-                                '购买黑名单物品': '否',
-                                '黑名单': '',
-                                '保留积分': '否'
-                            }
-                        },
-                        {
-                            'id': 'task_sell_product',
-                            'name': '出售产品',
-                            'variables': {
-                                '出售地区': '四号谷地',
-                                '保留数量': '0'
-                            }
-                        },
-                        {
-                            'id': 'task_daily_rewards',
-                            'name': '每日奖励领取',
-                            'variables': {
-                                '领取邮件奖励': '是',
-                                '领取任务奖励': '是',
-                                '领取送货奖励': '是',
-                                '领取活动奖励': '是',
-                                '领取协议通行证奖励': '是'
-                            }
-                        }
-                    ]
-                    
-                    for task in recommended_task_chain:
+
+    def load_task_queue(self):
+        """加载任务队列"""
+        self.logger.debug(LogCategory.MAIN, "加载任务队列")
+        cache_dir = os.path.join(os.path.dirname(__file__), "cache")
+        task_queue_file = os.path.join(cache_dir, "task_queue.json")
+        
+        if os.path.exists(task_queue_file):
+            try:
+                with open(task_queue_file, 'r', encoding='utf-8') as f:
+                    task_queue = json.load(f)
+                    for task in task_queue:
                         self.task_queue_manager.add_task(task)
-                    self.logger.info(LogCategory.MAIN, "推荐日常任务链创建完成", task_count=len(recommended_task_chain))
-                    self.log_message("已创建推荐日常任务链", "task", "INFO")
+                self.logger.info(LogCategory.MAIN, "任务队列加载完成", task_count=len(task_queue))
+                self.log_message("已从本地加载任务队列", "task", "INFO")
+            except Exception as e:
+                self.logger.exception(LogCategory.MAIN, "任务队列加载异常", exc_info=True)
+                self.log_message(f"加载任务队列失败: {e}", "task", "ERROR")
+        else:
+            self.logger.debug(LogCategory.MAIN, "任务队列文件不存在，创建推荐日常任务链")
+            # 创建推荐的日常任务链
+            recommended_task_chain = [
+                {
+                    'id': 'task_visit_friends',
+                    'name': '访问好友',
+                    'variables': {
+                        '优先偷菜': '是',
+                        '访问数量': '全部',
+                        '交换线索': '是'
+                    }
+                },
+                {
+                    'id': 'task_dijiang_rewards',
+                    'name': '帝江号奖励',
+                    'variables': {
+                        '自动开始交换': '否',
+                        '无控制中枢生产助力': '否',
+                        '线索设置': '是',
+                        '线索发送数量': '3',
+                        '线索库存上限': '3',
+                        '培养目标': '任意',
+                        '自动提取种子': '否'
+                    }
+                },
+                {
+                    'id': 'task_credit_shopping',
+                    'name': '积分购物',
+                    'variables': {
+                        '优先购买': '嵌晶玉|武库配额',
+                        '自动领取积分': '是',
+                        '折扣要求': '不限',
+                        '购买黑名单物品': '否',
+                        '黑名单': '',
+                        '保留积分': '否'
+                    }
+                },
+                {
+                    'id': 'task_sell_product',
+                    'name': '出售产品',
+                    'variables': {
+                        '出售地区': '四号谷地',
+                        '保留数量': '0'
+                    }
+                },
+                {
+                    'id': 'task_daily_rewards',
+                    'name': '每日奖励领取',
+                    'variables': {
+                        '领取邮件奖励': '是',
+                        '领取任务奖励': '是',
+                        '领取送货奖励': '是',
+                        '领取活动奖励': '是',
+                        '领取协议通行证奖励': '是'
+                    }
+                }
+            ]
+            
+            for task in recommended_task_chain:
+                self.task_queue_manager.add_task(task)
+            self.logger.info(LogCategory.MAIN, "推荐日常任务链创建完成", task_count=len(recommended_task_chain))
+            self.log_message("已创建推荐日常任务链", "task", "INFO")
     def log_message(self, message, category="general", level="INFO"):
         """记录日志消息（兼容旧接口）"""
         # 映射旧的category到新的LogCategory

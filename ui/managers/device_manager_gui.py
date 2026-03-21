@@ -1,14 +1,14 @@
-"""设备管理GUI模块 - 处理设备连接和屏幕预览的UI逻辑"""
+"""设备管理GUI模块 - MAA风格带动画效果"""
 import tkinter as tk
 from tkinter import ttk, messagebox
 from PIL import Image, ImageTk
 import base64
 import io
-from client.ui.theme import configure_canvas
+from ..theme import configure_canvas, COLORS, get_font
 
 
 class DeviceManagerGUI:
-    """设备管理GUI类"""
+    """设备管理GUI类 - MAA风格带动画"""
     
     def __init__(self, parent_frame, device_manager, screen_capture, log_callback):
         self.parent_frame = parent_frame
@@ -23,72 +23,352 @@ class DeviceManagerGUI:
         self.preview_canvas = None
         self.manual_device_var = None
         
+        # 设备类型相关
+        self.device_type_var = None
+        self.android_frame = None
+        self.pc_frame = None
+        
         # 预览自动刷新相关
         self.preview_refresh_job = None
-        self.preview_refresh_interval = 500  # 500毫秒刷新一次
+        self.preview_refresh_interval = 500
         
         self.setup_ui()
         
     def setup_ui(self):
-        """设置设备管理UI"""
-        # 设备连接区域
-        conn_frame = ttk.LabelFrame(self.parent_frame, text="设备连接", padding="6")
-        conn_frame.pack(fill='x', pady=(0, 6))
+        """设置设备管理UI - MAA风格"""
+        # 设备类型选择区域 - 卡片式
+        type_frame = tk.Frame(
+            self.parent_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        type_frame.pack(fill='x', pady=(0, 10))
         
-        # 扫描设备按钮和手动输入
-        scan_btn = ttk.Button(conn_frame, text="扫描设备", command=self.scan_devices)
-        scan_btn.pack(side=tk.LEFT, padx=(0, 10))
+        # 标题栏
+        type_header = tk.Frame(type_frame, bg=COLORS['surface'], height=35)
+        type_header.pack(fill='x')
+        type_header.pack_propagate(False)
         
-        # 手动输入设备
-        manual_frame = ttk.Frame(conn_frame)
-        manual_frame.pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(manual_frame, text="手动输入:").pack(side=tk.LEFT)
-        self.manual_device_var = tk.StringVar()
-        manual_entry = ttk.Entry(manual_frame, textvariable=self.manual_device_var, width=20)
-        manual_entry.pack(side=tk.LEFT, padx=(5, 5))
-        manual_connect_btn = ttk.Button(manual_frame, text="连接", command=self.manual_connect_device)
+        type_title = tk.Label(
+            type_header,
+            text="设备类型",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        type_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 类型选择内容区域
+        type_content = tk.Frame(type_frame, bg=COLORS['surface'])
+        type_content.pack(fill='x', padx=12, pady=10)
+        
+        # 设备类型选择
+        type_row = tk.Frame(type_content, bg=COLORS['surface'])
+        type_row.pack(fill='x')
+        
+        type_label = tk.Label(
+            type_row,
+            text="选择设备:",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_small')
+        )
+        type_label.pack(side=tk.LEFT)
+        
+        self.device_type_var = tk.StringVar(value="安卓")
+        type_combo = ttk.Combobox(
+            type_row,
+            textvariable=self.device_type_var,
+            values=["安卓", "PC"],
+            state="readonly",
+            width=15
+        )
+        type_combo.pack(side=tk.LEFT, padx=(8, 0))
+        type_combo.bind('<<ComboboxSelected>>', self._on_device_type_change)
+        
+        # 状态显示
+        self.device_status_label = tk.Label(
+            type_row,
+            text="未连接设备",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_small')
+        )
+        self.device_status_label.pack(side=tk.RIGHT)
+        
+        # 安卓设备区域（包含现有的设备连接和列表功能）
+        self.android_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'])
+        
+        # 安卓设备连接区域
+        conn_frame = tk.Frame(
+            self.android_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        conn_frame.pack(fill='x', pady=(0, 10))
+        
+        # 标题栏
+        conn_header = tk.Frame(conn_frame, bg=COLORS['surface'], height=35)
+        conn_header.pack(fill='x')
+        conn_header.pack_propagate(False)
+        
+        conn_title = tk.Label(
+            conn_header,
+            text="设备连接",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        conn_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 连接内容区域
+        conn_content = tk.Frame(conn_frame, bg=COLORS['surface'])
+        conn_content.pack(fill='x', padx=12, pady=10)
+        
+        # 扫描和手动输入行
+        top_row = tk.Frame(conn_content, bg=COLORS['surface'])
+        top_row.pack(fill='x', pady=(0, 8))
+        
+        # 扫描按钮
+        scan_btn = tk.Button(
+            top_row,
+            text="🔍 扫描设备",
+            command=self.scan_devices,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small', bold=True),
+            relief='solid',
+            borderwidth=1,
+            padx=12,
+            pady=6,
+            cursor='hand2'
+        )
+        scan_btn.pack(side=tk.LEFT)
+        self._bind_hover_effect(scan_btn, COLORS['surface_container_low'], COLORS['surface_container'],
+                               COLORS['text_primary'], COLORS['text_primary'])
+        
+        # 手动输入行
+        manual_row = tk.Frame(conn_content, bg=COLORS['surface'])
+        manual_row.pack(fill='x')
+        
+        manual_label = tk.Label(
+            manual_row,
+            text="手动输入:",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_small')
+        )
+        manual_label.pack(side=tk.LEFT)
+        
+        # 获取上次连接的设备地址作为默认值
+        last_device = self.device_manager.get_last_connected_device()
+        default_device = last_device if last_device else "127.0.0.1:16512"
+        self.manual_device_var = tk.StringVar(value=default_device)
+        manual_entry = tk.Entry(
+            manual_row,
+            textvariable=self.manual_device_var,
+            width=25,
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small'),
+            relief='solid',
+            borderwidth=1,
+            highlightbackground=COLORS['border_color']
+        )
+        manual_entry.pack(side=tk.LEFT, padx=(8, 8))
+        
+        manual_connect_btn = tk.Button(
+            manual_row,
+            text="连接",
+            command=self.manual_connect_device,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small', bold=True),
+            relief='solid',
+            borderwidth=1,
+            highlightbackground=COLORS['border_color'],
+            padx=12,
+            pady=4,
+            cursor='hand2'
+        )
         manual_connect_btn.pack(side=tk.LEFT)
+        self._bind_hover_effect(manual_connect_btn, COLORS['surface_container_low'], COLORS['surface_container'],
+                               COLORS['text_primary'], COLORS['text_primary'])
         
-        # 连接状态
-        self.device_status_label = ttk.Label(conn_frame, text="未连接设备", style='Muted.TLabel')
-        self.device_status_label.pack(side=tk.LEFT)
+        # 设备列表区域
+        device_list_frame = tk.Frame(
+            self.android_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        device_list_frame.pack(fill='both', expand=True, pady=(0, 10))
+        
+        # 标题栏
+        list_header = tk.Frame(device_list_frame, bg=COLORS['surface'], height=35)
+        list_header.pack(fill='x')
+        list_header.pack_propagate(False)
+        
+        list_title = tk.Label(
+            list_header,
+            text="可用设备",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        list_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 设备列表内容
+        list_content = tk.Frame(device_list_frame, bg=COLORS['surface'])
+        list_content.pack(fill='both', expand=True, padx=12, pady=10)
         
         # 设备列表
-        device_list_frame = ttk.LabelFrame(self.parent_frame, text="可用设备", padding="6")
-        device_list_frame.pack(fill='both', expand=True, pady=(0, 6))
-        
-        # 设备列表
-        self.device_tree = ttk.Treeview(device_list_frame, columns=('serial', 'model', 'state'), show='headings', height=3)
+        self.device_tree = ttk.Treeview(
+            list_content,
+            columns=('serial', 'model', 'state'),
+            show='headings',
+            height=4
+        )
         self.device_tree.heading('serial', text='设备序列号')
         self.device_tree.heading('model', text='设备型号')
         self.device_tree.heading('state', text='状态')
-        self.device_tree.column('serial', width=200)
-        self.device_tree.column('model', width=150)
-        self.device_tree.column('state', width=100)
-        self.device_tree.pack(side=tk.LEFT, fill='x', expand=True)
+        self.device_tree.column('serial', width=180)
+        self.device_tree.column('model', width=120)
+        self.device_tree.column('state', width=80)
+        self.device_tree.pack(side=tk.LEFT, fill='both', expand=True)
         
         # 滚动条
-        device_scroll = ttk.Scrollbar(device_list_frame, orient=tk.VERTICAL, command=self.device_tree.yview)
+        device_scroll = ttk.Scrollbar(list_content, orient=tk.VERTICAL, command=self.device_tree.yview)
         device_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.device_tree.configure(yscrollcommand=device_scroll.set)
         
         # 设备操作按钮
-        device_btn_frame = ttk.Frame(self.parent_frame)
-        device_btn_frame.pack(fill='x', pady=(0, 6))
+        device_btn_frame = tk.Frame(device_list_frame, bg=COLORS['surface'])
+        device_btn_frame.pack(fill='x', padx=12, pady=(0, 10))
         
-        connect_device_btn = ttk.Button(device_btn_frame, text="连接选中设备", command=self.connect_selected_device)
-        connect_device_btn.pack(side=tk.LEFT, padx=(0, 10))
+        connect_device_btn = tk.Button(
+            device_btn_frame,
+            text="🔗 连接选中",
+            command=self.connect_selected_device,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small', bold=True),
+            relief='solid',
+            borderwidth=1,
+            padx=15,
+            pady=6,
+            cursor='hand2'
+        )
+        connect_device_btn.pack(side=tk.LEFT, padx=(0, 8))
+        self._bind_hover_effect(connect_device_btn, COLORS['surface_container_low'], COLORS['surface_container'],
+                               COLORS['text_primary'], COLORS['text_primary'])
         
-        disconnect_device_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
+        disconnect_device_btn = tk.Button(
+            device_btn_frame,
+            text="断开",
+            command=self.disconnect_device,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small'),
+            relief='solid',
+            borderwidth=1,
+            highlightbackground=COLORS['border_color'],
+            padx=15,
+            pady=6,
+            cursor='hand2'
+        )
         disconnect_device_btn.pack(side=tk.LEFT)
+        self._bind_hover_effect(disconnect_device_btn, COLORS['surface_container_low'], COLORS['surface_container'],
+                               COLORS['text_primary'], COLORS['text_primary'])
         
-        # 屏幕预览（缩小比例）
-        preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="6")
+        # PC设备区域（无设置，只有窗口画面预览）
+        self.pc_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'])
+        
+        # 屏幕预览区域 - 卡片式
+        preview_frame = tk.Frame(
+            self.parent_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
         preview_frame.pack(fill='both', expand=True)
         
-        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=150)
-        configure_canvas(self.preview_canvas)
+        # 标题栏
+        preview_header = tk.Frame(preview_frame, bg=COLORS['surface'], height=35)
+        preview_header.pack(fill='x')
+        preview_header.pack_propagate(False)
+        
+        preview_title = tk.Label(
+            preview_header,
+            text="窗口画面",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        preview_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 预览画布
+        preview_content = tk.Frame(preview_frame, bg=COLORS['surface'])
+        preview_content.pack(fill='both', expand=True, padx=12, pady=10)
+        
+        self.preview_canvas = tk.Canvas(
+            preview_content,
+            bg=COLORS['surface_container_low'],
+            highlightthickness=0,
+            height=200
+        )
         self.preview_canvas.pack(fill='both', expand=True)
+        
+        # 添加默认提示文字
+        self.preview_canvas.create_text(
+            self.preview_canvas.winfo_width() // 2,
+            100,
+            text="连接设备后显示画面预览",
+            fill=COLORS['text_muted'],
+            font=get_font('body_medium'),
+            tags='placeholder'
+        )
+        
+        # 默认显示安卓设备区域
+        self._show_android_frame()
+        
+    def _on_device_type_change(self, event=None):
+        """设备类型切换回调"""
+        device_type = self.device_type_var.get()
+        if device_type == "安卓":
+            self._show_android_frame()
+        else:
+            self._show_pc_frame()
+            
+    def _show_android_frame(self):
+        """显示安卓设备区域"""
+        self.pc_frame.pack_forget()
+        self.android_frame.pack(fill='both', expand=True)
+        self.update_device_status("未连接设备")
+        
+    def _show_pc_frame(self):
+        """显示PC设备区域（无设置，只有窗口画面预览）"""
+        self.android_frame.pack_forget()
+        self.pc_frame.pack(fill='both', expand=True)
+        self.update_device_status("PC模式 - 后台触控方案")
+        # 停止安卓预览刷新
+        self.stop_preview_refresh()
+        
+    def _bind_hover_effect(self, button, normal_bg, hover_bg, normal_fg, hover_fg):
+        """绑定按钮悬停效果"""
+        def on_enter(e):
+            button.configure(bg=hover_bg, fg=hover_fg)
+        def on_leave(e):
+            button.configure(bg=normal_bg, fg=normal_fg)
+        
+        button.bind('<Enter>', on_enter)
+        button.bind('<Leave>', on_leave)
         
     def scan_devices(self):
         """扫描设备"""
@@ -109,31 +389,26 @@ class DeviceManagerGUI:
                 device['model'] or 'Unknown',
                 device['state']
             ))
-            # 如果这是上次连接的设备，自动选中它
             if last_connected and device['serial'] == last_connected:
                 self.device_tree.selection_set(item_id)
                 last_device_selected = True
                 
         if not last_device_selected and last_connected:
-            # 保留上次成功的设备缓存，即使当前不可用
             self.log_callback(f"上次连接的设备 {last_connected} 不在当前设备列表中，但保留缓存", "device", "INFO")
             
         self.log_callback(f"发现 {len(devices)} 个设备", "device", "INFO")
         
     def connect_selected_device(self):
-        """连接选中的设备，如果没有选中则尝试连接上次设备"""
+        """连接选中的设备"""
         selection = self.device_tree.selection()
         
-        # 如果没有选中设备，尝试连接上次连接的设备
         if not selection:
             last_connected = self.device_manager.get_last_connected_device()
             if last_connected:
                 self.log_callback(f"未选择设备，尝试连接上次设备: {last_connected}", "device", "INFO")
-                # 使用手动连接模式，不验证设备是否存在
                 if self.device_manager.connect_device_manual(last_connected):
                     self.update_device_status(f"已连接: {last_connected}", color='success')
                     self.log_callback(f"成功连接到上次设备: {last_connected}", "device", "INFO")
-                    # 启动屏幕预览自动刷新
                     self.start_preview_refresh()
                     return
                 else:
@@ -147,7 +422,6 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device(device_serial):
             self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
-            # 启动屏幕预览自动刷新
             self.start_preview_refresh()
         else:
             messagebox.showerror("连接失败", "无法连接到选中的设备")
@@ -163,7 +437,6 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device_manual(device_serial):
             self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
-            # 启动屏幕预览自动刷新
             self.start_preview_refresh()
         else:
             messagebox.showerror("连接失败", f"无法连接到设备: {device_serial}")
@@ -171,22 +444,32 @@ class DeviceManagerGUI:
             
     def disconnect_device(self):
         """断开设备连接"""
-        # 停止屏幕预览自动刷新
         self.stop_preview_refresh()
         self.device_manager.disconnect_device()
         self.update_device_status("未连接设备")
         self.log_callback("设备连接已断开", "device", "INFO")
         
+        # 清除预览
+        self.preview_canvas.delete("all")
+        self.preview_canvas.create_text(
+            self.preview_canvas.winfo_width() // 2,
+            100,
+            text="连接设备后显示屏幕预览",
+            fill=COLORS['text_muted'],
+            font=get_font('body_medium'),
+            tags='placeholder'
+        )
+        
     def update_device_status(self, status_text, color='muted'):
         """更新设备状态显示"""
         if color == 'success':
-            self.device_status_label.config(text=status_text, style='Success.TLabel')
+            self.device_status_label.config(text=status_text, fg=COLORS['success'])
         elif color == 'warning':
-            self.device_status_label.config(text=status_text, style='Warning.TLabel')
+            self.device_status_label.config(text=status_text, fg=COLORS['warning'])
         elif color == 'danger':
-            self.device_status_label.config(text=status_text, style='Danger.TLabel')
+            self.device_status_label.config(text=status_text, fg=COLORS['danger'])
         else:
-            self.device_status_label.config(text=status_text, style='Muted.TLabel')
+            self.device_status_label.config(text=status_text, fg=COLORS['text_secondary'])
             
     def start_preview_refresh(self):
         """启动屏幕预览自动刷新"""
@@ -200,24 +483,17 @@ class DeviceManagerGUI:
             self.preview_refresh_job = None
             
     def update_screen_preview(self, screen_data=None):
-        """更新屏幕预览
-        
-        Args:
-            screen_data: 可选的屏幕数据（Base64编码），如果提供则直接使用，否则重新捕获
-        """
+        """更新屏幕预览"""
         current_device = self.device_manager.get_current_device()
         if not current_device or not self.screen_capture:
-            # 如果没有连接设备，停止自动刷新
             if self.preview_refresh_job:
                 self.preview_refresh_job = None
             return
             
         try:
-            # 如果没有提供screen_data，则重新捕获
             if screen_data is None:
                 screen_data = self.screen_capture.capture_screen(current_device)
                 if not screen_data:
-                    # 安排下一次刷新尝试
                     self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
                     return
             
@@ -233,7 +509,7 @@ class DeviceManagerGUI:
                 img_width, img_height = image.size
                 scale_x = canvas_width / img_width
                 scale_y = canvas_height / img_height
-                scale = min(scale_x, scale_y)
+                scale = min(scale_x, scale_y, 1.0)
                 
                 new_width = int(img_width * scale)
                 new_height = int(img_height * scale)
@@ -246,13 +522,11 @@ class DeviceManagerGUI:
                 y = (canvas_height - new_height) // 2
                 self.preview_canvas.create_image(x, y, anchor=tk.NW, image=self.current_image)
             
-            # 安排下一次刷新（仅当没有提供screen_data时）
             if screen_data is None:
                 self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
                     
         except Exception as e:
             self.log_callback(f"屏幕预览更新失败: {e}", "device", "ERROR")
-            # 出错后仍然安排下一次刷新尝试
             self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
             
     def get_current_device(self):

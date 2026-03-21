@@ -5,11 +5,18 @@ import json
 class TaskQueueManager:
     """任务队列管理业务逻辑类"""
     
-    def __init__(self, task_manager):
+    def __init__(self, task_manager, cache_dir=None):
         self.task_manager = task_manager
         self.task_queue = []
         self.current_task_index = 0
         self.execution_count = 1
+        # 使用传入的缓存目录，如果没有则使用默认路径
+        if cache_dir is not None:
+            self.cache_dir = cache_dir
+        else:
+            # 获取client目录路径（相对于当前文件的上两级目录）
+            client_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            self.cache_dir = os.path.join(client_dir, "cache")
         
     def add_task(self, task):
         """添加任务到队列"""
@@ -81,25 +88,49 @@ class TaskQueueManager:
         return {}
         
     def save_task_queue(self):
-        """保存任务队列到本地"""
+        """保存任务队列到本地 - 仅保存id、name和用户自定义设置"""
         import os
         import json
         
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
             
-        task_queue_file = os.path.join(cache_dir, "task_queue.json")
+        task_queue_file = os.path.join(self.cache_dir, "task_queue.json")
         try:
-            # 创建不包含description的队列副本
+            # 仅保留必要字段：id、name、custom_name、execute_once、custom_variables
             queue_to_save = []
             for task in self.task_queue:
-                task_copy = task.copy()
-                # 移除不需要缓存的字段
-                task_copy.pop('description', None)
-                queue_to_save.append(task_copy)
+                minimal_task = {
+                    'id': task.get('id'),
+                    'name': task.get('name'),
+                    'custom_name': task.get('custom_name'),
+                    'execute_once': task.get('execute_once', False),
+                    'custom_variables': task.get('custom_variables', {})
+                }
+                queue_to_save.append(minimal_task)
             
             with open(task_queue_file, 'w', encoding='utf-8') as f:
                 json.dump(queue_to_save, f, ensure_ascii=False, indent=2)
         except Exception as e:
             print(f"保存任务队列失败: {e}")
+            
+    def reorder_task(self, from_index, to_index):
+        """重新排序任务 - 将任务从from_index移动到to_index"""
+        if 0 <= from_index < len(self.task_queue) and 0 <= to_index < len(self.task_queue):
+            task = self.task_queue.pop(from_index)
+            self.task_queue.insert(to_index, task)
+            
+            # 调整当前任务索引
+            if self.current_task_index == from_index:
+                self.current_task_index = to_index
+            elif from_index < self.current_task_index <= to_index:
+                self.current_task_index -= 1
+            elif to_index <= self.current_task_index < from_index:
+                self.current_task_index += 1
+            
+            return True
+        return False
+        
+    def move_task(self, from_index, to_index):
+        """移动任务到指定位置（别名方法，供GUI调用）"""
+        return self.reorder_task(from_index, to_index)

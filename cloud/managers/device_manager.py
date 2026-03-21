@@ -7,16 +7,22 @@ from tkinter import ttk, messagebox
 class DeviceManager:
     """设备管理业务逻辑类"""
     
-    def __init__(self, adb_manager, config):
+    def __init__(self, adb_manager, config, cache_dir=None):
         self.adb_manager = adb_manager
         self.config = config
         self.current_device = None
+        # 使用传入的缓存目录，如果没有则使用默认路径
+        if cache_dir is not None:
+            self.cache_dir = cache_dir
+        else:
+            # 获取client目录路径（相对于当前文件的上两级目录）
+            client_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            self.cache_dir = os.path.join(client_dir, "cache")
         self.last_connected_device = self._load_last_connected_device()
         
     def _load_last_connected_device(self):
         """加载上次连接的设备"""
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
-        device_cache_file = os.path.join(cache_dir, "last_device.json")
+        device_cache_file = os.path.join(self.cache_dir, "last_device.json")
         
         if os.path.exists(device_cache_file):
             try:
@@ -29,11 +35,10 @@ class DeviceManager:
         
     def _save_last_connected_device(self, device_serial):
         """保存上次连接的设备"""
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
-        if not os.path.exists(cache_dir):
-            os.makedirs(cache_dir)
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
             
-        device_cache_file = os.path.join(cache_dir, "last_device.json")
+        device_cache_file = os.path.join(self.cache_dir, "last_device.json")
         try:
             with open(device_cache_file, 'w', encoding='utf-8') as f:
                 json.dump({'last_device': device_serial}, f)
@@ -79,8 +84,7 @@ class DeviceManager:
     def clear_last_connected_device(self):
         """清除上次连接的设备缓存"""
         self.last_connected_device = None
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
-        device_cache_file = os.path.join(cache_dir, "last_device.json")
+        device_cache_file = os.path.join(self.cache_dir, "last_device.json")
         if os.path.exists(device_cache_file):
             try:
                 os.remove(device_cache_file)

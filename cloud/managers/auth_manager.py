@@ -7,12 +7,19 @@ from tkinter import ttk, messagebox, filedialog
 class AuthManager:
     """用户认证管理业务逻辑类"""
     
-    def __init__(self, communicator, config):
+    def __init__(self, communicator, config, cache_dir=None):
         self.communicator = communicator
         self.config = config
         self.is_logged_in = False
         self.user_id = ""
         self.session_id = ""
+        # 使用传入的缓存目录，如果没有则使用默认路径
+        if cache_dir is not None:
+            self.cache_dir = cache_dir
+        else:
+            # 获取client目录路径（相对于当前文件的上两级目录）
+            client_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            self.cache_dir = os.path.join(client_dir, "cache")
         
     def register_user(self, username):
         """注册用户"""
@@ -24,6 +31,7 @@ class AuthManager:
             response = self.communicator.send_request("register", {"user_id": username})
             if response and response.get('status') == 'success':
                 api_key = response.get('key')
+                session_id = response.get('session_id')  # 获取服务端返回的会话ID
                 if api_key:
                     # 保存arkpass文件
                     arkpass_data = {
@@ -33,7 +41,7 @@ class AuthManager:
                         "server_port": self.config['server']['port']
                     }
                     
-                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    cache_dir = self.cache_dir
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
                         
@@ -44,6 +52,9 @@ class AuthManager:
                     # 更新状态
                     self.is_logged_in = True
                     self.user_id = username
+                    # 保存服务端返回的会话ID
+                    if session_id:
+                        self.session_id = session_id
                     
                     # 通知通信器登录成功，启用重连机制
                     if self.communicator:
@@ -101,7 +112,7 @@ class AuthManager:
                 session_id = response.get('session_id')
                 if session_id:
                     # 缓存arkpass文件到本地
-                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    cache_dir = self.cache_dir
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
                         
@@ -162,7 +173,7 @@ class AuthManager:
         possible_paths = []
 
         # 1. 客户端缓存目录
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = self.cache_dir
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         else:
@@ -279,8 +290,8 @@ class AuthManager:
         # 检查多个可能的arkpass文件位置
         possible_paths = []
         
-        # 1. 客户端缓存目录
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        # 1. 客户端缓存目录（使用实例属性而非硬编码路径）
+        cache_dir = self.cache_dir
         if os.path.exists(cache_dir):
             cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
             possible_paths.extend(cache_files)
