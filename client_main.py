@@ -242,7 +242,8 @@ class ReAcrtureClientGUI:
                 self.touch_executor,
                 self.task_queue_manager,
                 self.communicator,
-                self.auth_manager
+                self.auth_manager,
+                get_device_type_callback=None  # 稍后在GUI初始化后设置
             )
             
             # 初始化GUI管理器
@@ -261,6 +262,10 @@ class ReAcrtureClientGUI:
             
             if hasattr(self.gui_manager, 'log_text'):
                 get_logger().set_gui_handler(self.gui_manager.log_text)
+            
+            # 设置设备类型回调（用于ExecutionManager判断PC/安卓设备）
+            if hasattr(self.gui_manager, '_get_current_device_type'):
+                self.execution_manager.get_device_type_callback = self.gui_manager._get_current_device_type
             
             self.logger.info(LogCategory.MAIN, "所有组件初始化完成")
             self.log_message("所有组件初始化成功", "system", "INFO")

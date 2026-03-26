@@ -286,8 +286,167 @@ class DeviceManagerGUI:
         self._bind_hover_effect(disconnect_device_btn, COLORS['surface_container_low'], COLORS['surface_container'],
                                COLORS['text_primary'], COLORS['text_primary'])
         
-        # PC设备区域（无设置，只有窗口画面预览）
+        # PC设备区域（包含触控方案选择和窗口画面预览）
         self.pc_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'])
+        
+        # PC窗口连接区域 - 卡片式
+        pc_conn_frame = tk.Frame(
+            self.pc_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        pc_conn_frame.pack(fill='x', pady=(0, 10))
+        
+        # 标题栏
+        pc_conn_header = tk.Frame(pc_conn_frame, bg=COLORS['surface'], height=35)
+        pc_conn_header.pack(fill='x')
+        pc_conn_header.pack_propagate(False)
+        
+        pc_conn_title = tk.Label(
+            pc_conn_header,
+            text="窗口连接",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        pc_conn_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 连接内容区域
+        pc_conn_content = tk.Frame(pc_conn_frame, bg=COLORS['surface'])
+        pc_conn_content.pack(fill='x', padx=12, pady=10)
+        
+        # 窗口标题输入行
+        window_row = tk.Frame(pc_conn_content, bg=COLORS['surface'])
+        window_row.pack(fill='x')
+        
+        window_label = tk.Label(
+            window_row,
+            text="窗口标题:",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_small')
+        )
+        window_label.pack(side=tk.LEFT)
+        
+        self.pc_window_title_var = tk.StringVar(value="Endfield")
+        window_entry = tk.Entry(
+            window_row,
+            textvariable=self.pc_window_title_var,
+            width=25,
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small'),
+            relief='solid',
+            borderwidth=1,
+            highlightbackground=COLORS['border_color']
+        )
+        window_entry.pack(side=tk.LEFT, padx=(8, 8))
+        
+        pc_connect_btn = tk.Button(
+            window_row,
+            text="连接窗口",
+            command=self.connect_pc_window,
+            bg=COLORS['surface_container_low'],
+            fg=COLORS['text_primary'],
+            font=get_font('body_small', bold=True),
+            relief='solid',
+            borderwidth=1,
+            highlightbackground=COLORS['border_color'],
+            padx=12,
+            pady=4,
+            cursor='hand2'
+        )
+        pc_connect_btn.pack(side=tk.LEFT)
+        self._bind_hover_effect(pc_connect_btn, COLORS['surface_container_low'], COLORS['surface_container'],
+                               COLORS['text_primary'], COLORS['text_primary'])
+        
+        # PC触控方案选择区域 - 卡片式
+        pc_control_frame = tk.Frame(
+            self.pc_frame,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['border_color'],
+            highlightthickness=1
+        )
+        pc_control_frame.pack(fill='x', pady=(0, 10))
+        
+        # 标题栏
+        pc_control_header = tk.Frame(pc_control_frame, bg=COLORS['surface'], height=35)
+        pc_control_header.pack(fill='x')
+        pc_control_header.pack_propagate(False)
+        
+        pc_control_title = tk.Label(
+            pc_control_header,
+            text="触控方案",
+            bg=COLORS['surface'],
+            fg=COLORS['text_primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
+        )
+        pc_control_title.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
+        
+        # 触控方案内容区域
+        pc_control_content = tk.Frame(pc_control_frame, bg=COLORS['surface'])
+        pc_control_content.pack(fill='x', padx=12, pady=10)
+        
+        # 触控方案选择行
+        control_row = tk.Frame(pc_control_content, bg=COLORS['surface'])
+        control_row.pack(fill='x')
+        
+        control_label = tk.Label(
+            control_row,
+            text="选择方案:",
+            bg=COLORS['surface'],
+            fg=COLORS['text_secondary'],
+            font=get_font('body_small')
+        )
+        control_label.pack(side=tk.LEFT)
+        
+        # PC触控方案选项 - 参考MaaEnd
+        self.pc_control_var = tk.StringVar(value="Win32-Window")
+        self.pc_control_options = {
+            "Win32-Window": {
+                "label": "电脑端-默认",
+                "description": "兼容性最好，适合日常使用。支持游戏最小化，会间接性抢占鼠标"
+            },
+            "Win32-Window-Background": {
+                "label": "电脑端-后台",
+                "description": "纯后台控制器。支持游戏最小化，不抢占鼠标。但可能导致游戏窗口乱飞"
+            },
+            "Win32-Express": {
+                "label": "电脑端-极速",
+                "description": "大幅提升响应速度，适合追求效率的用户。部分电脑可能无法使用"
+            },
+            "Win32-Front": {
+                "label": "电脑端-前台",
+                "description": "最稳定的控制方式。需要游戏窗口保持在最前且不被遮挡，会完全抢占鼠标"
+            }
+        }
+        
+        control_combo = ttk.Combobox(
+            control_row,
+            textvariable=self.pc_control_var,
+            values=[f"{v['label']}" for v in self.pc_control_options.values()],
+            state="readonly",
+            width=20
+        )
+        control_combo.pack(side=tk.LEFT, padx=(8, 0))
+        control_combo.current(0)  # 默认选择第一项
+        control_combo.bind('<<ComboboxSelected>>', self._on_pc_control_change)
+        
+        # 触控方案描述
+        self.pc_control_desc = tk.Label(
+            pc_control_content,
+            text=self.pc_control_options["Win32-Window"]["description"],
+            bg=COLORS['surface'],
+            fg=COLORS['text_muted'],
+            font=get_font('body_small'),
+            wraplength=400,
+            justify=tk.LEFT,
+            anchor=tk.W
+        )
+        self.pc_control_desc.pack(fill='x', pady=(8, 0))
         
         # 屏幕预览区域 - 卡片式
         preview_frame = tk.Frame(
@@ -353,12 +512,28 @@ class DeviceManagerGUI:
         self.update_device_status("未连接设备")
         
     def _show_pc_frame(self):
-        """显示PC设备区域（无设置，只有窗口画面预览）"""
+        """显示PC设备区域（包含触控方案选择和窗口画面预览）"""
         self.android_frame.pack_forget()
         self.pc_frame.pack(fill='both', expand=True)
-        self.update_device_status("PC模式 - 后台触控方案")
+        # 更新状态显示当前选择的触控方案
+        selected_label = self.pc_control_var.get()
+        self.update_device_status(f"PC模式 - {selected_label}")
         # 停止安卓预览刷新
         self.stop_preview_refresh()
+    
+    def _on_pc_control_change(self, event=None):
+        """PC触控方案切换回调"""
+        selected_label = self.pc_control_var.get()
+        # 查找对应的方案key
+        for key, value in self.pc_control_options.items():
+            if value['label'] == selected_label:
+                # 更新描述
+                self.pc_control_desc.config(text=value['description'])
+                # 更新状态栏
+                self.update_device_status(f"PC模式 - {selected_label}")
+                # 记录日志
+                self.log_callback(f"切换PC触控方案: {key} - {selected_label}", "device", "INFO")
+                break
         
     def _bind_hover_effect(self, button, normal_bg, hover_bg, normal_fg, hover_fg):
         """绑定按钮悬停效果"""
@@ -532,3 +707,40 @@ class DeviceManagerGUI:
     def get_current_device(self):
         """获取当前连接的设备"""
         return self.device_manager.get_current_device()
+    
+    def get_pc_control_scheme(self) -> str:
+        """
+        获取当前选择的PC触控方案
+        
+        Returns:
+            方案名称 (Win32-Window, Win32-Window-Background, Win32-Express, Win32-Front)
+        """
+        selected_label = self.pc_control_var.get()
+        # 查找对应的方案key
+        for key, value in self.pc_control_options.items():
+            if value['label'] == selected_label:
+                return key
+        return "Win32-Window"  # 默认返回
+    
+    def get_pc_window_title(self) -> str:
+        """获取PC窗口标题"""
+        return self.pc_window_title_var.get().strip()
+    
+    def connect_pc_window(self):
+        """连接PC窗口"""
+        window_title = self.pc_window_title_var.get().strip()
+        if not window_title:
+            messagebox.showwarning("警告", "请输入窗口标题")
+            return
+        
+        # 获取当前选择的触控方案
+        control_scheme = self.get_pc_control_scheme()
+        
+        # 设置PC设备模式和窗口信息
+        self.device_manager.set_pc_mode(True)
+        self.device_manager.set_current_device(f"PC:{window_title}")
+        self.device_manager.set_pc_window_title(window_title)
+        self.device_manager.set_pc_control_scheme(control_scheme)
+        
+        self.update_device_status(f"已连接: {window_title} ({control_scheme})", color='success')
+        self.log_callback(f"成功连接到PC窗口: {window_title}, 触控方案: {control_scheme}", "device", "INFO")

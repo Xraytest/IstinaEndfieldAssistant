@@ -12,3 +12,11 @@ debug/
 # 其他临时文件
 *.log
 *.tmp
+
+# 用户凭证文件 - 禁止上传
+*.arkpass
+credentials/
+debug_output/
+
+# CLI调试输出
+cli-method/debug_output/

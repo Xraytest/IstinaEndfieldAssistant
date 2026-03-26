@@ -1790,3 +1790,93 @@ Hello MaaFw!
 [2026-03-18 23:02:16.921][DBG][Px867756][Tx36634][Logger] ----------------------------- 
 [2026-03-18 23:02:16.921][DBG][Px867756][Tx36634][Logger] Close log 
 [2026-03-18 23:02:16.921][DBG][Px867756][Tx36634][Logger] ----------------------------- 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] ----------------------------- 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] MAA Process Start 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] Version v5.3.0 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] Built at Dec 31 2025 15:09:29 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] Windows x64 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] Working C:/Users/xray/Documents/ArkStudio/ReAcrture/client 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] Logging ./debug/maa.log 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][Logger] ----------------------------- 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][OptionMgr.cpp][L35][MaaNS::GlobalNS::OptionMgr::set_log_dir] | leave, 0ms 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 1ms 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 1ms 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:11.845][DBG][Px54504][Tx42554][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | enter 
+[2026-03-23 21:58:11.845][INF][Px54504][Tx42554][OptionMgr.cpp][L58][MaaNS::GlobalNS::OptionMgr::set_save_draw] Set save draw [save_draw_=false] 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | leave, 0ms 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:11.845][TRC][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | enter 
+[2026-03-23 21:58:11.846][INF][Px54504][Tx42554][OptionMgr.cpp][L108][MaaNS::GlobalNS::OptionMgr::set_save_on_error] Set save on error [save_on_error_=true] 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | enter 
+[2026-03-23 21:58:11.846][INF][Px54504][Tx42554][OptionMgr.cpp][L74][MaaNS::GlobalNS::OptionMgr::set_stdout_level] Set log stdout level [level=2] 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | enter 
+[2026-03-23 21:58:11.846][INF][Px54504][Tx42554][OptionMgr.cpp][L130][MaaNS::GlobalNS::OptionMgr::set_draw_quality] Set draw quality [draw_quality_=85] 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:11.846][DBG][Px54504][Tx42554][GlobalOptionConfig.cpp][L83][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] [bret=true] 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][GlobalOptionConfig.cpp][L67][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] | leave, 1ms 
+[2026-03-23 21:58:11.846][TRC][Px54504][Tx42554][GlobalOptionConfig.cpp][L17][MaaNS::ToolkitNS::GlobalOptionConfig::init] | leave, 6ms 
+[2026-03-23 21:58:27.196][DBG][Px54504][Tx42554][Logger] ----------------------------- 
+[2026-03-23 21:58:27.196][DBG][Px54504][Tx42554][Logger] Close log 
+[2026-03-23 21:58:27.196][DBG][Px54504][Tx42554][Logger] ----------------------------- 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] ----------------------------- 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] MAA Process Start 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] Version v5.3.0 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] Built at Dec 31 2025 15:09:29 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] Windows x64 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] Working C:/Users/xray/Documents/ArkStudio/ReAcrture/client 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] Logging ./debug/maa.log 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][Logger] ----------------------------- 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][OptionMgr.cpp][L35][MaaNS::GlobalNS::OptionMgr::set_log_dir] | leave, 0ms 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=2] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | enter 
+[2026-03-23 21:58:43.026][INF][Px65356][Tx54544][OptionMgr.cpp][L58][MaaNS::GlobalNS::OptionMgr::set_save_draw] Set save draw [save_draw_=false] 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][OptionMgr.cpp][L49][MaaNS::GlobalNS::OptionMgr::set_save_draw] | leave, 0ms 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=7] [value=true] [val_size=1] | enter 
+[2026-03-23 21:58:43.026][DBG][Px65356][Tx54544][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | enter 
+[2026-03-23 21:58:43.026][INF][Px65356][Tx54544][OptionMgr.cpp][L108][MaaNS::GlobalNS::OptionMgr::set_save_on_error] Set save on error [save_on_error_=true] 
+[2026-03-23 21:58:43.026][TRC][Px65356][Tx54544][OptionMgr.cpp][L99][MaaNS::GlobalNS::OptionMgr::set_save_on_error] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=4] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | enter 
+[2026-03-23 21:58:43.027][INF][Px65356][Tx54544][OptionMgr.cpp][L74][MaaNS::GlobalNS::OptionMgr::set_stdout_level] Set log stdout level [level=2] 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][OptionMgr.cpp][L65][MaaNS::GlobalNS::OptionMgr::set_stdout_level] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] [key=8] [value=true] [val_size=4] | enter 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | enter 
+[2026-03-23 21:58:43.027][INF][Px65356][Tx54544][OptionMgr.cpp][L130][MaaNS::GlobalNS::OptionMgr::set_draw_quality] Set draw quality [draw_quality_=85] 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][OptionMgr.cpp][L115][MaaNS::GlobalNS::OptionMgr::set_draw_quality] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][OptionMgr.cpp][L10][MaaNS::GlobalNS::OptionMgr::set_option] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][MaaFramework.cpp][L195][MaaGlobalSetOption] | leave, 0ms 
+[2026-03-23 21:58:43.027][DBG][Px65356][Tx54544][GlobalOptionConfig.cpp][L83][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] [bret=true] 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][GlobalOptionConfig.cpp][L67][MaaNS::ToolkitNS::GlobalOptionConfig::apply_option] | leave, 0ms 
+[2026-03-23 21:58:43.027][TRC][Px65356][Tx54544][GlobalOptionConfig.cpp][L17][MaaNS::ToolkitNS::GlobalOptionConfig::init] | leave, 1ms 
+[2026-03-23 21:59:26.083][DBG][Px65356][Tx54544][Logger] ----------------------------- 
+[2026-03-23 21:59:26.083][DBG][Px65356][Tx54544][Logger] Close log 
+[2026-03-23 21:59:26.083][DBG][Px65356][Tx54544][Logger] ----------------------------- 

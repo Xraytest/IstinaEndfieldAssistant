@@ -11,6 +11,7 @@ class DeviceManager:
         self.adb_manager = adb_manager
         self.config = config
         self.current_device = None
+        self.is_pc_mode = False  # PC设备模式标志
         # 使用传入的缓存目录，如果没有则使用默认路径
         if cache_dir is not None:
             self.cache_dir = cache_dir
@@ -72,6 +73,7 @@ class DeviceManager:
     def disconnect_device(self):
         """断开设备连接"""
         self.current_device = None
+        self.is_pc_mode = False
         
     def get_current_device(self):
         """获取当前连接的设备"""
@@ -90,3 +92,31 @@ class DeviceManager:
                 os.remove(device_cache_file)
             except Exception as e:
                 print(f"清除设备缓存失败: {e}")
+    
+    def set_pc_mode(self, is_pc: bool):
+        """设置PC设备模式"""
+        self.is_pc_mode = is_pc
+    
+    def is_pc_device(self) -> bool:
+        """检查是否为PC设备模式"""
+        return self.is_pc_mode
+    
+    def set_current_device(self, device_serial: str):
+        """设置当前设备"""
+        self.current_device = device_serial
+    
+    def set_pc_window_title(self, window_title: str):
+        """设置PC窗口标题"""
+        self.pc_window_title = window_title
+    
+    def get_pc_window_title(self) -> str:
+        """获取PC窗口标题"""
+        return getattr(self, 'pc_window_title', 'Endfield')
+    
+    def set_pc_control_scheme(self, scheme: str):
+        """设置PC触控方案"""
+        self.pc_control_scheme = scheme
+    
+    def get_pc_control_scheme(self) -> str:
+        """获取PC触控方案"""
+        return getattr(self, 'pc_control_scheme', 'Win32-Window')
