@@ -45,7 +45,7 @@ class TaskManagerGUI:
         """设置任务管理UI - MAA风格带动画效果"""
         # 任务队列区域 - 卡片式容器
         self.task_frame = tk.Frame(
-            self.parent_frame, 
+            self.parent_frame,
             bg=COLORS['surface'],
             highlightbackground=COLORS['border_color'],
             highlightthickness=1
@@ -746,110 +746,457 @@ class TaskManagerGUI:
                         fg=COLORS['text_muted']
                     )
                 
+    # 任务选择侧边面板相关属性
+    _task_panel_visible = False
+    _task_panel = None
+    _task_panel_items = {}  # 存储侧边面板任务项
+    _panel_dragging = False
+    _panel_dragged_task = None
+    _panel_drag_ghost = None
+    
     def show_add_task_dialog(self):
-        """显示添加任务对话框"""
+        """显示添加任务侧边面板 - 支持拖拽添加"""
         if not self.execution_manager.auth_manager.get_login_status():
             messagebox.showwarning("未登录", "请先登录后再添加任务")
+            return
+        
+        # 如果面板已显示，则隐藏
+        if self._task_panel_visible:
+            self._hide_task_panel()
             return
             
         available_tasks = self.get_available_tasks_from_server()
         if not available_tasks:
             messagebox.showinfo("提示", "暂无可用任务")
             return
-            
-        dialog = tk.Toplevel(self.parent_frame.winfo_toplevel())
-        dialog.title("添加任务")
-        dialog.geometry("500x400")
-        dialog.transient(self.parent_frame.winfo_toplevel())
-        dialog.grab_set()
-        dialog.configure(bg=COLORS['surface'])
         
-        # 标题
+        # 创建左侧扩展面板
+        self._show_task_panel(available_tasks)
+    
+    def _show_task_panel(self, available_tasks):
+        """显示任务选择独立窗口"""
+        self._task_panel_visible = True
+        
+        # 获取主窗口位置
+        main_window = self.parent_frame.winfo_toplevel()
+        
+        # 创建独立窗口
+        self._task_panel = tk.Toplevel(main_window)
+        self._task_panel.title("添加任务")
+        self._task_panel.geometry("300x450")
+        self._task_panel.resizable(True, True)
+        self._task_panel.transient(main_window)  # 设置为主窗口的子窗口
+        
+        # 创建内容框架
+        content_frame = tk.Frame(
+            self._task_panel,
+            bg=COLORS['surface'],
+            highlightbackground=COLORS['primary'],
+            highlightthickness=2
+        )
+        content_frame.pack(fill='both', expand=True)
+        
+        # 存储内容框架引用
+        self._task_panel_content = content_frame
+        
+        # 创建面板内容
+        self._create_task_panel_content(available_tasks)
+    
+    def _create_task_panel_content(self, available_tasks):
+        """创建任务选择面板的内容"""
+        # 使用内容框架作为父容器
+        parent = self._task_panel_content if hasattr(self, '_task_panel_content') and self._task_panel_content else self._task_panel
+        
+        # 标题栏
+        header_frame = tk.Frame(parent, bg=COLORS['surface'], height=40)
+        header_frame.pack(fill='x', padx=0, pady=0)
+        header_frame.pack_propagate(False)
+        
         title_label = tk.Label(
-            dialog,
-            text="选择要添加的任务",
+            header_frame,
+            text="可用任务 (拖拽添加)",
             bg=COLORS['surface'],
-            fg=COLORS['text_primary'],
-            font=get_font('title_medium', bold=True)
+            fg=COLORS['primary'],
+            font=get_font('title_medium', bold=True),
+            anchor=tk.W
         )
-        title_label.pack(pady=(15, 10), padx=15, anchor=tk.W)
+        title_label.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
         
-        # 任务列表
-        list_frame = tk.Frame(dialog, bg=COLORS['surface'])
-        list_frame.pack(fill='both', expand=True, padx=15, pady=5)
+        # 任务列表容器 - 使用Canvas实现滚动
+        list_container = tk.Frame(parent, bg=COLORS['surface'])
+        list_container.pack(fill='both', expand=True, padx=8, pady=(0, 8))
         
-        scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
-        scrollbar.pack(side=tk.RIGHT, fill='y')
-        
-        task_listbox = tk.Listbox(
-            list_frame,
-            yscrollcommand=scrollbar.set,
+        panel_canvas = tk.Canvas(
+            list_container,
             bg=COLORS['surface'],
-            fg=COLORS['text_primary'],
-            font=get_font('body_medium'),
-            selectbackground=COLORS['selection_bg'],
-            selectforeground=COLORS['primary'],
-            relief='solid',
-            borderwidth=1,
-            highlightthickness=0
+            highlightthickness=0,
+            borderwidth=0
         )
-        task_listbox.pack(side=tk.LEFT, fill='both', expand=True)
-        scrollbar.config(command=task_listbox.yview)
+        panel_scrollbar = ttk.Scrollbar(list_container, orient="vertical", command=panel_canvas.yview)
         
-        for task in available_tasks:
-            task_listbox.insert(tk.END, f"{task.get('name', '未知任务')}")
-            
-        def on_add():
-            selection = task_listbox.curselection()
-            if not selection:
-                messagebox.showwarning("警告", "请选择一个任务")
-                return
-                
-            selected_task = available_tasks[selection[0]]
-            self.add_task_to_queue(selected_task)
-            dialog.destroy()
-            
-        def on_cancel():
-            dialog.destroy()
-            
-        # 按钮
-        btn_frame = tk.Frame(dialog, bg=COLORS['surface'])
-        btn_frame.pack(pady=15, fill='x', padx=15)
+        panel_canvas.configure(yscrollcommand=panel_scrollbar.set)
         
-        add_btn = tk.Button(
-            btn_frame,
-            text="添加",
-            command=on_add,
-            bg=COLORS['surface_container_low'],
-            fg=COLORS['text_primary'],
+        panel_canvas.pack(side=tk.LEFT, fill='both', expand=True)
+        panel_scrollbar.pack(side=tk.RIGHT, fill='y')
+        
+        # 内部框架用于放置任务项
+        panel_inner_frame = tk.Frame(panel_canvas, bg=COLORS['surface'])
+        panel_canvas.create_window((0, 0), window=panel_inner_frame, anchor='nw')
+        
+        # 绑定滚动事件
+        panel_inner_frame.bind('<Configure>', lambda e: panel_canvas.configure(scrollregion=panel_canvas.bbox('all')))
+        panel_canvas.bind('<Configure>', lambda e: panel_canvas.itemconfig(1, width=e.width))
+        
+        # 绑定鼠标滚轮事件
+        def _on_mousewheel(event):
+            panel_canvas.yview_scroll(int(-1*(event.delta/120)), "units")
+        
+        panel_canvas.bind('<MouseWheel>', _on_mousewheel)
+        panel_inner_frame.bind('<MouseWheel>', _on_mousewheel)
+        # 也绑定到整个窗口
+        self._task_panel.bind('<MouseWheel>', _on_mousewheel)
+        
+        self._task_panel_items.clear()
+        
+        # 填充任务列表
+        for idx, task in enumerate(available_tasks):
+            task_name = task.get('name', '未知任务')
+            task_group = task.get('group', '')
+            
+            # 检查任务兼容性
+            is_compatible, platform_info = self._check_task_compatibility(task)
+            
+            # 创建任务项框架
+            task_row = tk.Frame(
+                panel_inner_frame,
+                bg=COLORS['surface'],
+                highlightbackground=COLORS['border_color'],
+                highlightthickness=0
+            )
+            task_row.pack(fill='x', pady=1)
+            
+            # 分界线
+            if idx > 0:
+                separator = tk.Frame(task_row, bg=COLORS['border_color'], height=1)
+                separator.pack(fill='x', side=tk.TOP)
+            
+            # 内容容器
+            content_frame = tk.Frame(task_row, bg=COLORS['surface'], height=36)
+            content_frame.pack(fill='x', pady=2)
+            content_frame.pack_propagate(False)
+            
+            # 拖拽手柄
+            drag_handle = tk.Label(
+                content_frame,
+                text="☰",
+                bg=COLORS['surface'],
+                fg=COLORS['text_muted'],
+                font=get_font('body_small'),
+                cursor='hand2',
+                width=2
+            )
+            drag_handle.pack(side=tk.LEFT, padx=(6, 2))
+            
+            # 任务名称
+            task_label = tk.Label(
+                content_frame,
+                text=task_name,
+                bg=COLORS['surface'],
+                fg=COLORS['text_muted'] if not is_compatible else COLORS['text_primary'],
+                font=get_font('body_medium'),
+                anchor=tk.W
+            )
+            task_label.pack(side=tk.LEFT, fill='x', expand=True, padx=(0, 4))
+            
+            # 不兼容标识
+            if not is_compatible:
+                compat_label = tk.Label(
+                    content_frame,
+                    text="⚠️",
+                    bg=COLORS['surface'],
+                    fg=COLORS['warning'],
+                    font=get_font('body_small'),
+                    cursor='hand2'
+                )
+                compat_label.pack(side=tk.RIGHT, padx=(0, 6))
+                self._create_tooltip(compat_label, f"不兼容: {platform_info}")
+            
+            # 存储引用
+            self._task_panel_items[idx] = {
+                'frame': task_row,
+                'content': content_frame,
+                'label': task_label,
+                'drag_handle': drag_handle,
+                'task': task
+            }
+            
+            # 绑定拖拽事件
+            drag_handle.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
+            drag_handle.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
+            drag_handle.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
+            
+            # 任务项也可以拖拽
+            content_frame.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
+            content_frame.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
+            content_frame.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
+            task_label.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
+            task_label.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
+            task_label.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
+            
+            # 双击快速添加
+            content_frame.bind('<Double-Button-1>', lambda e, t=task: self._on_panel_double_click(t))
+            task_label.bind('<Double-Button-1>', lambda e, t=task: self._on_panel_double_click(t))
+            
+            # 悬停效果
+            self._bind_panel_task_hover(task_row, content_frame, task_label, drag_handle)
+        
+        # 底部提示 - 使用内容框架作为父容器
+        parent = self._task_panel_content if hasattr(self, '_task_panel_content') and self._task_panel_content else self._task_panel
+        hint_label = tk.Label(
+            parent,
+            text="拖拽任务到右侧队列或双击添加",
+            bg=COLORS['surface'],
+            fg=COLORS['text_muted'],
+            font=get_font('body_small'),
+            anchor=tk.W
+        )
+        hint_label.pack(fill='x', padx=12, pady=(0, 8))
+    
+    # 动画相关常量
+    _panel_target_width = 280  # 目标宽度
+    _panel_target_height = 500  # 目标高度
+    _panel_animation_step = 20  # 每步增加的宽度
+    _panel_animation_delay = 16  # 动画间隔（毫秒）
+    _panel_animation_id = None  # 动画ID
+    _panel_window_x = 0  # 窗口X位置
+    _panel_window_y = 0  # 窗口Y位置
+    
+    def _animate_slide_out(self):
+        """执行面板滑出动画 - 独立窗口版本"""
+        # 如果面板不存在，停止动画
+        if not self._task_panel or not self._task_panel.winfo_exists():
+            return
+        
+        current_width = self._task_panel.winfo_width()
+        
+        if current_width >= self._panel_target_width:
+            # 动画完成，设置最终窗口大小
+            self._task_panel.geometry(f"{self._panel_target_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}")
+            return
+        
+        # 增加宽度
+        new_width = min(current_width + self._panel_animation_step, self._panel_target_width)
+        self._task_panel.geometry(f"{new_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}")
+        
+        # 继续动画
+        self._panel_animation_id = self._task_panel.after(
+            self._panel_animation_delay,
+            self._animate_slide_out
+        )
+    
+    def _animate_slide_in(self):
+        """执行面板滑入隐藏动画 - 独立窗口版本"""
+        # 如果面板不存在，停止动画
+        if not self._task_panel or not self._task_panel.winfo_exists():
+            self._finalize_hide_panel()
+            return
+        
+        current_width = self._task_panel.winfo_width()
+        
+        if current_width <= 0:
+            # 动画完成，销毁面板
+            self._finalize_hide_panel()
+            return
+        
+        # 减少宽度
+        new_width = max(current_width - self._panel_animation_step, 0)
+        self._task_panel.geometry(f"{new_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}")
+        
+        # 继续动画
+        self._panel_animation_id = self._task_panel.after(
+            self._panel_animation_delay,
+            self._animate_slide_in
+        )
+    
+    def _finalize_hide_panel(self):
+        """完成面板隐藏后的清理工作"""
+        self._task_panel_visible = False
+        if self._task_panel:
+            self._task_panel.destroy()
+            self._task_panel = None
+        if hasattr(self, '_task_panel_content'):
+            self._task_panel_content = None
+        self._task_panel_items.clear()
+        
+        # 清理拖拽虚影
+        if self._panel_drag_ghost:
+            self._panel_drag_ghost.destroy()
+            self._panel_drag_ghost = None
+        
+        # 清理动画ID
+        self._panel_animation_id = None
+    
+    def _hide_task_panel(self):
+        """隐藏任务选择独立窗口 - 带滑入动画"""
+        # 取消正在进行的动画
+        if self._panel_animation_id:
+            if self._task_panel and self._task_panel.winfo_exists():
+                self._task_panel.after_cancel(self._panel_animation_id)
+            self._panel_animation_id = None
+        
+        # 执行滑入动画
+        self._animate_slide_in()
+    
+    def _bind_panel_task_hover(self, row_frame, content_frame, label, drag_handle):
+        """绑定侧边面板任务项悬停效果"""
+        def on_enter(e):
+            if not self._panel_dragging:
+                content_frame.configure(bg=COLORS['surface_container_low'])
+                label.configure(bg=COLORS['surface_container_low'])
+                drag_handle.configure(bg=COLORS['surface_container_low'], fg=COLORS['primary'])
+        
+        def on_leave(e):
+            if not self._panel_dragging:
+                content_frame.configure(bg=COLORS['surface'])
+                label.configure(bg=COLORS['surface'])
+                drag_handle.configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
+        
+        row_frame.bind('<Enter>', on_enter)
+        row_frame.bind('<Leave>', on_leave)
+    
+    def _on_panel_drag_start(self, event, task, index):
+        """开始从侧边面板拖拽任务"""
+        self._panel_dragging = True
+        self._panel_dragged_task = task
+        
+        # 创建拖拽虚影
+        self._create_panel_drag_ghost(task, event)
+        
+        # 高亮原始项
+        if index in self._task_panel_items:
+            item = self._task_panel_items[index]
+            item['content'].configure(bg=COLORS['selection_bg'])
+            item['label'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
+            item['drag_handle'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
+    
+    def _create_panel_drag_ghost(self, task, event):
+        """创建从侧边面板拖拽的虚影"""
+        if self._panel_drag_ghost:
+            self._panel_drag_ghost.destroy()
+        
+        self._panel_drag_ghost = tk.Toplevel(self.parent_frame)
+        self._panel_drag_ghost.overrideredirect(True)
+        self._panel_drag_ghost.attributes('-alpha', 0.8)
+        self._panel_drag_ghost.attributes('-topmost', True)
+        
+        ghost_frame = tk.Frame(
+            self._panel_drag_ghost,
+            bg=COLORS['primary'],
+            highlightbackground=COLORS['primary'],
+            highlightthickness=2
+        )
+        ghost_frame.pack(fill='both', expand=True)
+        
+        tk.Label(
+            ghost_frame,
+            text=f"➕ {task.get('name', '未知任务')}",
+            bg=COLORS['primary'],
+            fg=COLORS['surface'],
             font=get_font('body_medium', bold=True),
-            relief='solid',
-            borderwidth=1,
-            padx=20,
-            pady=8,
-            cursor='hand2'
-        )
-        add_btn.pack(side=tk.RIGHT, padx=(5, 0))
-        self._bind_hover_effect(add_btn, COLORS['surface_container_low'], COLORS['surface_container'],
-                               COLORS['text_primary'], COLORS['text_primary'])
+            padx=15,
+            pady=8
+        ).pack()
         
-        cancel_btn = tk.Button(
-            btn_frame,
-            text="取消",
-            command=on_cancel,
-            bg=COLORS['surface_container_low'],
-            fg=COLORS['text_primary'],
-            font=get_font('body_medium'),
-            relief='solid',
-            borderwidth=1,
-            highlightbackground=COLORS['border_color'],
-            padx=20,
-            pady=8,
-            cursor='hand2'
-        )
-        cancel_btn.pack(side=tk.RIGHT)
-        self._bind_hover_effect(cancel_btn, COLORS['surface_container_low'], COLORS['surface_container'],
-                               COLORS['text_primary'], COLORS['text_primary'])
+        # 设置虚影位置
+        self._panel_drag_ghost.geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
+    
+    def _on_panel_drag_move(self, event):
+        """从侧边面板拖拽移动"""
+        if not self._panel_dragging or not self._panel_drag_ghost:
+            return
+        
+        # 更新虚影位置
+        self._panel_drag_ghost.geometry(f"+{event.x_root + 10}+{event.y_root + 10}")
+        
+        # 检测是否在任务队列区域上方
+        queue_x = self.task_frame.winfo_rootx()
+        queue_y = self.task_frame.winfo_rooty()
+        queue_w = self.task_frame.winfo_width()
+        queue_h = self.task_frame.winfo_height()
+        
+        if (queue_x <= event.x_root <= queue_x + queue_w and
+            queue_y <= event.y_root <= queue_y + queue_h):
+            # 在队列区域上方，显示插入指示器
+            current_y = event.y_root - self.task_inner_frame.winfo_rooty()
+            new_index = self._calculate_drop_index(current_y)
+            self._show_drop_indicator(new_index)
+        else:
+            # 不在队列区域，清除插入指示器
+            self._clear_drop_indicators()
+    
+    def _on_panel_drag_end(self, event):
+        """结束从侧边面板拖拽"""
+        if not self._panel_dragging:
+            return
+        
+        self._panel_dragging = False
+        
+        # 移除虚影
+        if self._panel_drag_ghost:
+            self._panel_drag_ghost.destroy()
+            self._panel_drag_ghost = None
+        
+        # 恢复侧边面板项样式
+        for idx, item in self._task_panel_items.items():
+            item['content'].configure(bg=COLORS['surface'])
+            item['label'].configure(bg=COLORS['surface'], fg=COLORS['text_primary'])
+            item['drag_handle'].configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
+        
+        # 清除插入指示器
+        self._clear_drop_indicators()
+        
+        # 检测是否在任务队列区域上方
+        queue_x = self.task_frame.winfo_rootx()
+        queue_y = self.task_frame.winfo_rooty()
+        queue_w = self.task_frame.winfo_width()
+        queue_h = self.task_frame.winfo_height()
+        
+        if (queue_x <= event.x_root <= queue_x + queue_w and
+            queue_y <= event.y_root <= queue_y + queue_h):
+            # 在队列区域，添加任务
+            current_y = event.y_root - self.task_inner_frame.winfo_rooty()
+            insert_index = self._calculate_drop_index(current_y)
+            
+            if self._panel_dragged_task:
+                self._add_task_at_index(self._panel_dragged_task, insert_index)
+        
+        self._panel_dragged_task = None
+    
+    def _on_panel_double_click(self, task):
+        """双击侧边面板任务项快速添加"""
+        self.add_task_to_queue(task)
+    
+    def _add_task_at_index(self, task_template, insert_index):
+        """在指定位置添加任务"""
+        import time
+        new_task = task_template.copy()
+        new_task['id'] = f"{task_template.get('id', 'task')}_{int(time.time())}"
+        new_task['name'] = task_template.get('name', '新任务')
+        new_task['custom_name'] = new_task['name']
+        
+        # 使用TaskQueueManager的insert_task方法（如果存在）或add_task
+        if hasattr(self.task_queue_manager, 'insert_task'):
+            self.task_queue_manager.insert_task(new_task, insert_index)
+        else:
+            # 先添加到末尾，然后移动到指定位置
+            self.task_queue_manager.add_task(new_task)
+            current_index = len(self.task_queue_manager.get_queue_info()['tasks']) - 1
+            if current_index != insert_index:
+                self.task_queue_manager.move_task(current_index, insert_index)
+        
+        self.update_queue_display()
+        self.log_callback(f"已添加任务 '{new_task['name']}' 到位置 {insert_index + 1}", "task", "INFO")
+        self.task_queue_manager.save_task_queue()
         
     def show_edit_task_dialog_for_task(self, task_index):
         """显示指定任务的编辑对话框 - 如果有回调则切换到页面内标签，否则打开新窗口"""

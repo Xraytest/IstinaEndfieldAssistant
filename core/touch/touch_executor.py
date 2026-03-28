@@ -55,6 +55,9 @@ class MaaTouchConfig:
     # 二进制文件路径
     minitouch_binary_path: str = "client/device_control_system/minitouch_resources/armeabi-v7a/minitouch"
     maatouch_binary_path: str = "client/device_control_system/minitouch_resources/maatouch/minitouch"
+    
+    # 错误处理
+    fail_on_error: bool = True  # 触控失败时是否抛出异常
 
 
 class TouchExecutor:

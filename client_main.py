@@ -330,6 +330,12 @@ class ReAcrtureClientGUI:
     def check_login_status(self):
         """检查登录状态"""
         self.logger.debug(LogCategory.MAIN, "检查登录状态")
+        
+        # 检查auth_manager是否已初始化
+        if self.auth_manager is None:
+            self.logger.warning(LogCategory.MAIN, "认证管理器未初始化，跳过登录状态检查")
+            return
+        
         # 首先检查业务逻辑层的登录状态
         is_logged_in, error_msg = self.auth_manager.check_login_status()
         

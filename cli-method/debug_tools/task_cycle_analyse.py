@@ -410,7 +410,12 @@ class TaskCycleAnalyzer:
                 print("[分析] API调用失败")
                 continue
             
-            print(f"\n[模型响应]\n{response}\n")
+            # 安全打印，避免GBK编码错误
+            try:
+                safe_response = response.encode('gbk', errors='replace').decode('gbk')
+                print(f"\n[模型响应]\n{safe_response}\n")
+            except Exception:
+                print(f"\n[模型响应] (响应内容已保存到文件)\n")
             
             # 解析结果
             analysis_result = self._parse_analysis_result(response)

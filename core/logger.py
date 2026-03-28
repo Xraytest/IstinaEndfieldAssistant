@@ -31,6 +31,7 @@ class LogCategory(Enum):
     GUI = "gui"
     EXCEPTION = "exception"
     PERFORMANCE = "performance"
+    DEVICE = "device"
 
 
 class LogRecord:
