@@ -1,0 +1,134 @@
+{
+  "run_start_time": "2026-03-28T14:44:40.070689",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260328_144440_628959",
+      "datetime": "2026-03-28T14:44:40.632389",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144440_628959_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144454_720117",
+      "datetime": "2026-03-28T14:44:54.724486",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144454_720117_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144516_026872",
+      "datetime": "2026-03-28T14:45:16.033795",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144516_026872_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144532_818320",
+      "datetime": "2026-03-28T14:45:32.824309",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144532_818320_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144550_772473",
+      "datetime": "2026-03-28T14:45:50.781762",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144550_772473_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144601_187381",
+      "datetime": "2026-03-28T14:46:01.190504",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144601_187381_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144609_241028",
+      "datetime": "2026-03-28T14:46:09.243949",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144609_241028_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144617_854906",
+      "datetime": "2026-03-28T14:46:17.860213",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144617_854906_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144629_860883",
+      "datetime": "2026-03-28T14:46:29.865948",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144629_860883_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144647_402777",
+      "datetime": "2026-03-28T14:46:47.410191",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144647_402777_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144711_037136",
+      "datetime": "2026-03-28T14:47:11.042597",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144711_037136_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144722_838711",
+      "datetime": "2026-03-28T14:47:22.842981",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144722_838711_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144734_915183",
+      "datetime": "2026-03-28T14:47:34.920112",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144734_915183_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144814_025297",
+      "datetime": "2026-03-28T14:48:14.035399",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144814_025297_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144829_355320",
+      "datetime": "2026-03-28T14:48:29.365648",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144829_355320_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144843_143061",
+      "datetime": "2026-03-28T14:48:43.152600",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144843_143061_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144902_556260",
+      "datetime": "2026-03-28T14:49:02.564575",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144902_556260_访问好友.png"
+    },
+    {
+      "timestamp": "20260328_144917_237442",
+      "datetime": "2026-03-28T14:49:17.245237",
+      "task_name": "访问好友",
+      "task_variables": {},
+      "screenshot_file": "20260328_144917_237442_访问好友.png"
+    }
+  ]
+}

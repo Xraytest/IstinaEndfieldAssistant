@@ -64,7 +64,7 @@ class CLIDebugRunner:
             user_id: 用户ID
             server_host: 服务器地址
             server_port: 服务器端口
-            control_scheme: 触控方案 (Win32-Window, Win32-Window-Background, Win32-Express, Win32-Front)
+            control_scheme: 触控方案 (Win32-Window, Win32-Express, Win32-Front)
             window_title: PC窗口标题
             output_dir: 输出目录
             screenshot_interval: 截图间隔（秒）
@@ -237,23 +237,23 @@ class CLIDebugRunner:
             # 根据触控方案创建对应的控制器
             if self.control_scheme == "Win32-Window":
                 self.pc_controller = Win32Controller.create_window_controller()
-            elif self.control_scheme == "Win32-Window-Background":
-                self.pc_controller = Win32Controller.create_background_controller()
             elif self.control_scheme == "Win32-Express":
                 self.pc_controller = Win32Controller.create_express_controller()
             elif self.control_scheme == "Win32-Front":
                 self.pc_controller = Win32Controller.create_front_controller()
             else:
-                self.pc_controller = Win32Controller.create_window_controller()
+                self.pc_controller = Win32Controller.create_front_controller()
             
             # 连接到游戏窗口
-            if self.pc_controller.connect(window_title=self.window_title):
-                self.logger.info(LogCategory.MAIN, 
-                               f"PC控制器连接成功: {self.window_title} ({self.control_scheme})")
+            # 硬编码目标窗口为 Endfield (实际窗口标题)
+            target_window = "Endfield"
+            if self.pc_controller.connect(window_title=target_window):
+                self.logger.info(LogCategory.MAIN,
+                               f"PC控制器连接成功: {target_window} ({self.control_scheme})")
                 return True
             else:
-                self.logger.error(LogCategory.MAIN, 
-                                f"PC控制器连接失败: 未找到窗口 '{self.window_title}'")
+                self.logger.error(LogCategory.MAIN,
+                                f"PC控制器连接失败: 未找到窗口 '{target_window}' (硬编码目标: Endfield)")
                 return False
                 
         except Exception as e:
@@ -468,9 +468,9 @@ def main():
     parser.add_argument('--server-host', '-H', default='127.0.0.1', help='服务器地址')
     parser.add_argument('--server-port', '-p', type=int, default=9999, help='服务器端口')
     parser.add_argument('--control-scheme', '-c',
-                       choices=['Win32-Window', 'Win32-Window-Background', 'Win32-Express', 'Win32-Front'],
-                       default='Win32-Window-Background', help='触控方案（默认使用后台方案）')
-    parser.add_argument('--window-title', '-w', default='Endfield', help='PC窗口标题')
+                       choices=['Win32-Window', 'Win32-Express', 'Win32-Front'],
+                       default='Win32-Front', help='触控方案（默认使用前台方案）')
+    parser.add_argument('--window-title', '-w', default='Endfield', help='PC窗口标题 (硬编码为 Endfield)')
     parser.add_argument('--output-dir', '-o', default=None, help='输出目录')
     parser.add_argument('--screenshot-interval', '-i', type=float, default=1.0, help='截图间隔（秒）')
     parser.add_argument('--execution-count', '-n', type=int, default=1, 

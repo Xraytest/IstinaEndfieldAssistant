@@ -35,7 +35,7 @@ class TaskCycleAnalyzer:
     """任务周期分析器 - 使用Kimi-K2.5分析任务执行情况"""
     
     # Kimi-K2.5供应商配置
-    DEFAULT_API_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    DEFAULT_API_BASE = "https://dashscope.aliyuncs.com/api/v1"
     DEFAULT_MODEL = "kimi-k2.5"
     
     # 分析系统提示
@@ -54,14 +54,25 @@ class TaskCycleAnalyzer:
 注意：
 - 截图按时间顺序排列，每张都有时间戳
 - 任务变量描述了任务的具体目标
-- 请关注关键操作步骤是否正确执行"""
+- 请关注关键操作步骤是否正确执行
+
+**重要判断规则**：
+对于奖励领取类任务（如"每日奖励领取"、"邮件领取"等）：
+- 如果看到"暂无附件可收取"、"暂无更多奖励可领取"、"没有可领取的邮件"、"无奖励可领取"等提示文字，这表示所有奖励已被领取完毕或当前没有新奖励，这是**正常完成状态**，应判断为**成功**，而不是失败。
+- 只有当任务完全没有执行（如卡在某个界面不动、没有尝试进入奖励界面）时才判断为失败。
+- 奖励领取任务的目标是"检查并领取所有可用奖励"，如果没有可用奖励，任务目标已达成。
+
+对于访问好友类任务：
+- 如果看到"暂无可助力设施"、"暂无可交换情报"等提示，这表示当前好友基地没有可操作项，这也是正常状态。
+- 只有当完全没有进入好友基地或没有尝试执行操作时才判断为失败。"""
 
     def __init__(self, 
                  api_key: str,
                  api_base: str = None,
                  model: str = None,
                  max_screenshots_per_request: int = 50,
-                 initial_screenshot_count: int = 35):
+                 initial_screenshot_count: int = 35,
+                 provider_name: str = None):
         """
         初始化分析器
         
@@ -76,7 +87,15 @@ class TaskCycleAnalyzer:
         self.api_base = api_base or self.DEFAULT_API_BASE
         self.model = model or self.DEFAULT_MODEL
         self.max_screenshots_per_request = max_screenshots_per_request
-        self.initial_screenshot_count = initial_screenshot_count
+        # 根据供应商调整初始截图数量
+        if provider_name == "local":
+            # local供应商上下文限制较小，减少初始截图数量
+            self.initial_screenshot_count = min(initial_screenshot_count, 10)
+        elif provider_name == "Kimi_K2_5":
+            # Kimi K2.5 API有缓冲区限制（50MB），减少初始截图数量避免超限
+            self.initial_screenshot_count = min(initial_screenshot_count, 8)
+        else:
+            self.initial_screenshot_count = initial_screenshot_count
         
         # 对话历史（仅保留文本）
         self.conversation_history: List[Dict[str, str]] = []
@@ -234,7 +253,9 @@ class TaskCycleAnalyzer:
                 if 'choices' in result and len(result['choices']) > 0:
                     message = result['choices'][0]['message']
                     # 优先使用content，如果没有则尝试reasoning_content（某些模型如qwen使用此字段）
-                    content = message.get('content') or message.get('reasoning_content')
+                    content = message.get('content', '')
+                    if not content and 'reasoning_content' in message:
+                        content = message.get('reasoning_content', '')
                     if content:
                         return content
                     else:
@@ -271,12 +292,30 @@ class TaskCycleAnalyzer:
             'requested_time_range': None
         }
         
-        # 解析完成状态
-        if '任务完成状态：成功' in response or '任务完成状态: 成功' in response:
+        # 解析完成状态（支持多种格式）
+        # 先移除可能的markdown标记进行匹配
+        clean_response = response.replace('**', '')
+        
+        # 更灵活的成功判断：检查最后几行是否包含"成功"
+        last_lines = '\n'.join(clean_response.split('\n')[-10:])
+        
+        # 优先匹配明确的格式
+        if '任务完成状态：成功' in clean_response or '任务完成状态: 成功' in clean_response:
             result['status'] = 'success'
-        elif '任务完成状态：失败' in response or '任务完成状态: 失败' in response:
+        # 检查最后几行是否有单独的"成功"标题（如"### 任务完成状态\n\n成功"）
+        elif '任务完成状态' in clean_response and '成功' in last_lines:
+            # 如果包含"任务完成状态"且最后几行包含"成功"
+            if '失败' not in last_lines:
+                result['status'] = 'success'
+        # 检查最后几行是否有"成功"关键词
+        elif last_lines.strip().endswith('成功'):
+            result['status'] = 'success'
+        elif '任务完成状态：失败' in clean_response or '任务完成状态: 失败' in clean_response:
             result['status'] = 'failed'
-        elif '任务完成状态：无法判断' in response or '任务完成状态: 无法判断' in response:
+        elif '任务完成状态' in clean_response and '失败' in last_lines:
+            if '成功' not in last_lines:
+                result['status'] = 'failed'
+        elif '任务完成状态：无法判断' in clean_response or '任务完成状态: 无法判断' in clean_response:
             result['status'] = 'unknown'
             result['need_more_screenshots'] = True
         
@@ -465,7 +504,7 @@ def load_provider_config(provider_name: str = None) -> Dict[str, str]:
         else:
             # 按优先级查找可用的供应商
             # 优先级: local > kimi > 其他
-            priority_order = ['local', 'kimi_k2_5', 'glm_4.6vflash_free']
+            priority_order = ['Kimi_K2_5', 'local', 'GLM_4.6vflash_Free']
             
             for preferred_name in priority_order:
                 for key, config in providers.items():
@@ -530,7 +569,8 @@ def main():
         api_base=api_base,
         model=model,
         max_screenshots_per_request=args.max_screenshots,
-        initial_screenshot_count=args.initial_screenshots
+        initial_screenshot_count=args.initial_screenshots,
+        provider_name=args.provider
     )
     
     # 执行分析

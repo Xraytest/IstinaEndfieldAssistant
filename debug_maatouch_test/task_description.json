@@ -1,0 +1,22 @@
+{
+  "run_start_time": "2026-03-28T14:00:06.767530",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260328_140007_746965",
+      "datetime": "2026-03-28T14:00:07.751736",
+      "task_name": "启动游戏",
+      "task_variables": {},
+      "screenshot_file": "20260328_140007_746965_启动游戏.png"
+    },
+    {
+      "timestamp": "20260328_140022_928720",
+      "datetime": "2026-03-28T14:00:22.930546",
+      "task_name": "启动游戏",
+      "task_variables": {},
+      "screenshot_file": "20260328_140022_928720_启动游戏.png"
+    }
+  ]
+}

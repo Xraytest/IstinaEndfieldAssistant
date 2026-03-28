@@ -1,0 +1,15 @@
+{
+  "run_start_time": "2026-03-28T12:50:12.976437",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260328_125014_145936",
+      "datetime": "2026-03-28T12:50:14.153249",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260328_125014_145936_游戏登录确认.png"
+    }
+  ]
+}

@@ -1,0 +1,708 @@
+{
+  "run_start_time": "2026-03-28T17:55:15.468330",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260328_175515_909420",
+      "datetime": "2026-03-28T17:55:15.910352",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175515_909420_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175525_349637",
+      "datetime": "2026-03-28T17:55:25.351181",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175525_349637_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175532_506743",
+      "datetime": "2026-03-28T17:55:32.507515",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175532_506743_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175538_706619",
+      "datetime": "2026-03-28T17:55:38.712370",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175538_706619_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175552_842728",
+      "datetime": "2026-03-28T17:55:52.843094",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175552_842728_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175605_651670",
+      "datetime": "2026-03-28T17:56:05.655778",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175605_651670_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175625_089067",
+      "datetime": "2026-03-28T17:56:25.094574",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175625_089067_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175637_623054",
+      "datetime": "2026-03-28T17:56:37.628250",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175637_623054_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175651_671754",
+      "datetime": "2026-03-28T17:56:51.675998",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175651_671754_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175702_755161",
+      "datetime": "2026-03-28T17:57:02.762756",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175702_755161_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175712_786526",
+      "datetime": "2026-03-28T17:57:12.792246",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175712_786526_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175722_751823",
+      "datetime": "2026-03-28T17:57:22.757820",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175722_751823_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175733_679125",
+      "datetime": "2026-03-28T17:57:33.684586",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175733_679125_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175748_614129",
+      "datetime": "2026-03-28T17:57:48.621127",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175748_614129_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175801_239623",
+      "datetime": "2026-03-28T17:58:01.244281",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175801_239623_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175814_234378",
+      "datetime": "2026-03-28T17:58:14.240031",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175814_234378_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175824_277727",
+      "datetime": "2026-03-28T17:58:24.281640",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175824_277727_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175842_694091",
+      "datetime": "2026-03-28T17:58:42.698967",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175842_694091_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175858_692445",
+      "datetime": "2026-03-28T17:58:58.696690",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175858_692445_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175907_914360",
+      "datetime": "2026-03-28T17:59:07.918148",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175907_914360_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175925_660412",
+      "datetime": "2026-03-28T17:59:25.664207",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175925_660412_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175938_503456",
+      "datetime": "2026-03-28T17:59:38.507705",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175938_503456_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_175952_051248",
+      "datetime": "2026-03-28T17:59:52.056315",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_175952_051248_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180002_879298",
+      "datetime": "2026-03-28T18:00:02.883224",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180002_879298_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180028_353389",
+      "datetime": "2026-03-28T18:00:28.357482",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180028_353389_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180044_815426",
+      "datetime": "2026-03-28T18:00:44.819315",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180044_815426_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180124_218129",
+      "datetime": "2026-03-28T18:01:24.222154",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180124_218129_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180152_466858",
+      "datetime": "2026-03-28T18:01:52.471205",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180152_466858_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180218_990710",
+      "datetime": "2026-03-28T18:02:18.994313",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180218_990710_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180230_925953",
+      "datetime": "2026-03-28T18:02:30.930878",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180230_925953_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180242_142107",
+      "datetime": "2026-03-28T18:02:42.146752",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180242_142107_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180255_573635",
+      "datetime": "2026-03-28T18:02:55.579371",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180255_573635_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180305_402759",
+      "datetime": "2026-03-28T18:03:05.407102",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180305_402759_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180315_377373",
+      "datetime": "2026-03-28T18:03:15.381656",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180315_377373_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180327_678357",
+      "datetime": "2026-03-28T18:03:27.684514",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180327_678357_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180338_591858",
+      "datetime": "2026-03-28T18:03:38.597529",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180338_591858_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180349_825974",
+      "datetime": "2026-03-28T18:03:49.830443",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180349_825974_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180359_827134",
+      "datetime": "2026-03-28T18:03:59.832539",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180359_827134_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180411_288844",
+      "datetime": "2026-03-28T18:04:11.292997",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180411_288844_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180423_770775",
+      "datetime": "2026-03-28T18:04:23.775144",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180423_770775_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180434_533252",
+      "datetime": "2026-03-28T18:04:34.537291",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180434_533252_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180445_204601",
+      "datetime": "2026-03-28T18:04:45.208430",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180445_204601_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180501_085627",
+      "datetime": "2026-03-28T18:05:01.089681",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180501_085627_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180513_176974",
+      "datetime": "2026-03-28T18:05:13.180997",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180513_176974_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180525_403078",
+      "datetime": "2026-03-28T18:05:25.408495",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180525_403078_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180542_982026",
+      "datetime": "2026-03-28T18:05:42.985720",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180542_982026_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180600_792618",
+      "datetime": "2026-03-28T18:06:00.798195",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180600_792618_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180610_295713",
+      "datetime": "2026-03-28T18:06:10.299435",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180610_295713_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180620_326872",
+      "datetime": "2026-03-28T18:06:20.332993",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180620_326872_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180636_856150",
+      "datetime": "2026-03-28T18:06:36.860226",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180636_856150_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180648_533243",
+      "datetime": "2026-03-28T18:06:48.537602",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180648_533243_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180659_450838",
+      "datetime": "2026-03-28T18:06:59.455215",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180659_450838_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180708_424177",
+      "datetime": "2026-03-28T18:07:08.427874",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180708_424177_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180723_987780",
+      "datetime": "2026-03-28T18:07:23.991691",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180723_987780_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180740_630181",
+      "datetime": "2026-03-28T18:07:40.633846",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180740_630181_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180817_506636",
+      "datetime": "2026-03-28T18:08:17.510383",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180817_506636_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180825_964801",
+      "datetime": "2026-03-28T18:08:25.968879",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180825_964801_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180842_236732",
+      "datetime": "2026-03-28T18:08:42.242893",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180842_236732_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180852_039776",
+      "datetime": "2026-03-28T18:08:52.044025",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180852_039776_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180903_771574",
+      "datetime": "2026-03-28T18:09:03.775153",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180903_771574_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180913_374297",
+      "datetime": "2026-03-28T18:09:13.378925",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180913_374297_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180925_075758",
+      "datetime": "2026-03-28T18:09:25.080418",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180925_075758_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_180956_545282",
+      "datetime": "2026-03-28T18:09:56.549000",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_180956_545282_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181008_752771",
+      "datetime": "2026-03-28T18:10:08.757895",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181008_752771_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181032_064633",
+      "datetime": "2026-03-28T18:10:32.068525",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181032_064633_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181041_075698",
+      "datetime": "2026-03-28T18:10:41.079975",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181041_075698_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181057_739845",
+      "datetime": "2026-03-28T18:10:57.743413",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181057_739845_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181113_054392",
+      "datetime": "2026-03-28T18:11:13.058237",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181113_054392_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181127_717776",
+      "datetime": "2026-03-28T18:11:27.725869",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181127_717776_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181146_567840",
+      "datetime": "2026-03-28T18:11:46.574587",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181146_567840_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181159_908483",
+      "datetime": "2026-03-28T18:11:59.915013",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181159_908483_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181214_687537",
+      "datetime": "2026-03-28T18:12:14.695527",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181214_687537_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181240_791171",
+      "datetime": "2026-03-28T18:12:40.793378",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181240_791171_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181252_066834",
+      "datetime": "2026-03-28T18:12:52.072622",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181252_066834_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181303_761852",
+      "datetime": "2026-03-28T18:13:03.770363",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181303_761852_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181316_499884",
+      "datetime": "2026-03-28T18:13:16.508112",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181316_499884_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181331_408631",
+      "datetime": "2026-03-28T18:13:31.415804",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181331_408631_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181345_016858",
+      "datetime": "2026-03-28T18:13:45.025012",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181345_016858_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181358_184134",
+      "datetime": "2026-03-28T18:13:58.191470",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181358_184134_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181411_852628",
+      "datetime": "2026-03-28T18:14:11.859518",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181411_852628_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181422_888315",
+      "datetime": "2026-03-28T18:14:22.893687",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181422_888315_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181439_468941",
+      "datetime": "2026-03-28T18:14:39.473492",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181439_468941_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181448_925471",
+      "datetime": "2026-03-28T18:14:48.930426",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181448_925471_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181506_108919",
+      "datetime": "2026-03-28T18:15:06.111508",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181506_108919_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181520_973279",
+      "datetime": "2026-03-28T18:15:20.975788",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181520_973279_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181535_925482",
+      "datetime": "2026-03-28T18:15:35.933729",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181535_925482_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181613_048424",
+      "datetime": "2026-03-28T18:16:13.055760",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181613_048424_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181625_805414",
+      "datetime": "2026-03-28T18:16:25.812417",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181625_805414_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181647_077154",
+      "datetime": "2026-03-28T18:16:47.085139",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181647_077154_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181700_090258",
+      "datetime": "2026-03-28T18:17:00.096626",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181700_090258_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181710_471628",
+      "datetime": "2026-03-28T18:17:10.476344",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181710_471628_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181721_453032",
+      "datetime": "2026-03-28T18:17:21.460677",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181721_453032_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181733_084582",
+      "datetime": "2026-03-28T18:17:33.088828",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181733_084582_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181743_127435",
+      "datetime": "2026-03-28T18:17:43.131245",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181743_127435_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181755_024005",
+      "datetime": "2026-03-28T18:17:55.025852",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181755_024005_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181804_432307",
+      "datetime": "2026-03-28T18:18:04.436009",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181804_432307_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181814_387712",
+      "datetime": "2026-03-28T18:18:14.399288",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181814_387712_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181829_228470",
+      "datetime": "2026-03-28T18:18:29.235156",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181829_228470_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181839_540450",
+      "datetime": "2026-03-28T18:18:39.547862",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181839_540450_每日奖励领取.png"
+    },
+    {
+      "timestamp": "20260328_181853_444193",
+      "datetime": "2026-03-28T18:18:53.448612",
+      "task_name": "每日奖励领取",
+      "task_variables": {},
+      "screenshot_file": "20260328_181853_444193_每日奖励领取.png"
+    }
+  ]
+}

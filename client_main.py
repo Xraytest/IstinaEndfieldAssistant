@@ -24,7 +24,7 @@ if project_root not in sys.path:
 from client.core.logger import init_logger, get_logger, LogCategory, LogLevel
 from client.core.adb_manager import ADBDeviceManager
 from client.core.screen_capture import ScreenCapture
-from client.core.touch import MaaFwTouchExecutor as TouchExecutor, MaaFwTouchConfig
+from client.core.touch.touch_executor import TouchExecutor, MaaTouchConfig, TouchMethod
 from client.cloud.task_manager import TaskManager
 from client.core.communication.communicator import ClientCommunicator
 from client.cloud.managers.auth_manager import AuthManager
@@ -185,13 +185,14 @@ class ReAcrtureClientGUI:
             fail_on_error = touch_config.get('fail_on_error', True)
 
             # 创建MAA风格配置
-            maa_config = MaaFwTouchConfig(
+            maa_config = MaaTouchConfig(
                 press_duration_ms=maa_style_config.get('press_duration_ms', 50),
                 press_jitter_px=maa_style_config.get('press_jitter_px', 2),
                 swipe_delay_min_ms=maa_style_config.get('swipe_delay_min_ms', 100),
                 swipe_delay_max_ms=maa_style_config.get('swipe_delay_max_ms', 300),
                 use_normalized_coords=maa_style_config.get('use_normalized_coords', True),
-                fail_on_error=fail_on_error
+                fail_on_error=fail_on_error,
+                touch_method=TouchMethod.MAATOUCH  # 使用MaaTouch方案（基于ADB的高效触控）
             )
             
             self.logger.info(LogCategory.MAIN, "触控配置加载完成")

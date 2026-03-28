@@ -21,6 +21,14 @@ except ImportError:
     PC_CONTROLLER_AVAILABLE = False
     print("[警告] Win32Controller导入失败，PC设备支持不可用")
 
+# 设备状态管理
+try:
+    from client.core.device_state_manager import DeviceStateManager
+    DEVICE_STATE_MANAGER_AVAILABLE = True
+except ImportError:
+    DEVICE_STATE_MANAGER_AVAILABLE = False
+    print("[警告] DeviceStateManager导入失败，设备状态管理不可用")
+
 class ExecutionManager:
     """执行管理业务逻辑类 - GUI和CLI共用"""
     
@@ -36,6 +44,9 @@ class ExecutionManager:
         # PC设备控制器
         self.pc_controller: Optional[Win32Controller] = None
         self.pc_window_title: str = "Endfield"  # 默认窗口标题
+        
+        # 设备状态管理器
+        self.device_state_manager: Optional[DeviceStateManager] = None
         
         # 运行中操作跟踪
         self.running_operations = {}  # {operation_id: operation_info}
@@ -73,7 +84,7 @@ class ExecutionManager:
         """获取PC触控方案"""
         if self.device_manager and hasattr(self.device_manager, 'get_pc_control_scheme'):
             return self.device_manager.get_pc_control_scheme()
-        return "Win32-Window-Background"  # 默认使用后台方案
+        return "Win32-Front"  # 默认使用前台方案
     
     def _init_pc_controller(self, log_callback=None) -> bool:
         """初始化PC控制器（根据选择的触控方案）"""
@@ -90,14 +101,12 @@ class ExecutionManager:
             # 根据触控方案创建对应的控制器
             if control_scheme == "Win32-Window":
                 self.pc_controller = Win32Controller.create_window_controller()
-            elif control_scheme == "Win32-Window-Background":
-                self.pc_controller = Win32Controller.create_background_controller()
             elif control_scheme == "Win32-Express":
                 self.pc_controller = Win32Controller.create_express_controller()
             elif control_scheme == "Win32-Front":
                 self.pc_controller = Win32Controller.create_front_controller()
             else:
-                self.pc_controller = Win32Controller.create_window_controller()
+                self.pc_controller = Win32Controller.create_front_controller()
             
             if log_callback:
                 log_callback(f"PC控制器创建: {control_scheme}", "execution", "INFO")
@@ -406,6 +415,15 @@ class ExecutionManager:
                     
                     log_callback(f"执行任务: {current_task['name']}", "execution", "INFO")
                     
+                    # 设备状态验证和恢复
+                    if not self._ensure_device_ready_for_task(current_task, log_callback):
+                        log_callback(f"设备状态准备失败，跳过任务: {current_task['name']}", "execution", "ERROR")
+                        if self.task_queue_manager.advance_to_next_task():
+                            current_task_index += 1
+                        else:
+                            break
+                        continue
+                    
                     # 获取任务变量（包括自定义变量）
                     task_variables = {}
                     if 'custom_variables' in current_task:
@@ -548,8 +566,16 @@ class ExecutionManager:
                         else:
                             break
                     else:
-                        # 任务未完成，继续当前任务
-                        time.sleep(1)
+                        # 任务未完成，检查是否需要异常恢复
+                        if not self._check_and_handle_execution_anomaly(response, current_task, log_callback):
+                            log_callback(f"任务执行异常无法恢复，跳过任务: {current_task['name']}", "execution", "ERROR")
+                            if self.task_queue_manager.advance_to_next_task():
+                                current_task_index += 1
+                            else:
+                                break
+                        else:
+                            # 任务正常进行，继续当前任务
+                            time.sleep(1)
                         
                 if not self.client_running:
                     break
@@ -613,6 +639,28 @@ class ExecutionManager:
             error_msg = f"重新认证过程中发生异常: {str(e)}"
             log_callback(error_msg, "execution", "ERROR")
             return False, error_msg
+    
+    def _init_device_state_manager(self, log_callback=None) -> bool:
+        """初始化设备状态管理器"""
+        if not DEVICE_STATE_MANAGER_AVAILABLE:
+            if log_callback:
+                log_callback("设备状态管理器不可用", "execution", "WARNING")
+            return False
+        
+        try:
+            self.device_state_manager = DeviceStateManager(
+                self.screen_capture,
+                self.touch_executor,
+                self.communicator,
+                self.auth_manager
+            )
+            if log_callback:
+                log_callback("设备状态管理器初始化成功", "execution", "INFO")
+            return True
+        except Exception as e:
+            if log_callback:
+                log_callback(f"设备状态管理器初始化异常: {e}", "execution", "ERROR")
+            return False
 
     def get_client_running_status(self):
         """获取客户端运行状态"""
@@ -634,6 +682,50 @@ class ExecutionManager:
         self.cli_screenshot_callback = screenshot_callback
         self.cli_output_dir = output_dir
         self.cli_screenshot_data_list = []
+    
+    def _ensure_device_ready_for_task(self, current_task: Dict[str, Any], log_callback) -> bool:
+        """
+        确保设备准备好执行当前任务
+        
+        Args:
+            current_task: 当前任务信息
+            log_callback: 日志回调函数
+            
+        Returns:
+            设备是否准备好
+        """
+        task_id = current_task['id']
+        current_device = self.device_manager.get_current_device()
+        
+        if not current_device:
+            log_callback("设备未连接，无法准备任务状态", "execution", "ERROR")
+            return False
+        
+        # 检查是否为PC设备
+        is_pc = self._is_pc_device()
+        if is_pc:
+            # PC设备不需要复杂的设备状态管理
+            log_callback("PC设备模式，跳过设备状态验证", "execution", "INFO")
+            return True
+        
+        # 初始化设备状态管理器（如果尚未初始化）
+        if self.device_state_manager is None:
+            if not self._init_device_state_manager(log_callback):
+                log_callback("设备状态管理器初始化失败，跳过状态验证", "execution", "WARNING")
+                return True  # 继续执行，但不进行状态验证
+        
+        # 确保设备准备好执行任务
+        try:
+            log_callback(f"开始设备状态验证，任务: {task_id}", "execution", "INFO")
+            ready = self.device_state_manager.ensure_device_ready(current_device, task_id)
+            if ready:
+                log_callback("设备状态验证成功", "execution", "INFO")
+            else:
+                log_callback("设备状态验证失败", "execution", "ERROR")
+            return ready
+        except Exception as e:
+            log_callback(f"设备状态验证异常: {e}", "execution", "ERROR")
+            return False
     
     def _cli_log(self, message: str, log_callback: Callable = None):
         """CLI模式日志输出"""
@@ -661,8 +753,16 @@ class ExecutionManager:
         filepath = os.path.join(self.cli_output_dir, filename)
         
         # 保存截图
+        if isinstance(screenshot_data, str):
+            # Base64 encoded string, decode to bytes
+            import base64
+            screenshot_bytes = base64.b64decode(screenshot_data)
+        else:
+            # Already bytes
+            screenshot_bytes = screenshot_data
+            
         with open(filepath, 'wb') as f:
-            f.write(screenshot_data)
+            f.write(screenshot_bytes)
         
         # 记录信息
         self.cli_screenshot_data_list.append({
@@ -838,16 +938,38 @@ class ExecutionManager:
             # 记录截图
             self._record_cli_screenshot(screenshot_data, task['name'], task_variables)
             
-            # 获取窗口尺寸 (Win32Controller使用_width和_height属性)
-            try:
-                width = getattr(self.pc_controller, '_width', 1920)
-                height = getattr(self.pc_controller, '_height', 1080)
-                image_size = [width, height]
-            except:
-                image_size = [1920, 1080]
+            # 获取图像尺寸 - 根据设备类型选择不同方式
+            is_pc = self._is_pc_device()
+            if is_pc and self.pc_controller:
+                # PC设备使用控制器尺寸
+                try:
+                    width = getattr(self.pc_controller, '_width', 1920)
+                    height = getattr(self.pc_controller, '_height', 1080)
+                    image_size = [width, height]
+                except:
+                    image_size = [1920, 1080]
+            else:
+                # 安卓设备使用截图尺寸
+                try:
+                    from PIL import Image
+                    import io
+                    import base64
+                    if isinstance(screenshot_data, str):
+                        img_bytes = base64.b64decode(screenshot_data)
+                    else:
+                        img_bytes = screenshot_data
+                    img = Image.open(io.BytesIO(img_bytes))
+                    image_size = list(img.size)
+                except:
+                    image_size = [1920, 1080]
             
             # 构建请求
-            screenshot_b64 = base64.b64encode(screenshot_data).decode('utf-8')
+            if isinstance(screenshot_data, str):
+                # Already base64 encoded string
+                screenshot_b64 = screenshot_data
+            else:
+                # Raw bytes, need to encode
+                screenshot_b64 = base64.b64encode(screenshot_data).decode('utf-8')
             request_data = {
                 "user_id": self.auth_manager.get_user_id(),
                 "session_id": self.auth_manager.get_session_id(),
@@ -882,10 +1004,17 @@ class ExecutionManager:
             # 执行触控动作
             touch_actions = response.get('data', {}).get('touch_actions', [])
             if touch_actions:
-                # 确保PC控制器已初始化
-                if not self.pc_controller:
-                    if not self._init_pc_controller(log_callback):
-                        self._cli_log("PC控制器初始化失败", log_callback)
+                # 根据设备类型选择执行器
+                if is_pc:
+                    # PC设备：确保PC控制器已初始化
+                    if not self.pc_controller:
+                        if not self._init_pc_controller(log_callback):
+                            self._cli_log("PC控制器初始化失败", log_callback)
+                            return False
+                else:
+                    # 安卓设备：确保touch_executor可用
+                    if not self.touch_executor:
+                        self._cli_log("触控执行器未初始化", log_callback)
                         return False
                 
                 for action in touch_actions:
@@ -898,7 +1027,19 @@ class ExecutionManager:
                     if 'coordinates' in action:
                         params['coordinates'] = action['coordinates']
                     
-                    success = self._execute_pc_touch_action(action_type, params, log_callback)
+                    # 根据设备类型执行触控
+                    if is_pc:
+                        success = self._execute_pc_touch_action(action_type, params, log_callback)
+                    else:
+                        # 安卓设备使用TouchExecutor，传递截图尺寸用于正确的坐标转换
+                        current_device = self.device_manager.get_current_device()
+                        success = self.touch_executor.execute_tool_call(
+                            current_device, action_type, params,
+                            image_size=tuple(image_size)  # 传递截图实际尺寸
+                        )
+                        if success:
+                            self._cli_log(f"触控执行成功: {action_type}", log_callback)
+                    
                     if not success:
                         self._cli_log(f"触控执行失败: {action_type}", log_callback)
                         return False
@@ -916,3 +1057,129 @@ class ExecutionManager:
     def get_cli_screenshot_data(self) -> List[Dict[str, Any]]:
         """获取CLI模式截图数据列表"""
         return self.cli_screenshot_data_list
+    
+    def _check_and_handle_execution_anomaly(self, response: Dict[str, Any], current_task: Dict[str, Any], log_callback) -> bool:
+        """
+        检查并处理任务执行中的异常
+        
+        Args:
+            response: 服务器响应
+            current_task: 当前任务信息
+            log_callback: 日志回调函数
+            
+        Returns:
+            是否成功处理异常（True表示可以继续，False表示需要跳过任务）
+        """
+        task_id = current_task['id']
+        current_device = self.device_manager.get_current_device()
+        
+        if not current_device:
+            return False
+        
+        # 检查是否有明确的异常指示
+        if response.get('status') == 'error':
+            error_type = response.get('error_type', 'unknown')
+            error_message = response.get('message', '未知错误')
+            log_callback(f"检测到任务执行错误: {error_type} - {error_message}", "execution", "ERROR")
+            
+            # 尝试设备状态恢复
+            if self._attempt_device_recovery(current_task, log_callback):
+                log_callback("设备状态恢复成功，继续任务执行", "execution", "INFO")
+                return True
+            else:
+                log_callback("设备状态恢复失败", "execution", "ERROR")
+                return False
+        
+        # 检查VLM响应中的异常标记
+        vlm_data = response.get('data', {})
+        if vlm_data.get('anomaly_detected', False):
+            anomaly_type = vlm_data.get('anomaly_type', 'unknown')
+            log_callback(f"VLM检测到异常: {anomaly_type}", "execution", "WARNING")
+            
+            # 根据异常类型决定处理策略
+            if anomaly_type in ['界面错误', '逻辑错误', '资源不足']:
+                if self._attempt_device_recovery(current_task, log_callback):
+                    log_callback("异常恢复成功，继续任务执行", "execution", "INFO")
+                    return True
+                else:
+                    log_callback("异常恢复失败", "execution", "ERROR")
+                    return False
+            elif anomaly_type == 'unexpected_action':
+                # 动作异常，可能需要重新规划
+                log_callback("检测到意外动作，等待界面稳定", "execution", "INFO")
+                time.sleep(3)
+                return True
+            else:
+                # 其他异常类型，尝试通用恢复
+                if self._attempt_device_recovery(current_task, log_callback):
+                    return True
+                else:
+                    return False
+        
+        # 检查触控动作是否为空或无效
+        touch_actions = vlm_data.get('touch_actions', [])
+        if not touch_actions:
+            log_callback("VLM未返回有效触控动作，可能遇到异常", "execution", "WARNING")
+            # 尝试设备状态恢复
+            if self._attempt_device_recovery(current_task, log_callback):
+                return True
+            else:
+                return False
+        
+        # 检查思考内容中是否包含错误关键词
+        thinking = vlm_data.get('thinking', '')
+        error_keywords = ['错误', '异常', '失败', '无法', '找不到', 'error', 'fail', 'cannot', '不能']
+        for keyword in error_keywords:
+            if keyword in thinking.lower():
+                log_callback(f"VLM思考内容包含错误关键词: {keyword}", "execution", "WARNING")
+                if self._attempt_device_recovery(current_task, log_callback):
+                    return True
+                else:
+                    return False
+        
+        # 没有检测到异常，正常继续
+        return True
+    
+    def _attempt_device_recovery(self, current_task: Dict[str, Any], log_callback) -> bool:
+        """
+        尝试设备状态恢复
+        
+        Args:
+            current_task: 当前任务信息
+            log_callback: 日志回调函数
+            
+        Returns:
+            恢复是否成功
+        """
+        task_id = current_task['id']
+        current_device = self.device_manager.get_current_device()
+        
+        if not current_device:
+            return False
+        
+        # 检查是否为PC设备
+        is_pc = self._is_pc_device()
+        if is_pc:
+            # PC设备使用简单的恢复策略
+            log_callback("PC设备模式，执行简单恢复", "execution", "INFO")
+            time.sleep(2)
+            return True
+        
+        # 安卓设备使用设备状态管理器进行恢复
+        if self.device_state_manager is None:
+            if not self._init_device_state_manager(log_callback):
+                log_callback("设备状态管理器初始化失败，无法执行恢复", "execution", "ERROR")
+                return False
+        
+        try:
+            log_callback("开始设备状态恢复", "execution", "INFO")
+            ready = self.device_state_manager.ensure_device_ready(current_device, task_id)
+            if ready:
+                log_callback("设备状态恢复成功", "execution", "INFO")
+                return True
+            else:
+                log_callback("设备状态恢复失败", "execution", "ERROR")
+                return False
+        except Exception as e:
+            log_callback(f"设备状态恢复异常: {e}", "execution", "ERROR")
+            return False

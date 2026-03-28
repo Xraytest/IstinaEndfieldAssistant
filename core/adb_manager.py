@@ -16,10 +16,19 @@ class ADBDeviceManager:
         初始化ADB设备管理器
 
         Args:
-            adb_path: ADB可执行文件路径，如果为None则使用系统PATH中的adb
+            adb_path: ADB可执行文件路径，如果为None则使用内置ADB
             timeout: ADB操作超时时间（秒）
         """
-        self.adb_path = adb_path or "adb"
+        if adb_path is None:
+            # 硬编码使用内置ADB路径
+            import os
+            current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+            self.adb_path = os.path.join(current_dir, "3rd-part", "ADB", "adb.exe")
+            # 验证内置ADB是否存在
+            if not os.path.exists(self.adb_path):
+                self.adb_path = "adb"  # 回退到系统PATH中的adb
+        else:
+            self.adb_path = adb_path
         self.timeout = timeout
         self.devices_cache: Dict[str, Dict] = {}
         self.last_scan_time: float = 0

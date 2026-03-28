@@ -410,10 +410,6 @@ class DeviceManagerGUI:
                 "label": "电脑端-默认",
                 "description": "兼容性最好，适合日常使用。支持游戏最小化，会间接性抢占鼠标"
             },
-            "Win32-Window-Background": {
-                "label": "电脑端-后台",
-                "description": "纯后台控制器。支持游戏最小化，不抢占鼠标。但可能导致游戏窗口乱飞"
-            },
             "Win32-Express": {
                 "label": "电脑端-极速",
                 "description": "大幅提升响应速度，适合追求效率的用户。部分电脑可能无法使用"
@@ -713,7 +709,7 @@ class DeviceManagerGUI:
         获取当前选择的PC触控方案
         
         Returns:
-            方案名称 (Win32-Window, Win32-Window-Background, Win32-Express, Win32-Front)
+            方案名称 (Win32-Window, Win32-Express, Win32-Front)
         """
         selected_label = self.pc_control_var.get()
         # 查找对应的方案key

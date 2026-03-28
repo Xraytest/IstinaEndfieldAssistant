@@ -154,7 +154,7 @@ class ScreenCapture:
         buffer = io.BytesIO()
         image.save(buffer, format='PNG')
         png_data = buffer.getvalue()
-        base64_data = base64.b64encode(png_data)
+        base64_data = base64.b64encode(png_data).decode('utf-8')
         
         duration_ms = (time.time() - start_time) * 1000
         self.logger.log_performance("image_to_base64", duration_ms, format="PNG")

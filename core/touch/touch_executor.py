@@ -53,8 +53,8 @@ class MaaTouchConfig:
     swipe_interval_ms: int = 2            # 滑动插值间隔（MAA标准2ms）
     
     # 二进制文件路径
-    minitouch_binary_path: str = "client/3rd-part/maatouch/minitouch"
-    maatouch_binary_path: str = "client/3rd-part/maatouch/minitouch"
+    minitouch_binary_path: str = "client/device_control_system/minitouch_resources/armeabi-v7a/minitouch"
+    maatouch_binary_path: str = "client/device_control_system/minitouch_resources/maatouch/minitouch"
 
 
 class TouchExecutor:
@@ -639,8 +639,9 @@ class TouchExecutor:
         if self.touch_server_available:
             return True
 
-        # 获取minitouch二进制路径
-        binary_path = self.config.minitouch_binary_path
+        # 获取minitouch二进制路径（相对于项目根目录）
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        binary_path = os.path.join(project_root, self.config.minitouch_binary_path)
         if not os.path.exists(binary_path):
             self.logger.warning(LogCategory.MAIN,
                               f"Minitouch二进制文件不存在: {binary_path}")
@@ -758,11 +759,15 @@ class TouchExecutor:
         self.logger.info(LogCategory.MAIN, f"检测到设备架构: {device_abi}", device_serial=device_serial)
 
         # 根据设备架构选择正确的二进制文件（优先使用架构特定的二进制）
-        arch_binary_path = os.path.join(os.path.dirname(__file__), "device_control_system", "minitouch_resources", device_abi, "minitouch")
+        # __file__ = client/core/touch/touch_executor.py，需要向上两级到client/
+        client_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+        arch_binary_path = os.path.join(client_dir, "device_control_system", "minitouch_resources", device_abi, "minitouch")
         if os.path.exists(arch_binary_path):
             binary_path = arch_binary_path
         else:
-            binary_path = self.config.maatouch_binary_path
+            # 使用配置中的路径（相对于项目根目录）
+            project_root = os.path.dirname(os.path.dirname(client_dir))
+            binary_path = os.path.join(project_root, self.config.maatouch_binary_path)
 
         self.logger.info(LogCategory.MAIN, f"使用 MaaTouch 二进制: {binary_path}", arch=device_abi)
 
@@ -1004,7 +1009,7 @@ class TouchExecutor:
     
     # ===== 统一工具执行入口（MAA风格） =====
     def execute_tool_call(self, device_serial: str, action: str,
-                         params: Dict) -> bool:
+                         params: Dict, image_size: Tuple[int, int] = None) -> bool:
         """
         统一工具执行入口 - 支持MAA风格触控指令
         
@@ -1046,6 +1051,8 @@ class TouchExecutor:
             device_serial: 设备序列号
             action: 工具类型
             params: 工具参数
+            image_size: 截图实际尺寸(width, height)，用于归一化坐标转换
+                        如果提供，将使用此尺寸而非设备物理分辨率
             
         Returns:
             操作是否成功
@@ -1081,16 +1088,28 @@ class TouchExecutor:
                 print(f"[触控执行] 列表格式坐标: x={x}, y={y}")
                 # 判断是归一化坐标还是像素坐标
                 if 0 <= x <= 1 and 0 <= y <= 1:
-                    device_x, device_y = self._to_pixel_coords(device_serial, x, y)
-                    print(f"[触控执行] 归一化坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
+                    # 如果提供了截图尺寸，使用截图尺寸转换（解决横竖屏不匹配问题）
+                    if image_size:
+                        device_x = int(x * image_size[0])
+                        device_y = int(y * image_size[1])
+                        print(f"[触控执行] 使用截图尺寸{image_size}转换: ({x}, {y}) -> ({device_x}, {device_y})")
+                    else:
+                        device_x, device_y = self._to_pixel_coords(device_serial, x, y)
+                        print(f"[触控执行] 归一化坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
                 else:
                     device_x, device_y = self._convert_coordinates(device_serial, x, y)
                     print(f"[触控执行] 像素坐标转换: ({x}, {y}) -> ({device_x}, {device_y})")
             # 情况2: MAA风格字典格式 {"start": [x, y]}
             elif isinstance(coordinates, dict) and "start" in coordinates:
                 norm_x, norm_y = coordinates["start"]
-                device_x, device_y = self._to_pixel_coords(device_serial, norm_x, norm_y)
-                print(f"[触控执行] MAA格式坐标: ({norm_x}, {norm_y}) -> ({device_x}, {device_y})")
+                # 如果提供了截图尺寸，使用截图尺寸转换
+                if image_size:
+                    device_x = int(norm_x * image_size[0])
+                    device_y = int(norm_y * image_size[1])
+                    print(f"[触控执行] 使用截图尺寸{image_size}转换MAA格式: ({norm_x}, {norm_y}) -> ({device_x}, {device_y})")
+                else:
+                    device_x, device_y = self._to_pixel_coords(device_serial, norm_x, norm_y)
+                    print(f"[触控执行] MAA格式坐标: ({norm_x}, {norm_y}) -> ({device_x}, {device_y})")
             # 情况3: 旧格式参数
             else:
                 x = params.get("x", 0)
