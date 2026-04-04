@@ -3,13 +3,12 @@
 from .logger import init_logger, get_logger, LogCategory, LogLevel
 from .adb_manager import ADBDeviceManager
 from .screen_capture import ScreenCapture
-from .touch import MaaFwTouchExecutor, MaaFwTouchConfig, MaaFwWin32Executor, MaaFwWin32Config
+from .touch import TouchExecutor, TouchAdapter, MaaFwTouchExecutor, MaaFwTouchConfig
 from .communication import ClientCommunicator
 
 __all__ = [
     'init_logger', 'get_logger', 'LogCategory', 'LogLevel',
     'ADBDeviceManager', 'ScreenCapture',
-    'MaaFwTouchExecutor', 'MaaFwTouchConfig',
-    'MaaFwWin32Executor', 'MaaFwWin32Config',
+    'TouchExecutor', 'TouchAdapter', 'MaaFwTouchExecutor', 'MaaFwTouchConfig',
     'ClientCommunicator'
 ]

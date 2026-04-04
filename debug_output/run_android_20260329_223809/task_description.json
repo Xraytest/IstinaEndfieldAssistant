@@ -1,0 +1,22 @@
+{
+  "run_start_time": "2026-03-29T22:38:09.524937",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260329_223811_430706",
+      "datetime": "2026-03-29T22:38:11.439921",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260329_223811_430706_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260329_223844_399053",
+      "datetime": "2026-03-29T22:38:44.409082",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260329_223844_399053_游戏登录确认.png"
+    }
+  ]
+}

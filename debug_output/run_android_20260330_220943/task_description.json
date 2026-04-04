@@ -1,0 +1,330 @@
+{
+  "run_start_time": "2026-03-30T22:09:44.295541",
+  "control_scheme": "ADB",
+  "window_title": "127.0.0.1:16512",
+  "screenshot_interval": 1.0,
+  "screenshots": [
+    {
+      "timestamp": "20260330_220944_802122",
+      "datetime": "2026-03-30T22:09:44.803904",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_220944_802122_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_220956_693880",
+      "datetime": "2026-03-30T22:09:56.696549",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_220956_693880_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221008_123434",
+      "datetime": "2026-03-30T22:10:08.125722",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221008_123434_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221036_195041",
+      "datetime": "2026-03-30T22:10:36.197418",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221036_195041_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221044_156361",
+      "datetime": "2026-03-30T22:10:44.157941",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221044_156361_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221051_736730",
+      "datetime": "2026-03-30T22:10:51.738723",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221051_736730_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221102_102730",
+      "datetime": "2026-03-30T22:11:02.104139",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221102_102730_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221115_034561",
+      "datetime": "2026-03-30T22:11:15.036795",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221115_034561_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221138_803096",
+      "datetime": "2026-03-30T22:11:38.804511",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221138_803096_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221209_611134",
+      "datetime": "2026-03-30T22:12:09.613023",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221209_611134_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221218_297048",
+      "datetime": "2026-03-30T22:12:18.298888",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221218_297048_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221249_047867",
+      "datetime": "2026-03-30T22:12:49.048859",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221249_047867_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221256_392369",
+      "datetime": "2026-03-30T22:12:56.392986",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221256_392369_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221303_792666",
+      "datetime": "2026-03-30T22:13:03.793258",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221303_792666_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221312_170206",
+      "datetime": "2026-03-30T22:13:12.177777",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221312_170206_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221326_411247",
+      "datetime": "2026-03-30T22:13:26.420276",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221326_411247_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221345_940919",
+      "datetime": "2026-03-30T22:13:45.950054",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221345_940919_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221407_884193",
+      "datetime": "2026-03-30T22:14:07.893408",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221407_884193_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221427_219313",
+      "datetime": "2026-03-30T22:14:27.228372",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221427_219313_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221440_687160",
+      "datetime": "2026-03-30T22:14:40.696230",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221440_687160_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221500_592654",
+      "datetime": "2026-03-30T22:15:00.601613",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221500_592654_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221518_031239",
+      "datetime": "2026-03-30T22:15:18.041506",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221518_031239_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221539_444874",
+      "datetime": "2026-03-30T22:15:39.453773",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221539_444874_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221603_851120",
+      "datetime": "2026-03-30T22:16:03.859986",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221603_851120_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221636_558402",
+      "datetime": "2026-03-30T22:16:36.567574",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221636_558402_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221654_944533",
+      "datetime": "2026-03-30T22:16:54.953762",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221654_944533_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221716_100512",
+      "datetime": "2026-03-30T22:17:16.109324",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221716_100512_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221731_063847",
+      "datetime": "2026-03-30T22:17:31.073795",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221731_063847_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221748_886862",
+      "datetime": "2026-03-30T22:17:48.896241",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221748_886862_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221807_076976",
+      "datetime": "2026-03-30T22:18:07.085941",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221807_076976_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221826_035163",
+      "datetime": "2026-03-30T22:18:26.044139",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221826_035163_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221845_322219",
+      "datetime": "2026-03-30T22:18:45.331155",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221845_322219_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221912_025694",
+      "datetime": "2026-03-30T22:19:12.034484",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221912_025694_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221926_578503",
+      "datetime": "2026-03-30T22:19:26.587503",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221926_578503_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_221945_193457",
+      "datetime": "2026-03-30T22:19:45.202215",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_221945_193457_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222001_560814",
+      "datetime": "2026-03-30T22:20:01.571038",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222001_560814_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222016_422657",
+      "datetime": "2026-03-30T22:20:16.432355",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222016_422657_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222034_359436",
+      "datetime": "2026-03-30T22:20:34.368401",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222034_359436_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222051_385124",
+      "datetime": "2026-03-30T22:20:51.394035",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222051_385124_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222109_380500",
+      "datetime": "2026-03-30T22:21:09.389334",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222109_380500_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222125_599162",
+      "datetime": "2026-03-30T22:21:25.607997",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222125_599162_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222140_559877",
+      "datetime": "2026-03-30T22:21:40.568695",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222140_559877_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222201_938490",
+      "datetime": "2026-03-30T22:22:01.947373",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222201_938490_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222220_993040",
+      "datetime": "2026-03-30T22:22:21.002809",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222220_993040_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222318_488810",
+      "datetime": "2026-03-30T22:23:18.499537",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222318_488810_游戏登录确认.png"
+    },
+    {
+      "timestamp": "20260330_222334_588813",
+      "datetime": "2026-03-30T22:23:34.598905",
+      "task_name": "游戏登录确认",
+      "task_variables": {},
+      "screenshot_file": "20260330_222334_588813_游戏登录确认.png"
+    }
+  ]
+}

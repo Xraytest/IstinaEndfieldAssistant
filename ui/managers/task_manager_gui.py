@@ -1,852 +1,277 @@
+"""任务管理GUI模块 - 处理任务队列和执行控制的UI逻辑"""
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import json
-from ..theme import configure_listbox, COLORS, get_font, CORNER_RADIUS
+from theme import configure_listbox
+
 
 class TaskManagerGUI:
-
-    def __init__(self, parent_frame, task_queue_manager, execution_manager, log_callback, on_task_settings_click=None, get_device_type_callback=None):
+    """任务管理GUI类"""
+    
+    def __init__(self, parent_frame, task_queue_manager, execution_manager, log_callback):
         self.parent_frame = parent_frame
         self.task_queue_manager = task_queue_manager
         self.execution_manager = execution_manager
         self.log_callback = log_callback
-        self.on_task_settings_click = on_task_settings_click
-        self.get_device_type_callback = get_device_type_callback
-        self.task_frame = None
-        self.task_canvas = None
-        self.task_inner_frame = None
-        self.task_items = {}
-        self.selected_task_index = -1
-        self.dragging = False
-        self.dragged_index = -1
-        self.dragged_widget = None
-        self.drag_ghost = None
-        self.drag_start_y = 0
-        self.drag_current_y = 0
+        
+        # UI组件引用
+        self.task_queue_listbox = None
         self.queue_info_label = None
         self.execution_count_var = None
         self.execution_count_entry = None
         self.infinite_loop_var = None
         self.llm_start_btn = None
         self.llm_stop_btn = None
+        
         self.setup_ui()
+        # 初始化后更新任务队列显示
         self.update_queue_display()
-
+        
     def setup_ui(self):
-        self.task_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'], highlightbackground=COLORS['border_color'], highlightthickness=1)
-        self.task_frame.pack(fill='both', expand=True)
-        header_frame = tk.Frame(self.task_frame, bg=COLORS['surface'], height=40)
-        header_frame.pack(fill='x', padx=0, pady=0)
-        header_frame.pack_propagate(False)
-        title_label = tk.Label(header_frame, text='任务队列', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_medium', bold=True), anchor=tk.W)
-        title_label.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
-        hint_label = tk.Label(header_frame, text='(可拖拽排序)', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_small'), anchor=tk.W)
-        hint_label.pack(side=tk.LEFT, fill='y', padx=(5, 0), pady=10)
-        list_container = tk.Frame(self.task_frame, bg=COLORS['surface'])
-        list_container.pack(fill='both', expand=True, padx=8, pady=(0, 8))
-        self.task_canvas = tk.Canvas(list_container, bg=COLORS['surface'], highlightthickness=0, borderwidth=0)
-        scrollbar = ttk.Scrollbar(list_container, orient='vertical', command=self.task_canvas.yview)
-        self.task_canvas.configure(yscrollcommand=scrollbar.set)
-        self.task_canvas.pack(side=tk.LEFT, fill='both', expand=True)
+        """设置任务管理UI"""
+        # 任务队列管理
+        task_queue_frame = ttk.LabelFrame(self.parent_frame, text="任务队列", padding="6")
+        task_queue_frame.pack(fill='both', expand=True)
+        
+        # 任务队列列表
+        list_container = ttk.Frame(task_queue_frame)
+        list_container.pack(fill='both', expand=True, pady=(0, 5))
+        
+        scrollbar = ttk.Scrollbar(list_container, orient="vertical")
         scrollbar.pack(side=tk.RIGHT, fill='y')
-        self.task_inner_frame = tk.Frame(self.task_canvas, bg=COLORS['surface'])
-        self.canvas_window = self.task_canvas.create_window((0, 0), window=self.task_inner_frame, anchor='nw', width=250)
-        self.task_inner_frame.bind('<Configure>', self._on_frame_configure)
-        self.task_canvas.bind('<Configure>', self._on_canvas_configure)
-        self.queue_info_label = tk.Label(self.task_frame, text='队列: 0个任务', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_small'), anchor=tk.W)
-        self.queue_info_label.pack(fill='x', padx=12, pady=(0, 8))
-        btn_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'])
-        btn_frame.pack(fill='x', pady=(10, 0))
-        add_task_btn = ttk.Button(btn_frame, text='+ 添加任务', command=self.show_add_task_dialog, style='Primary.TButton')
-        add_task_btn.pack(fill='x', pady=(0, 6))
-        delete_task_btn = ttk.Button(btn_frame, text='删除', command=self.delete_selected_task, style='OutlineDanger.TButton')
-        delete_task_btn.pack(fill='x', pady=(0, 6))
-        exec_frame = tk.Frame(self.parent_frame, bg=COLORS['surface'])
-        exec_frame.pack(fill='x', pady=(15, 0))
-        exec_title = tk.Label(exec_frame, text='执行控制', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_medium', bold=True), anchor=tk.W)
-        exec_title.pack(fill='x', pady=(0, 8))
-        self.llm_start_btn = ttk.Button(exec_frame, text='▶ 启动', command=self.start_llm_execution, style='Success.TButton')
-        self.llm_start_btn.pack(fill='x', pady=(0, 6))
-        self.llm_stop_btn = ttk.Button(exec_frame, text='■ 停止', command=self.stop_llm_execution, style='Danger.TButton')
-        self.llm_stop_btn.pack(fill='x', pady=(0, 6))
-        count_frame = tk.Frame(exec_frame, bg=COLORS['surface'])
-        count_frame.pack(fill='x', pady=(8, 0))
-        count_label = tk.Label(count_frame, text='执行次数:', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_small'))
-        count_label.pack(side=tk.LEFT)
+        
+        self.task_queue_listbox = tk.Listbox(
+            list_container,
+            height=10,
+            yscrollcommand=scrollbar.set
+        )
+        configure_listbox(self.task_queue_listbox)
+        self.task_queue_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+        scrollbar.config(command=self.task_queue_listbox.yview)
+        
+        # 队列信息显示
+        self.queue_info_label = ttk.Label(task_queue_frame, text="队列: 0个任务", style='Muted.TLabel')
+        self.queue_info_label.pack(anchor=tk.W, pady=(5, 0))
+        
+        # 任务队列操作按钮
+        queue_btn_frame = ttk.Frame(self.parent_frame)
+        queue_btn_frame.pack(fill='x', pady=(6, 0))
+        
+        add_task_btn = ttk.Button(queue_btn_frame, text="添加任务", command=self.show_add_task_dialog, style='Primary.TButton')
+        add_task_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        edit_task_btn = ttk.Button(queue_btn_frame, text="设置选中", command=self.show_edit_task_dialog, style='Outline.TButton')
+        edit_task_btn.pack(side=tk.LEFT, padx=(0, 10))
+        
+        delete_task_btn = ttk.Button(queue_btn_frame, text="删除选中", command=self.delete_selected_task, style='Danger.TButton')
+        delete_task_btn.pack(side=tk.LEFT)
+        
+        # 执行控制
+        exec_frame = ttk.LabelFrame(self.parent_frame, text="执行控制", padding="6")
+        exec_frame.pack(fill='x', pady=(6, 0))
+        
+        self.llm_start_btn = ttk.Button(exec_frame, text="▶ 启动推理", command=self.start_llm_execution, style='Success.TButton')
+        self.llm_start_btn.pack(fill='x', pady=(0, 5))
+        
+        self.llm_stop_btn = ttk.Button(exec_frame, text="■ 停止执行", command=self.stop_llm_execution, style='Danger.TButton')
+        self.llm_stop_btn.pack(fill='x', pady=(5, 0))
+        self.llm_stop_btn.config(state='disabled')
+        
+        # 执行次数设置
+        count_frame = ttk.Frame(exec_frame)
+        count_frame.pack(fill='x', pady=(5, 0))
+        ttk.Label(count_frame, text="执行次数:", style='Muted.TLabel').pack(side=tk.LEFT)
         self.execution_count_var = tk.IntVar(value=self.task_queue_manager.get_execution_count())
-        execution_count_spinbox = tk.Spinbox(count_frame, from_=1, to=99, textvariable=self.execution_count_var, width=5, bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'])
-        execution_count_spinbox.pack(side=tk.LEFT, padx=(8, 0))
+        execution_count_spinbox = ttk.Spinbox(count_frame, from_=1, to=99, textvariable=self.execution_count_var, width=5)
+        execution_count_spinbox.pack(side=tk.LEFT, padx=(5, 0))
         execution_count_spinbox.bind('<Return>', lambda e: self.on_execution_count_changed())
         execution_count_spinbox.bind('<FocusOut>', lambda e: self.on_execution_count_changed())
         self.execution_count_entry = execution_count_spinbox
+        
+        # 持续循环复选框
         self.infinite_loop_var = tk.BooleanVar(value=False)
-        infinite_loop_check = tk.Checkbutton(count_frame, text='持续循环', variable=self.infinite_loop_var, command=self.on_infinite_loop_changed, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_small'), selectcolor=COLORS['surface_container_low'], activebackground=COLORS['surface_container'], activeforeground=COLORS['text_primary'], relief='solid', borderwidth=1)
-        infinite_loop_check.pack(side=tk.LEFT, padx=(15, 0))
-
-    def _bind_hover_effect(self, button, normal_bg, hover_bg, normal_fg, hover_fg):
-
-        def on_enter(e):
-            button.configure(bg=hover_bg, fg=hover_fg)
-
-        def on_leave(e):
-            button.configure(bg=normal_bg, fg=normal_fg)
-        button.bind('<Enter>', on_enter)
-        button.bind('<Leave>', on_leave)
-
-    def _on_frame_configure(self, event=None):
-        self.task_canvas.configure(scrollregion=self.task_canvas.bbox('all'))
-
-    def _on_canvas_configure(self, event=None):
-        self.task_canvas.itemconfig(self.canvas_window, width=event.width)
-
-    def _check_task_compatibility(self, task):
-        current_device_type = None
-        if self.get_device_type_callback:
-            current_device_type = self.get_device_type_callback()
-        if not current_device_type:
-            return (True, '')
-        device_to_platform = {'安卓': 'android', 'PC': 'pc'}
-        current_platform = device_to_platform.get(current_device_type, '')
-        platforms = task.get('platforms', {})
-        if platforms:
-            if current_platform in platforms:
-                return (True, platforms[current_platform].get('name', ''))
-            else:
-                available_platforms = list(platforms.keys())
-                return (False, f"仅支持: {', '.join([platforms[p].get('name', p) for p in available_platforms])}")
-        controller_types = task.get('controller_types', [])
-        if controller_types:
-            if current_device_type == '安卓':
-                is_compatible = 'ADB' in controller_types
-                if not is_compatible:
-                    return (False, '仅支持: PC版')
-            elif current_device_type == 'PC':
-                pc_types = ['Win32', 'Win32-Window', 'Win32-Front']
-                is_compatible = any((ct in controller_types for ct in pc_types))
-                if not is_compatible:
-                    return (False, '仅支持: 安卓版')
-            return (True, '')
-        return (True, '')
-
+        infinite_loop_check = ttk.Checkbutton(count_frame, text="持续循环", variable=self.infinite_loop_var, command=self.on_infinite_loop_changed)
+        infinite_loop_check.pack(side=tk.LEFT, padx=(10, 0))
+        
     def update_queue_display(self):
-        for widget in self.task_inner_frame.winfo_children():
-            widget.destroy()
-        self.task_items.clear()
+        """更新任务队列显示"""
+        self.task_queue_listbox.delete(0, tk.END)
         queue_info = self.task_queue_manager.get_queue_info()
-        tasks = queue_info['tasks']
-        for idx, task in enumerate(tasks):
-            task_name = task.get('name', 'Unknown')
-            is_compatible, platform_info = self._check_task_compatibility(task)
-            task_row = tk.Frame(self.task_inner_frame, bg=COLORS['surface'], highlightbackground=COLORS['border_color'], highlightthickness=0)
-            task_row.pack(fill='x', pady=1)
-            if idx > 0:
-                separator = tk.Frame(task_row, bg=COLORS['border_color'], height=1)
-                separator.pack(fill='x', side=tk.TOP)
-            content_frame = tk.Frame(task_row, bg=COLORS['surface'], height=36)
-            content_frame.pack(fill='x', pady=2)
-            content_frame.pack_propagate(False)
-            if not is_compatible:
-                compat_label = tk.Label(content_frame, text='⚠️', bg=COLORS['surface'], fg=COLORS['warning'], font=get_font('body_small'), cursor='hand2')
-                compat_label.pack(side=tk.LEFT, padx=(6, 0))
-                self._create_tooltip(compat_label, f'不兼容: {platform_info}')
-            else:
-                compat_spacer = tk.Label(content_frame, text='', bg=COLORS['surface'], width=2)
-                compat_spacer.pack(side=tk.LEFT, padx=(6, 0))
-            drag_handle = tk.Label(content_frame, text='☰', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_small'), cursor='hand2', width=2)
-            drag_handle.pack(side=tk.LEFT, padx=(0, 2))
-            index_label = tk.Label(content_frame, text=f'{idx + 1}.', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_small'), width=3, anchor=tk.E)
-            index_label.pack(side=tk.LEFT, padx=(2, 4))
-            var = tk.BooleanVar(value=idx == self.selected_task_index)
-            task_label = tk.Label(content_frame, text=task_name, bg=COLORS['surface'], fg=COLORS['text_muted'] if not is_compatible else COLORS['text_primary'], font=get_font('body_medium'), anchor=tk.W)
-            task_label.pack(side=tk.LEFT, fill='x', expand=True, padx=(0, 8))
-            settings_label = tk.Label(content_frame, text='⚙️', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_medium'), cursor='hand2')
-            settings_label.pack(side=tk.RIGHT, padx=(0, 8))
-            settings_label.bind('<Button-1>', lambda e, i=idx: self.show_edit_task_dialog_for_task(i))
-            self.task_items[idx] = {'frame': task_row, 'content': content_frame, 'label': task_label, 'settings_label': settings_label, 'var': var, 'drag_handle': drag_handle, 'index_label': index_label}
-            content_frame.bind('<Button-1>', lambda e, i=idx: self.on_task_select(i))
-            task_label.bind('<Button-1>', lambda e, i=idx: self.on_task_select(i))
-            index_label.bind('<Button-1>', lambda e, i=idx: self.on_task_select(i))
-            drag_handle.bind('<Button-1>', lambda e, i=idx: self._on_drag_start(e, i))
-            drag_handle.bind('<B1-Motion>', lambda e, i=idx: self._on_drag_move(e, i))
-            drag_handle.bind('<ButtonRelease-1>', lambda e, i=idx: self._on_drag_end(e, i))
-            self._bind_task_hover(task_row, content_frame, task_label, drag_handle, index_label)
+        for task in queue_info['tasks']:
+            self.task_queue_listbox.insert(tk.END, f"{task.get('name', 'Unknown')}")
         self.queue_info_label.config(text=f"队列: {queue_info['count']}个任务")
-        self._update_task_selection_style()
-        self.task_inner_frame.update_idletasks()
-        self.task_canvas.configure(scrollregion=self.task_canvas.bbox('all'))
-
-    def _bind_task_hover(self, row_frame, content_frame, label, drag_handle, index_label=None):
-
-        def on_enter(e):
-            if not self.dragging:
-                content_frame.configure(bg=COLORS['surface_container_low'])
-                label.configure(bg=COLORS['surface_container_low'])
-                drag_handle.configure(bg=COLORS['surface_container_low'])
-                if index_label:
-                    index_label.configure(bg=COLORS['surface_container_low'])
-
-        def on_leave(e):
-            if not self.dragging:
-                content_frame.configure(bg=COLORS['surface'])
-                label.configure(bg=COLORS['surface'])
-                drag_handle.configure(bg=COLORS['surface'])
-                if index_label:
-                    index_label.configure(bg=COLORS['surface'])
-                self._update_task_selection_style()
-        row_frame.bind('<Enter>', on_enter)
-        row_frame.bind('<Leave>', on_leave)
-
-    def _on_drag_start(self, event, index):
-        self.dragging = True
-        self.dragged_index = index
-        self.drag_start_y = event.y_root
-        item = self.task_items.get(index)
-        if item:
-            self.dragged_widget = item['frame']
-            self._create_drag_ghost(item)
-            self._apply_blur_effect(item, True)
-            self._animate_drag_start(item)
-
-    def _animate_drag_start(self, item):
-        item['frame'].configure(highlightbackground=COLORS['primary'], highlightthickness=2)
-
-    def _create_drag_ghost(self, item):
-        if self.drag_ghost:
-            self.drag_ghost.destroy()
-        self.drag_ghost = tk.Toplevel(self.parent_frame)
-        self.drag_ghost.overrideredirect(True)
-        self.drag_ghost.attributes('-alpha', 0.7)
-        self.drag_ghost.attributes('-topmost', True)
-        ghost_frame = tk.Frame(self.drag_ghost, bg=COLORS['surface'], highlightbackground=COLORS['primary'], highlightthickness=2)
-        ghost_frame.pack(fill='both', expand=True)
-        tk.Label(ghost_frame, text=item['label'].cget('text'), bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium'), padx=20, pady=10).pack()
-        self._update_ghost_position(event=None)
-
-    def _update_ghost_position(self, event):
-        if self.drag_ghost and event:
-            x = self.task_canvas.winfo_rootx() + 20
-            y = event.y_root
-            self.drag_ghost.geometry(f'+{x}+{y}')
-
-    def _on_drag_move(self, event, index):
-        if not self.dragging or self.dragged_index != index:
-            return
-        if self.drag_ghost:
-            x = self.task_canvas.winfo_rootx() + 20
-            y = event.y_root
-            self.drag_ghost.geometry(f'+{x}+{y}')
-        current_y = event.y_root - self.task_inner_frame.winfo_rooty()
-        new_index = self._calculate_drop_index(current_y)
-        if new_index != self.dragged_index:
-            self._show_drop_indicator(new_index)
-
-    def _calculate_drop_index(self, y):
-        if self.task_items:
-            first_item = list(self.task_items.values())[0]['frame']
-            item_height = first_item.winfo_height()
-            if item_height < 10:
-                item_height = 40
-        else:
-            item_height = 40
-        index = int(y / item_height)
-        max_index = len(self.task_items) - 1
-        return max(0, min(index, max_index))
-
-    def _show_drop_indicator(self, index):
-        for item in self.task_items.values():
-            item['frame'].configure(highlightthickness=0)
-            for child in item['frame'].winfo_children():
-                if isinstance(child, tk.Frame) and hasattr(child, '_is_drop_indicator'):
-                    child.destroy()
-        if index in self.task_items and index != self.dragged_index:
-            target_item = self.task_items[index]
-            insert_line = tk.Frame(target_item['frame'], bg=COLORS['primary'], height=3)
-            insert_line._is_drop_indicator = True
-            insert_line.pack(fill='x', side=tk.TOP, before=target_item['frame'].winfo_children()[0] if target_item['frame'].winfo_children() else None)
-            self._animate_drop_indicator(insert_line, 0)
-
-    def _animate_drop_indicator(self, indicator, step):
-        if not indicator.winfo_exists():
-            return
-        colors = [COLORS['primary'], '#42A5F5', '#64B5F6', '#42A5F5', COLORS['primary']]
-        if step < len(colors):
-            indicator.configure(bg=colors[step])
-            self.parent_frame.after(100, lambda: self._animate_drop_indicator(indicator, step + 1))
-
-    def _on_drag_end(self, event, index):
-        if not self.dragging or self.dragged_index != index:
-            return
-        self.dragging = False
-        if self.drag_ghost:
-            self.drag_ghost.destroy()
-            self.drag_ghost = None
-        item = self.task_items.get(index)
-        if item:
-            self._apply_blur_effect(item, False)
-        current_y = event.y_root - self.task_inner_frame.winfo_rooty()
-        new_index = self._calculate_drop_index(current_y)
-        self._clear_drop_indicators()
-        if new_index != index and 0 <= new_index < len(self.task_items):
-            self._animate_reorder(index, new_index)
-        else:
-            self.update_queue_display()
-        self.dragged_index = -1
-        self.dragged_widget = None
-
-    def _clear_drop_indicators(self):
-        for item in self.task_items.values():
-            item['frame'].configure(highlightthickness=0)
-            for child in item['frame'].winfo_children()[:]:
-                if isinstance(child, tk.Frame) and hasattr(child, '_is_drop_indicator'):
-                    child.destroy()
-
-    def _animate_reorder(self, from_index, to_index):
-        self._reorder_tasks(from_index, to_index)
-
-    def _apply_blur_effect(self, item, blur):
-        if blur:
-            item['frame'].configure(bg='#F0F0F0')
-            item['content'].configure(bg='#F0F0F0')
-            item['label'].configure(bg='#F0F0F0', fg='#999999')
-            item['drag_handle'].configure(bg='#F0F0F0', fg='#CCCCCC')
-        else:
-            item['frame'].configure(bg=COLORS['surface'])
-            item['content'].configure(bg=COLORS['surface'])
-            item['label'].configure(bg=COLORS['surface'], fg=COLORS['text_primary'])
-            item['drag_handle'].configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
-
-    def _reorder_tasks(self, from_index, to_index):
-        success = self.task_queue_manager.move_task(from_index, to_index)
-        if success:
-            if self.selected_task_index == from_index:
-                self.selected_task_index = to_index
-            elif from_index < self.selected_task_index <= to_index:
-                self.selected_task_index -= 1
-            elif to_index <= self.selected_task_index < from_index:
-                self.selected_task_index += 1
-            self.task_queue_manager.save_task_queue()
-            self.update_queue_display()
-            self.log_callback(f'任务已从位置 {from_index + 1} 移动到位置 {to_index + 1}', 'task', 'INFO')
-
-    def on_task_select(self, index):
-        if self.selected_task_index >= 0 and self.selected_task_index in self.task_items:
-            old_item = self.task_items[self.selected_task_index]
-            old_item['var'].set(False)
-        self.selected_task_index = index
-        if index in self.task_items:
-            new_item = self.task_items[index]
-            new_item['var'].set(True)
-        self._update_task_selection_style()
-
-    def _update_task_selection_style(self):
-        for idx, item in self.task_items.items():
-            if idx == self.selected_task_index:
-                item['content'].configure(bg=COLORS['selection_bg'])
-                item['frame'].configure(highlightbackground=COLORS['primary'], highlightthickness=1)
-                item['label'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
-                item['var'].set(True)
-                item['drag_handle'].configure(bg=COLORS['selection_bg'])
-                if 'index_label' in item:
-                    item['index_label'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
-            else:
-                item['frame'].configure(bg=COLORS['surface'], highlightthickness=0)
-                item['content'].configure(bg=COLORS['surface'])
-                item['label'].configure(bg=COLORS['surface'], fg=COLORS['text_primary'])
-                item['var'].set(False)
-                item['drag_handle'].configure(bg=COLORS['surface'])
-                if 'index_label' in item:
-                    item['index_label'].configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
-    _task_panel_visible = False
-    _task_panel = None
-    _task_panel_items = {}
-    _panel_dragging = False
-    _panel_dragged_task = None
-    _panel_drag_ghost = None
-
+        
     def show_add_task_dialog(self):
+        """显示添加任务对话框"""
         if not self.execution_manager.auth_manager.get_login_status():
-            messagebox.showwarning('未登录', '请先登录后再添加任务')
+            messagebox.showwarning("未登录", "请先登录后再添加任务")
             return
-        if self._task_panel_visible:
-            self._hide_task_panel()
-            return
+            
+        # 从服务器获取可用任务
         available_tasks = self.get_available_tasks_from_server()
         if not available_tasks:
-            messagebox.showinfo('提示', '暂无可用任务')
+            messagebox.showinfo("提示", "暂无可用任务")
             return
-        self._show_task_panel(available_tasks)
-
-    def _show_task_panel(self, available_tasks):
-        self._task_panel_visible = True
-        main_window = self.parent_frame.winfo_toplevel()
-        self._task_panel = tk.Toplevel(main_window)
-        self._task_panel.title('添加任务')
-        self._task_panel.geometry('300x450')
-        self._task_panel.resizable(True, True)
-        self._task_panel.transient(main_window)
-        content_frame = tk.Frame(self._task_panel, bg=COLORS['surface'], highlightbackground=COLORS['primary'], highlightthickness=2)
-        content_frame.pack(fill='both', expand=True)
-        self._task_panel_content = content_frame
-        self._create_task_panel_content(available_tasks)
-
-    def _create_task_panel_content(self, available_tasks):
-        parent = self._task_panel_content if hasattr(self, '_task_panel_content') and self._task_panel_content else self._task_panel
-        header_frame = tk.Frame(parent, bg=COLORS['surface'], height=40)
-        header_frame.pack(fill='x', padx=0, pady=0)
-        header_frame.pack_propagate(False)
-        title_label = tk.Label(header_frame, text='可用任务 (拖拽添加)', bg=COLORS['surface'], fg=COLORS['primary'], font=get_font('title_medium', bold=True), anchor=tk.W)
-        title_label.pack(side=tk.LEFT, fill='y', padx=12, pady=8)
-        list_container = tk.Frame(parent, bg=COLORS['surface'])
-        list_container.pack(fill='both', expand=True, padx=8, pady=(0, 8))
-        panel_canvas = tk.Canvas(list_container, bg=COLORS['surface'], highlightthickness=0, borderwidth=0)
-        panel_scrollbar = ttk.Scrollbar(list_container, orient='vertical', command=panel_canvas.yview)
-        panel_canvas.configure(yscrollcommand=panel_scrollbar.set)
-        panel_canvas.pack(side=tk.LEFT, fill='both', expand=True)
-        panel_scrollbar.pack(side=tk.RIGHT, fill='y')
-        panel_inner_frame = tk.Frame(panel_canvas, bg=COLORS['surface'])
-        panel_canvas.create_window((0, 0), window=panel_inner_frame, anchor='nw')
-        panel_inner_frame.bind('<Configure>', lambda e: panel_canvas.configure(scrollregion=panel_canvas.bbox('all')))
-        panel_canvas.bind('<Configure>', lambda e: panel_canvas.itemconfig(1, width=e.width))
-
-        def _on_mousewheel(event):
-            panel_canvas.yview_scroll(int(-1 * (event.delta / 120)), 'units')
-        panel_canvas.bind('<MouseWheel>', _on_mousewheel)
-        panel_inner_frame.bind('<MouseWheel>', _on_mousewheel)
-        self._task_panel.bind('<MouseWheel>', _on_mousewheel)
-        self._task_panel_items.clear()
-        for idx, task in enumerate(available_tasks):
-            task_name = task.get('name', '未知任务')
-            task_group = task.get('group', '')
-            is_compatible, platform_info = self._check_task_compatibility(task)
-            task_row = tk.Frame(panel_inner_frame, bg=COLORS['surface'], highlightbackground=COLORS['border_color'], highlightthickness=0)
-            task_row.pack(fill='x', pady=1)
-            if idx > 0:
-                separator = tk.Frame(task_row, bg=COLORS['border_color'], height=1)
-                separator.pack(fill='x', side=tk.TOP)
-            content_frame = tk.Frame(task_row, bg=COLORS['surface'], height=36)
-            content_frame.pack(fill='x', pady=2)
-            content_frame.pack_propagate(False)
-            drag_handle = tk.Label(content_frame, text='☰', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_small'), cursor='hand2', width=2)
-            drag_handle.pack(side=tk.LEFT, padx=(6, 2))
-            task_label = tk.Label(content_frame, text=task_name, bg=COLORS['surface'], fg=COLORS['text_muted'] if not is_compatible else COLORS['text_primary'], font=get_font('body_medium'), anchor=tk.W)
-            task_label.pack(side=tk.LEFT, fill='x', expand=True, padx=(0, 4))
-            if not is_compatible:
-                compat_label = tk.Label(content_frame, text='⚠️', bg=COLORS['surface'], fg=COLORS['warning'], font=get_font('body_small'), cursor='hand2')
-                compat_label.pack(side=tk.RIGHT, padx=(0, 6))
-                self._create_tooltip(compat_label, f'不兼容: {platform_info}')
-            self._task_panel_items[idx] = {'frame': task_row, 'content': content_frame, 'label': task_label, 'drag_handle': drag_handle, 'task': task}
-            drag_handle.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
-            drag_handle.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
-            drag_handle.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
-            content_frame.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
-            content_frame.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
-            content_frame.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
-            task_label.bind('<Button-1>', lambda e, t=task, i=idx: self._on_panel_drag_start(e, t, i))
-            task_label.bind('<B1-Motion>', lambda e: self._on_panel_drag_move(e))
-            task_label.bind('<ButtonRelease-1>', lambda e: self._on_panel_drag_end(e))
-            content_frame.bind('<Double-Button-1>', lambda e, t=task: self._on_panel_double_click(t))
-            task_label.bind('<Double-Button-1>', lambda e, t=task: self._on_panel_double_click(t))
-            self._bind_panel_task_hover(task_row, content_frame, task_label, drag_handle)
-        parent = self._task_panel_content if hasattr(self, '_task_panel_content') and self._task_panel_content else self._task_panel
-        hint_label = tk.Label(parent, text='拖拽任务到右侧队列或双击添加', bg=COLORS['surface'], fg=COLORS['text_muted'], font=get_font('body_small'), anchor=tk.W)
-        hint_label.pack(fill='x', padx=12, pady=(0, 8))
-    _panel_target_width = 280
-    _panel_target_height = 500
-    _panel_animation_step = 20
-    _panel_animation_delay = 16
-    _panel_animation_id = None
-    _panel_window_x = 0
-    _panel_window_y = 0
-
-    def _animate_slide_out(self):
-        if not self._task_panel or not self._task_panel.winfo_exists():
+            
+        # 创建对话框
+        dialog = tk.Toplevel(self.parent_frame.winfo_toplevel())
+        dialog.title("添加任务")
+        dialog.geometry("500x400")
+        dialog.transient(self.parent_frame.winfo_toplevel())
+        dialog.grab_set()
+        # 设置对话框背景色
+        dialog.configure(bg=COLORS['surface_container_high'])
+        
+        # 任务列表
+        ttk.Label(dialog, text="选择要添加的任务:", style='Header.TLabel').pack(pady=10)
+        
+        list_frame = ttk.Frame(dialog)
+        list_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical")
+        scrollbar.pack(side=tk.RIGHT, fill='y')
+        
+        task_listbox = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set
+        )
+        configure_listbox(task_listbox)
+        task_listbox.pack(side=tk.LEFT, fill='both', expand=True)
+        scrollbar.config(command=task_listbox.yview)
+        
+        # 填充任务列表
+        for task in available_tasks:
+            task_listbox.insert(tk.END, f"{task.get('name', '未知任务')}")
+            
+        def on_add():
+            selection = task_listbox.curselection()
+            if not selection:
+                messagebox.showwarning("警告", "请选择一个任务")
+                return
+                
+            selected_task = available_tasks[selection[0]]
+            self.add_task_to_queue(selected_task)
+            dialog.destroy()
+            
+        def on_cancel():
+            dialog.destroy()
+            
+        # 按钮
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="添加", command=on_add, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
+        
+    def show_edit_task_dialog(self):
+        """显示编辑任务对话框"""
+        selection = self.task_queue_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("警告", "请先选择一个任务")
             return
-        current_width = self._task_panel.winfo_width()
-        if current_width >= self._panel_target_width:
-            self._task_panel.geometry(f'{self._panel_target_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}')
-            return
-        new_width = min(current_width + self._panel_animation_step, self._panel_target_width)
-        self._task_panel.geometry(f'{new_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}')
-        self._panel_animation_id = self._task_panel.after(self._panel_animation_delay, self._animate_slide_out)
-
-    def _animate_slide_in(self):
-        if not self._task_panel or not self._task_panel.winfo_exists():
-            self._finalize_hide_panel()
-            return
-        current_width = self._task_panel.winfo_width()
-        if current_width <= 0:
-            self._finalize_hide_panel()
-            return
-        new_width = max(current_width - self._panel_animation_step, 0)
-        self._task_panel.geometry(f'{new_width}x{self._panel_target_height}+{self._panel_window_x}+{self._panel_window_y}')
-        self._panel_animation_id = self._task_panel.after(self._panel_animation_delay, self._animate_slide_in)
-
-    def _finalize_hide_panel(self):
-        self._task_panel_visible = False
-        if self._task_panel:
-            self._task_panel.destroy()
-            self._task_panel = None
-        if hasattr(self, '_task_panel_content'):
-            self._task_panel_content = None
-        self._task_panel_items.clear()
-        if self._panel_drag_ghost:
-            self._panel_drag_ghost.destroy()
-            self._panel_drag_ghost = None
-        self._panel_animation_id = None
-
-    def _hide_task_panel(self):
-        if self._panel_animation_id:
-            if self._task_panel and self._task_panel.winfo_exists():
-                self._task_panel.after_cancel(self._panel_animation_id)
-            self._panel_animation_id = None
-        self._animate_slide_in()
-
-    def _bind_panel_task_hover(self, row_frame, content_frame, label, drag_handle):
-
-        def on_enter(e):
-            if not self._panel_dragging:
-                content_frame.configure(bg=COLORS['surface_container_low'])
-                label.configure(bg=COLORS['surface_container_low'])
-                drag_handle.configure(bg=COLORS['surface_container_low'], fg=COLORS['primary'])
-
-        def on_leave(e):
-            if not self._panel_dragging:
-                content_frame.configure(bg=COLORS['surface'])
-                label.configure(bg=COLORS['surface'])
-                drag_handle.configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
-        row_frame.bind('<Enter>', on_enter)
-        row_frame.bind('<Leave>', on_leave)
-
-    def _on_panel_drag_start(self, event, task, index):
-        self._panel_dragging = True
-        self._panel_dragged_task = task
-        self._create_panel_drag_ghost(task, event)
-        if index in self._task_panel_items:
-            item = self._task_panel_items[index]
-            item['content'].configure(bg=COLORS['selection_bg'])
-            item['label'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
-            item['drag_handle'].configure(bg=COLORS['selection_bg'], fg=COLORS['primary'])
-
-    def _create_panel_drag_ghost(self, task, event):
-        if self._panel_drag_ghost:
-            self._panel_drag_ghost.destroy()
-        self._panel_drag_ghost = tk.Toplevel(self.parent_frame)
-        self._panel_drag_ghost.overrideredirect(True)
-        self._panel_drag_ghost.attributes('-alpha', 0.8)
-        self._panel_drag_ghost.attributes('-topmost', True)
-        ghost_frame = tk.Frame(self._panel_drag_ghost, bg=COLORS['primary'], highlightbackground=COLORS['primary'], highlightthickness=2)
-        ghost_frame.pack(fill='both', expand=True)
-        tk.Label(ghost_frame, text=f"➕ {task.get('name', '未知任务')}", bg=COLORS['primary'], fg=COLORS['surface'], font=get_font('body_medium', bold=True), padx=15, pady=8).pack()
-        self._panel_drag_ghost.geometry(f'+{event.x_root + 10}+{event.y_root + 10}')
-
-    def _on_panel_drag_move(self, event):
-        if not self._panel_dragging or not self._panel_drag_ghost:
-            return
-        self._panel_drag_ghost.geometry(f'+{event.x_root + 10}+{event.y_root + 10}')
-        queue_x = self.task_frame.winfo_rootx()
-        queue_y = self.task_frame.winfo_rooty()
-        queue_w = self.task_frame.winfo_width()
-        queue_h = self.task_frame.winfo_height()
-        if queue_x <= event.x_root <= queue_x + queue_w and queue_y <= event.y_root <= queue_y + queue_h:
-            current_y = event.y_root - self.task_inner_frame.winfo_rooty()
-            new_index = self._calculate_drop_index(current_y)
-            self._show_drop_indicator(new_index)
-        else:
-            self._clear_drop_indicators()
-
-    def _on_panel_drag_end(self, event):
-        if not self._panel_dragging:
-            return
-        self._panel_dragging = False
-        if self._panel_drag_ghost:
-            self._panel_drag_ghost.destroy()
-            self._panel_drag_ghost = None
-        for idx, item in self._task_panel_items.items():
-            item['content'].configure(bg=COLORS['surface'])
-            item['label'].configure(bg=COLORS['surface'], fg=COLORS['text_primary'])
-            item['drag_handle'].configure(bg=COLORS['surface'], fg=COLORS['text_muted'])
-        self._clear_drop_indicators()
-        queue_x = self.task_frame.winfo_rootx()
-        queue_y = self.task_frame.winfo_rooty()
-        queue_w = self.task_frame.winfo_width()
-        queue_h = self.task_frame.winfo_height()
-        if queue_x <= event.x_root <= queue_x + queue_w and queue_y <= event.y_root <= queue_y + queue_h:
-            current_y = event.y_root - self.task_inner_frame.winfo_rooty()
-            insert_index = self._calculate_drop_index(current_y)
-            if self._panel_dragged_task:
-                self._add_task_at_index(self._panel_dragged_task, insert_index)
-        self._panel_dragged_task = None
-
-    def _on_panel_double_click(self, task):
-        self.add_task_to_queue(task)
-
-    def _add_task_at_index(self, task_template, insert_index):
-        import time
-        new_task = task_template.copy()
-        new_task['id'] = f"{task_template.get('id', 'task')}_{int(time.time())}"
-        new_task['name'] = task_template.get('name', '新任务')
-        new_task['custom_name'] = new_task['name']
-        if hasattr(self.task_queue_manager, 'insert_task'):
-            self.task_queue_manager.insert_task(new_task, insert_index)
-        else:
-            self.task_queue_manager.add_task(new_task)
-            current_index = len(self.task_queue_manager.get_queue_info()['tasks']) - 1
-            if current_index != insert_index:
-                self.task_queue_manager.move_task(current_index, insert_index)
-        self.update_queue_display()
-        self.log_callback(f"已添加任务 '{new_task['name']}' 到位置 {insert_index + 1}", 'task', 'INFO')
-        self.task_queue_manager.save_task_queue()
-
-    def show_edit_task_dialog_for_task(self, task_index):
-        if task_index < 0 or task_index >= len(self.task_queue_manager.get_queue_info()['tasks']):
-            return
-        self.on_task_select(task_index)
-        if self.on_task_settings_click:
-            self.on_task_settings_click(task_index)
-            return
+            
+        task_index = selection[0]
         task = self.task_queue_manager.get_queue_info()['tasks'][task_index]
         task_id = task.get('id', '')
+        
+        # 从服务器获取最新的任务定义
         latest_task_def = self.get_task_definition_from_server(task_id)
         if latest_task_def:
+            # 使用服务器最新的变量定义
             variables = latest_task_def.get('variables', [])
+            # 保留用户已缓存的自定义变量值
             cached_variables = task.get('custom_variables', {})
+            # 同步更新队列中的任务定义
             task['variables'] = variables
         else:
+            # 如果获取失败，使用本地缓存的数据
             variables = task.get('variables', [])
             cached_variables = task.get('custom_variables', {})
+        
+        # 创建对话框
         dialog = tk.Toplevel(self.parent_frame.winfo_toplevel())
-        dialog.title('设置任务')
-        dialog.geometry('450x400')
+        dialog.title("设置任务")
+        dialog.geometry("400x300")
         dialog.transient(self.parent_frame.winfo_toplevel())
         dialog.grab_set()
-        dialog.configure(bg=COLORS['surface'])
-        name_label = tk.Label(dialog, text='任务名称', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_small', bold=True))
-        name_label.pack(pady=(15, 5), padx=15, anchor=tk.W)
+        
+        # 任务名称
+        ttk.Label(dialog, text="任务名称:", style='Header.TLabel').pack(pady=(10, 5))
         name_var = tk.StringVar(value=task.get('custom_name', task.get('name', '')))
-        name_entry = tk.Entry(dialog, textvariable=name_var, bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'])
-        name_entry.pack(fill='x', padx=15, pady=5)
+        name_entry = ttk.Entry(dialog, textvariable=name_var, width=40)
+        name_entry.pack(pady=5)
+        
+        # 仅执行一次选项
         execute_once_var = tk.BooleanVar(value=task.get('execute_once', False))
-        execute_once_check = tk.Checkbutton(dialog, text='仅执行一次（在多轮循环中只执行一次）', variable=execute_once_var, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_small'), selectcolor=COLORS['surface_container_low'], activebackground=COLORS['surface_container'], relief='solid', borderwidth=1)
-        execute_once_check.pack(pady=(5, 10), padx=15, anchor=tk.W)
-        if variables:
-            var_label = tk.Label(dialog, text='任务变量', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_small', bold=True))
-            var_label.pack(pady=(10, 5), padx=15, anchor=tk.W)
-            variables_frame = tk.Frame(dialog, bg=COLORS['surface'])
-            variables_frame.pack(fill='both', expand=True, padx=15, pady=5)
-            variable_entries = {}
-            cascade_widgets = {}
-
-            def extract_option_value(opt):
-                if isinstance(opt, dict):
-                    return opt.get('value', '')
-                return opt
-
-            def extract_option_label(opt):
-                if isinstance(opt, dict):
-                    return opt.get('label', opt.get('value', ''))
-                return opt
-
-            def should_show_cascade_var(var_def, parent_values):
-                depends_on = var_def.get('depends_on')
-                if not depends_on:
-                    return True
-                parent_var = depends_on.get('variable')
-                trigger_values = depends_on.get('values', [])
-                if parent_var in parent_values:
-                    parent_value = parent_values.get(parent_var, '')
-                    return parent_value in trigger_values
-                return False
-
-            def update_cascade_visibility():
-                current_values = {}
-                for v_name, (v_var, v_type) in variable_entries.items():
-                    current_values[v_name] = v_var.get()
-                for v_name, widget_info in cascade_widgets.items():
-                    var_def = widget_info['var_def']
-                    frame = widget_info['frame']
-                    if should_show_cascade_var(var_def, current_values):
-                        frame.pack(fill='x', pady=4)
-                    else:
-                        frame.pack_forget()
-            var_dependencies = {}
-            for var_def in variables:
-                var_name = var_def.get('name', '')
-                depends_on = var_def.get('depends_on')
-                if depends_on:
-                    parent_var = depends_on.get('variable')
-                    if parent_var:
-                        if parent_var not in var_dependencies:
-                            var_dependencies[parent_var] = []
-                        var_dependencies[parent_var].append(var_name)
-            for var_def in variables:
-                var_name = var_def.get('name', '')
-                var_type = var_def.get('type', 'string')
-                var_default = var_def.get('default', '')
-                var_options = var_def.get('options', [])
-                depends_on = var_def.get('depends_on')
-                current_value = cached_variables.get(var_name, var_default)
-                var_frame = tk.Frame(variables_frame, bg=COLORS['surface'])
-                is_cascade = var_type == 'cascade_select' or depends_on is not None
-                if is_cascade:
-                    cascade_widgets[var_name] = {'frame': var_frame, 'var_def': var_def}
-                    parent_values = {}
-                    for v_name, (v_var, v_type) in variable_entries.items():
-                        parent_values[v_name] = v_var.get()
-                    if should_show_cascade_var(var_def, parent_values):
-                        var_frame.pack(fill='x', pady=4)
-                else:
-                    var_frame.pack(fill='x', pady=4)
-                display_name = var_name
-                if is_cascade:
-                    display_name = f'  └─ {var_name}'
-                name_lbl = tk.Label(var_frame, text=f'{display_name}:', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_small'))
-                name_lbl.pack(side=tk.LEFT)
-                if var_type == 'bool':
-                    var_var = tk.BooleanVar(value=bool(current_value))
-                    var_entry = tk.Checkbutton(var_frame, variable=var_var, bg=COLORS['surface_container_low'], selectcolor=COLORS['surface_container_low'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                elif var_type == 'int':
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = tk.Entry(var_frame, textvariable=var_var, width=10, bg=COLORS['surface'], fg=COLORS['text_primary'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                elif var_type in ('select', 'cascade_select') and var_options:
-                    option_values = [extract_option_value(opt) for opt in var_options]
-                    option_labels = [extract_option_label(opt) for opt in var_options]
-                    if current_value not in option_values:
-                        current_value = option_values[0] if option_values else var_default
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = ttk.Combobox(var_frame, textvariable=var_var, values=option_labels, width=15, state='readonly')
-                    var_entry.pack(side=tk.RIGHT)
-                    variable_entries[var_name + '_label_map'] = (dict(zip(option_labels, option_values)), 'label_map')
-                    if var_name in var_dependencies:
-
-                        def on_parent_change(event, vn=var_name):
-                            dialog.after(10, update_cascade_visibility)
-                        var_entry.bind('<<ComboboxSelected>>', on_parent_change)
-                else:
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = tk.Entry(var_frame, textvariable=var_var, width=20, bg=COLORS['surface'], fg=COLORS['text_primary'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                variable_entries[var_name] = (var_var, var_type)
-
+        execute_once_check = ttk.Checkbutton(dialog, text="仅执行一次（在多轮循环中只执行一次）", variable=execute_once_var)
+        execute_once_check.pack(pady=(5, 10), anchor=tk.W)
+        
+        # 任务变量
+        ttk.Label(dialog, text="任务变量:", style='Header.TLabel').pack(pady=(10, 5))
+        
+        variables_frame = ttk.Frame(dialog)
+        variables_frame.pack(fill='both', expand=True, padx=10, pady=5)
+        
+        variable_entries = {}
+        
+        for var_def in variables:
+            var_name = var_def.get('name', '')
+            var_type = var_def.get('type', 'string')
+            var_default = var_def.get('default', '')
+            var_desc = var_def.get('desc', '')
+            var_options = var_def.get('options', [])
+            
+            # 优先使用用户缓存值，否则使用默认值
+            current_value = cached_variables.get(var_name, var_default)
+            
+            var_frame = ttk.Frame(variables_frame)
+            var_frame.pack(fill='x', pady=2)
+            
+            ttk.Label(var_frame, text=f"{var_name} ({var_type}):").pack(side=tk.LEFT)
+            
+            if var_type == 'bool':
+                var_var = tk.BooleanVar(value=bool(current_value))
+                var_entry = ttk.Checkbutton(var_frame, variable=var_var)
+                var_entry.pack(side=tk.RIGHT)
+            elif var_type == 'int':
+                var_var = tk.StringVar(value=str(current_value))
+                var_entry = ttk.Entry(var_frame, textvariable=var_var, width=10)
+                var_entry.pack(side=tk.RIGHT)
+            elif var_type == 'select' and var_options:
+                # select类型，使用下拉选择框
+                # 如果当前值不在新选项中，使用第一个选项或默认值
+                if current_value not in var_options:
+                    current_value = var_options[0] if var_options else var_default
+                var_var = tk.StringVar(value=str(current_value) if current_value else (var_options[0] if var_options else ''))
+                var_entry = ttk.Combobox(var_frame, textvariable=var_var, values=var_options, width=15, state='readonly')
+                var_entry.pack(side=tk.RIGHT)
+            else:  # string or other types
+                var_var = tk.StringVar(value=str(current_value))
+                var_entry = ttk.Entry(var_frame, textvariable=var_var, width=20)
+                var_entry.pack(side=tk.RIGHT)
+                
+            variable_entries[var_name] = (var_var, var_type)
+            
+            if var_desc:
+                ttk.Label(var_frame, text=f" - {var_desc}", font=('Arial', 8)).pack(side=tk.LEFT, padx=(5, 0))
+        
         def on_save():
+            # 更新任务名称
             new_name = name_var.get().strip()
             if not new_name:
-                messagebox.showwarning('警告', '任务名称不能为空')
+                messagebox.showwarning("警告", "任务名称不能为空")
                 return
+                
+            # 更新任务队列中的任务
             queue_info = self.task_queue_manager.get_queue_info()
             queue_info['tasks'][task_index]['custom_name'] = new_name
             queue_info['tasks'][task_index]['name'] = new_name
             queue_info['tasks'][task_index]['execute_once'] = execute_once_var.get()
+            
+            # 同步最新的变量定义到任务对象
             queue_info['tasks'][task_index]['variables'] = variables
-            custom_vars = {}
-            for var_name, (var_var, var_type) in variable_entries.items():
-                if var_type == 'label_map':
-                    continue
-                value = var_var.get()
-                label_map_key = var_name + '_label_map'
-                if label_map_key in variable_entries:
-                    label_map, _ = variable_entries[label_map_key]
-                    value = label_map.get(value, value)
-                if var_type == 'int':
-                    try:
-                        custom_vars[var_name] = int(value)
-                    except ValueError:
-                        custom_vars[var_name] = 0
-                elif var_type == 'bool':
-                    custom_vars[var_name] = bool(value)
-                else:
-                    custom_vars[var_name] = str(value)
-            queue_info['tasks'][task_index]['custom_variables'] = custom_vars
-            self.task_queue_manager.save_task_queue()
-            self.update_queue_display()
-            self.log_callback(f"任务 '{new_name}' 已更新", 'task', 'INFO')
-            dialog.destroy()
-
-        def on_cancel():
-            dialog.destroy()
-        btn_frame = tk.Frame(dialog, bg=COLORS['surface'])
-        btn_frame.pack(pady=15, fill='x', padx=15)
-        save_btn = tk.Button(btn_frame, text='保存', command=on_save, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium', bold=True), relief='solid', borderwidth=1, padx=20, pady=8, cursor='hand2')
-        save_btn.pack(side=tk.RIGHT, padx=(5, 0))
-        self._bind_hover_effect(save_btn, COLORS['surface_container_low'], COLORS['surface_container'], COLORS['text_primary'], COLORS['text_primary'])
-        cancel_btn = tk.Button(btn_frame, text='取消', command=on_cancel, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'], padx=20, pady=8, cursor='hand2')
-        cancel_btn.pack(side=tk.RIGHT)
-        self._bind_hover_effect(cancel_btn, COLORS['surface_container_low'], COLORS['surface_container'], COLORS['text_primary'], COLORS['text_primary'])
-
-    def show_edit_task_dialog(self):
-        if self.selected_task_index < 0:
-            messagebox.showwarning('警告', '请先选择一个任务')
-            return
-        self.show_edit_task_dialog_for_task(self.selected_task_index)
-        latest_task_def = self.get_task_definition_from_server(task_id)
-        if latest_task_def:
-            variables = latest_task_def.get('variables', [])
-            cached_variables = task.get('custom_variables', {})
-            task['variables'] = variables
-        else:
-            variables = task.get('variables', [])
-            cached_variables = task.get('custom_variables', {})
-        dialog = tk.Toplevel(self.parent_frame.winfo_toplevel())
-        dialog.title('设置任务')
-        dialog.geometry('450x400')
-        dialog.transient(self.parent_frame.winfo_toplevel())
-        dialog.grab_set()
-        dialog.configure(bg=COLORS['surface'])
-        name_label = tk.Label(dialog, text='任务名称', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_small', bold=True))
-        name_label.pack(pady=(15, 5), padx=15, anchor=tk.W)
-        name_var = tk.StringVar(value=task.get('custom_name', task.get('name', '')))
-        name_entry = tk.Entry(dialog, textvariable=name_var, bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'])
-        name_entry.pack(fill='x', padx=15, pady=5)
-        execute_once_var = tk.BooleanVar(value=task.get('execute_once', False))
-        execute_once_check = tk.Checkbutton(dialog, text='仅执行一次（在多轮循环中只执行一次）', variable=execute_once_var, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_small'), selectcolor=COLORS['surface_container_low'], activebackground=COLORS['surface_container'], relief='solid', borderwidth=1)
-        execute_once_check.pack(pady=(5, 10), padx=15, anchor=tk.W)
-        if variables:
-            var_label = tk.Label(dialog, text='任务变量', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_small', bold=True))
-            var_label.pack(pady=(10, 5), padx=15, anchor=tk.W)
-            variables_frame = tk.Frame(dialog, bg=COLORS['surface'])
-            variables_frame.pack(fill='both', expand=True, padx=15, pady=5)
-            variable_entries = {}
-            for var_def in variables:
-                var_name = var_def.get('name', '')
-                var_type = var_def.get('type', 'string')
-                var_default = var_def.get('default', '')
-                var_options = var_def.get('options', [])
-                current_value = cached_variables.get(var_name, var_default)
-                var_frame = tk.Frame(variables_frame, bg=COLORS['surface'])
-                var_frame.pack(fill='x', pady=4)
-                name_lbl = tk.Label(var_frame, text=f'{var_name}:', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_small'))
-                name_lbl.pack(side=tk.LEFT)
-                if var_type == 'bool':
-                    var_var = tk.BooleanVar(value=bool(current_value))
-                    var_entry = tk.Checkbutton(var_frame, variable=var_var, bg=COLORS['surface_container_low'], selectcolor=COLORS['surface_container_low'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                elif var_type == 'int':
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = tk.Entry(var_frame, textvariable=var_var, width=10, bg=COLORS['surface'], fg=COLORS['text_primary'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                elif var_type == 'select' and var_options:
-                    if current_value not in var_options:
-                        current_value = var_options[0] if var_options else var_default
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = ttk.Combobox(var_frame, textvariable=var_var, values=var_options, width=15, state='readonly')
-                    var_entry.pack(side=tk.RIGHT)
-                else:
-                    var_var = tk.StringVar(value=str(current_value))
-                    var_entry = tk.Entry(var_frame, textvariable=var_var, width=20, bg=COLORS['surface'], fg=COLORS['text_primary'], relief='solid', borderwidth=1)
-                    var_entry.pack(side=tk.RIGHT)
-                variable_entries[var_name] = (var_var, var_type)
-
-        def on_save():
-            new_name = name_var.get().strip()
-            if not new_name:
-                messagebox.showwarning('警告', '任务名称不能为空')
-                return
-            queue_info = self.task_queue_manager.get_queue_info()
-            queue_info['tasks'][task_index]['custom_name'] = new_name
-            queue_info['tasks'][task_index]['name'] = new_name
-            queue_info['tasks'][task_index]['execute_once'] = execute_once_var.get()
-            queue_info['tasks'][task_index]['variables'] = variables
+            
+            # 更新任务变量
             custom_vars = {}
             for var_name, (var_var, var_type) in variable_entries.items():
                 value = var_var.get()
@@ -859,195 +284,294 @@ class TaskManagerGUI:
                     custom_vars[var_name] = bool(value)
                 else:
                     custom_vars[var_name] = str(value)
+                    
             queue_info['tasks'][task_index]['custom_variables'] = custom_vars
+            
+            # 保存到本地持久化存储
             self.task_queue_manager.save_task_queue()
+            
             self.update_queue_display()
-            self.log_callback(f"任务 '{new_name}' 已更新", 'task', 'INFO')
+            self.log_callback(f"任务 '{new_name}' 已更新", "task", "INFO")
             dialog.destroy()
-
+            
         def on_cancel():
             dialog.destroy()
-        btn_frame = tk.Frame(dialog, bg=COLORS['surface'])
-        btn_frame.pack(pady=15, fill='x', padx=15)
-        save_btn = tk.Button(btn_frame, text='保存', command=on_save, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium', bold=True), relief='solid', borderwidth=1, padx=20, pady=8, cursor='hand2')
-        save_btn.pack(side=tk.RIGHT, padx=(5, 0))
-        self._bind_hover_effect(save_btn, COLORS['surface_container_low'], COLORS['surface_container'], COLORS['text_primary'], COLORS['text_primary'])
-        cancel_btn = tk.Button(btn_frame, text='取消', command=on_cancel, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'], padx=20, pady=8, cursor='hand2')
-        cancel_btn.pack(side=tk.RIGHT)
-        self._bind_hover_effect(cancel_btn, COLORS['surface_container_low'], COLORS['surface_container'], COLORS['text_primary'], COLORS['text_primary'])
-
+            
+        # 按钮
+        btn_frame = ttk.Frame(dialog)
+        btn_frame.pack(pady=10)
+        
+        ttk.Button(btn_frame, text="保存", command=on_save, style='Primary.TButton').pack(side=tk.LEFT, padx=5)
+        ttk.Button(btn_frame, text="取消", command=on_cancel).pack(side=tk.LEFT, padx=5)
+        
     def sync_all_tasks_definitions_from_server(self) -> bool:
+        """
+        从服务器同步所有队列任务的最新定义（启动时调用）
+        
+        Returns:
+            同步是否成功
+        """
         if not self.execution_manager.auth_manager.get_login_status():
             return False
+            
         if not self.execution_manager.communicator:
-            self.log_callback('通信模块未初始化', 'task', 'ERROR')
+            self.log_callback("通信模块未初始化", "task", "ERROR")
             return False
+        
         queue_info = self.task_queue_manager.get_queue_info()
         task_ids = [task.get('id', '') for task in queue_info['tasks'] if task.get('id')]
+        
         if not task_ids:
-            return True
+            return True  # 无需同步
+        
         try:
-            response = self.execution_manager.communicator.send_request('sync_all_tasks_definitions', {'task_ids': task_ids})
+            # 批量请求所有任务定义
+            response = self.execution_manager.communicator.send_request(
+                "sync_all_tasks_definitions",
+                {"task_ids": task_ids}
+            )
+            
             if response and response.get('status') == 'success':
                 tasks_map = response.get('tasks', {})
                 updated_count = 0
+                
+                # 更新队列中每个任务的变量定义
                 for task in queue_info['tasks']:
                     task_id = task.get('id', '')
                     if task_id in tasks_map:
                         latest_def = tasks_map[task_id]
+                        # 更新variables定义
                         task['variables'] = latest_def.get('variables', [])
                         updated_count += 1
+                
+                # 保存更新后的队列
                 self.task_queue_manager.save_task_queue()
-                self.log_callback(f'启动时同步完成: {updated_count}个任务已更新', 'task', 'INFO')
+                self.log_callback(f"启动时同步完成: {updated_count}个任务已更新", "task", "INFO")
                 return True
             else:
                 error_msg = response.get('message', '未知错误') if response else '无响应'
-                self.log_callback(f'批量同步任务定义失败: {error_msg}', 'task', 'ERROR')
+                self.log_callback(f"批量同步任务定义失败: {error_msg}", "task", "ERROR")
                 return False
         except Exception as e:
-            self.log_callback(f'批量同步任务定义异常: {e}', 'task', 'ERROR')
+            self.log_callback(f"批量同步任务定义异常: {e}", "task", "ERROR")
             return False
-
+    
     def get_task_definition_from_server(self, task_id: str):
+        """
+        从服务器获取指定任务的最新定义（编辑时调用）
+        
+        Args:
+            task_id: 任务ID
+            
+        Returns:
+            任务定义字典或None（如果获取失败）
+        """
         if not self.execution_manager.auth_manager.get_login_status():
             return None
+            
         if not self.execution_manager.communicator:
-            self.log_callback('通信模块未初始化', 'task', 'ERROR')
+            self.log_callback("通信模块未初始化", "task", "ERROR")
             return None
+            
         try:
-            response = self.execution_manager.communicator.send_request('get_task_definition', {'task_id': task_id})
+            # 发送请求获取任务定义
+            response = self.execution_manager.communicator.send_request(
+                "get_task_definition",
+                {"task_id": task_id}
+            )
             if response and response.get('status') == 'success':
                 task = response.get('task')
-                self.log_callback(f"成功获取任务 '{task_id}' 的最新定义", 'task', 'INFO')
+                self.log_callback(f"成功获取任务 '{task_id}' 的最新定义", "task", "INFO")
                 return task
             else:
                 error_msg = response.get('message', '未知错误') if response else '无响应'
-                self.log_callback(f'获取任务定义失败: {error_msg}', 'task', 'ERROR')
+                self.log_callback(f"获取任务定义失败: {error_msg}", "task", "ERROR")
                 return None
         except Exception as e:
-            self.log_callback(f'获取任务定义异常: {e}', 'task', 'ERROR')
+            self.log_callback(f"获取任务定义异常: {e}", "task", "ERROR")
             return None
-
+    
     def get_available_tasks_from_server(self):
+        """从服务器获取可用任务列表"""
         if not self.execution_manager.auth_manager.get_login_status():
             return []
+            
         if not self.execution_manager.communicator:
-            self.log_callback('通信模块未初始化', 'task', 'ERROR')
+            self.log_callback("通信模块未初始化", "task", "ERROR")
             return []
+            
         try:
-            response = self.execution_manager.communicator.send_request('get_default_tasks', {})
+            # 发送请求获取默认任务（可用任务）
+            response = self.execution_manager.communicator.send_request("get_default_tasks", {})
             if response and response.get('status') == 'success':
                 tasks = response.get('tasks', [])
+                # 过滤掉不可见的任务
                 visible_tasks = [task for task in tasks if task.get('visible', True)]
-                self.log_callback(f'成功从服务器获取 {len(visible_tasks)} 个可用任务', 'task', 'INFO')
+                self.log_callback(f"成功从服务器获取 {len(visible_tasks)} 个可用任务", "task", "INFO")
                 return visible_tasks
             else:
                 error_msg = response.get('message', '未知错误') if response else '无响应'
-                self.log_callback(f'获取可用任务失败: {error_msg}', 'task', 'ERROR')
+                self.log_callback(f"获取可用任务失败: {error_msg}", "task", "ERROR")
                 return []
         except Exception as e:
-            self.log_callback(f'获取可用任务异常: {e}', 'task', 'ERROR')
+            self.log_callback(f"获取可用任务异常: {e}", "task", "ERROR")
             return []
-
+            
     def add_task_to_queue(self, task_template=None):
+        """添加任务到队列"""
         if task_template is None:
+            # 如果没有提供任务模板，不执行任何操作
             return
         else:
+            # 添加指定的任务模板
             import time
+            # 创建新的任务实例，使用带时间戳的ID确保队列中唯一性
+            # 服务端会自动从ID中提取原始模板ID（格式: template_id_timestamp）
             new_task = task_template.copy()
             new_task['id'] = f"{task_template['id']}_{int(time.time())}"
             new_task['name'] = task_template.get('name', '新任务')
-            new_task['custom_name'] = new_task['name']
+            new_task['custom_name'] = new_task['name']  # 用于自定义名称
             self.task_queue_manager.add_task(new_task)
             self.update_queue_display()
-            self.log_callback(f"已添加任务 '{new_task['name']}' 到队列", 'task', 'INFO')
+            self.log_callback(f"已添加任务 '{new_task['name']}' 到队列", "task", "INFO")
+            # 保存到本地持久化存储
             self.task_queue_manager.save_task_queue()
-
+        
+    def remove_task_from_queue(self):
+        """从队列中移除任务"""
+        selection = self.task_queue_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("警告", "请先选择一个任务")
+            return
+            
+        index = selection[0]
+        removed_task = self.task_queue_manager.remove_task(index)
+        if removed_task:
+            self.update_queue_display()
+            self.log_callback(f"任务 '{removed_task['name']}' 已从队列中移除", "execution", "INFO")
+        
+    def clear_task_queue(self):
+        """清空任务队列"""
+        if messagebox.askyesno("确认", "确定要清空任务队列吗？"):
+            self.task_queue_manager.clear_queue()
+            self.update_queue_display()
+            self.log_callback("任务队列已清空", "execution", "INFO")
+            
     def on_execution_count_changed(self):
+        """执行次数改变时的处理"""
         try:
             count = self.execution_count_var.get()
             self.task_queue_manager.set_execution_count(count)
-            self.log_callback(f'执行次数设置为: {count}', 'execution', 'INFO')
+            self.log_callback(f"执行次数设置为: {count}", "execution", "INFO")
         except tk.TclError:
             pass
-
+            
     def on_infinite_loop_changed(self):
+        """持续循环选项改变时的处理"""
         is_infinite = self.infinite_loop_var.get()
         if is_infinite:
+            # 禁用执行次数输入框
             self.execution_count_entry.config(state='disabled')
-            self.task_queue_manager.set_execution_count(-1)
-            self.log_callback('已启用持续循环模式', 'execution', 'INFO')
+            self.task_queue_manager.set_execution_count(-1)  # -1表示无限循环
+            self.log_callback("已启用持续循环模式", "execution", "INFO")
         else:
+            # 启用执行次数输入框
             self.execution_count_entry.config(state='normal')
             count = self.execution_count_var.get()
             self.task_queue_manager.set_execution_count(count)
-            self.log_callback(f'执行次数设置为: {count}', 'execution', 'INFO')
-
+            self.log_callback(f"执行次数设置为: {count}", "execution", "INFO")
+            
     def start_llm_execution(self):
+        """开始LLM执行"""
+        # 获取主GUI管理器以传递预览更新回调
         main_gui = None
         if hasattr(self.parent_frame, 'winfo_toplevel'):
             root = self.parent_frame.winfo_toplevel()
             if hasattr(root, 'gui_manager'):
                 main_gui = root.gui_manager
+        
+        # 创建预览更新回调
         preview_update_callback = None
         if main_gui and hasattr(main_gui, 'on_preview_update'):
             preview_update_callback = main_gui.on_preview_update
-        success, message = self.execution_manager.start_execution(self.log_callback, self.update_ui_callback, preview_update_callback)
+        
+        success, message = self.execution_manager.start_execution(
+            self.log_callback,
+            self.update_ui_callback,
+            preview_update_callback
+        )
         if not success:
-            messagebox.showwarning('警告', message)
+            messagebox.showwarning("警告", message)
         else:
             self.llm_start_btn.config(state='disabled')
             self.llm_stop_btn.config(state='normal')
-
+            
     def stop_llm_execution(self):
+        """停止LLM执行"""
         self.execution_manager.stop_execution()
         self.llm_start_btn.config(state='normal')
         self.llm_stop_btn.config(state='disabled')
-        self.log_callback('执行已停止', 'execution', 'INFO')
-
+        self.log_callback("执行已停止", "execution", "INFO")
+        
     def update_ui_callback(self, event_type, data):
+        """UI更新回调"""
         if event_type == 'stop_execution':
             self.llm_start_btn.config(state='normal')
             self.llm_stop_btn.config(state='disabled')
-
+            
+    def get_current_task_index(self):
+        """获取当前任务索引"""
+        return self.task_queue_manager.get_queue_info()['current_index']
+        
+    def advance_to_next_task(self):
+        """前进到下一个任务"""
+        return self.task_queue_manager.advance_to_next_task()
+        
+    def reset_current_task_index(self):
+        """重置当前任务索引"""
+        self.task_queue_manager.reset_current_task_index()
+        
+    def is_queue_empty(self):
+        """检查队列是否为空"""
+        return self.task_queue_manager.is_queue_empty()
+        
+    def get_current_task(self):
+        """获取当前任务"""
+        return self.task_queue_manager.get_current_task()
+        
+    def get_execution_count(self):
+        """获取执行次数"""
+        return self.task_queue_manager.get_execution_count()
+        
+    def get_task_variables(self, task_id):
+        """获取任务变量"""
+        return self.task_queue_manager.get_task_variables(task_id)
+        
     def delete_selected_task(self):
-        if self.selected_task_index < 0:
-            messagebox.showwarning('警告', '请先选择一个任务')
+        """删除选中的任务（带二次确认）"""
+        selection = self.task_queue_listbox.curselection()
+        if not selection:
+            messagebox.showwarning("警告", "请先选择一个任务")
             return
-        task_index = self.selected_task_index
+            
+        # 获取选中任务的名称用于确认对话框
+        task_index = selection[0]
         queue_info = self.task_queue_manager.get_queue_info()
         if task_index < len(queue_info['tasks']):
             task_name = queue_info['tasks'][task_index].get('name', '未知任务')
         else:
             task_name = '未知任务'
-        confirm = messagebox.askyesno('确认删除', f"确定要删除任务 '{task_name}' 吗？\n此操作无法撤销！")
+            
+        # 二次确认
+        confirm = messagebox.askyesno(
+            "确认删除",
+            f"确定要删除任务 '{task_name}' 吗？\n此操作无法撤销！"
+        )
+        
         if confirm:
             removed_task = self.task_queue_manager.remove_task(task_index)
             if removed_task:
-                self.selected_task_index = -1
                 self.update_queue_display()
-                self.log_callback(f"任务 '{removed_task['name']}' 已从队列中删除", 'task', 'INFO')
+                self.log_callback(f"任务 '{removed_task['name']}' 已从队列中删除", "task", "INFO")
+                # 保存到本地持久化存储
                 self.task_queue_manager.save_task_queue()
-
-    def _create_tooltip(self, widget, text):
-        tooltip_window = None
-
-        def show_tooltip(event):
-            nonlocal tooltip_window
-            if tooltip_window:
-                return
-            x = widget.winfo_rootx() + 20
-            y = widget.winfo_rooty() + widget.winfo_height() + 5
-            tooltip_window = tk.Toplevel(widget)
-            tooltip_window.wm_overrideredirect(True)
-            tooltip_window.wm_geometry(f'+{x}+{y}')
-            label = tk.Label(tooltip_window, text=text, bg=COLORS['surface_container_high'], fg=COLORS['text_primary'], font=get_font('body_small'), relief='solid', borderwidth=1, padx=8, pady=4)
-            label.pack()
-
-        def hide_tooltip(event):
-            nonlocal tooltip_window
-            if tooltip_window:
-                tooltip_window.destroy()
-                tooltip_window = None
-        widget.bind('<Enter>', show_tooltip)
-        widget.bind('<Leave>', hide_tooltip)

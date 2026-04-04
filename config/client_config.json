@@ -14,7 +14,6 @@
     "use_original_resolution": true
   },
   "touch": {
-    "touch_method": "maatouch",
     "maa_style": {
       "enabled": true,
       "press_duration_ms": 50,
@@ -23,17 +22,7 @@
       "swipe_delay_max_ms": 300,
       "use_normalized_coords": true
     },
-    "fail_on_error": true,
-    "swipe_duration_ms": 300,
-    "long_press_duration_ms": 500,
-    "minitouch": {
-      "enabled": false,
-      "binary_path": "client/3rd-part/minitouch/armeabi-v7a/minitouch"
-    },
-    "maatouch": {
-      "enabled": true,
-      "binary_path": "client/3rd-part/minitouch/maatouch/minitouch"
-    }
+    "fail_on_error": true
   },
   "security": {
     "enable_safe_press": true,

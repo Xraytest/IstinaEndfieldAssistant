@@ -1,9 +1,10 @@
-"""触控子系统 - 统一使用MaaFramework库"""
+"""触控子系统"""
 
+from .touch_executor import TouchExecutor
+from .touch_adapter import TouchAdapter
 from .maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
-from .maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
 
 __all__ = [
-    'MaaFwTouchExecutor', 'MaaFwTouchConfig',
-    'MaaFwWin32Executor', 'MaaFwWin32Config'
+    'TouchExecutor', 'TouchAdapter',
+    'MaaFwTouchExecutor', 'MaaFwTouchConfig'
 ]

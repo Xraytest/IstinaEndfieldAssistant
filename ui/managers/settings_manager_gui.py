@@ -1,3 +1,4 @@
+"""设置管理GUI模块 - 处理版本信息和更新的UI逻辑"""
 import tkinter as tk
 from tkinter import ttk, messagebox
 import os
@@ -7,61 +8,114 @@ import shutil
 import sys
 import threading
 from pathlib import Path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..'))
-from core.communication.communicator import ClientCommunicator
-from ui.theme import COLORS, get_font
+
+# 导入communicator模块
+sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from client.core.communication.communicator import ClientCommunicator
+
 
 class SettingsManagerGUI:
-
+    """设置管理GUI类"""
+    
     def __init__(self, parent_frame, config, log_callback, client_main_ref=None):
         self.parent_frame = parent_frame
         self.config = config
         self.log_callback = log_callback
-        self.client_main_ref = client_main_ref
+        self.client_main_ref = client_main_ref  # 引用主客户端实例
+        
+        # UI组件引用
         self.current_version_label = None
         self.latest_version_label = None
         self.update_status_label = None
         self.update_btn = None
+        
         self.setup_ui()
-
+        
     def setup_ui(self):
-        main_container = tk.Frame(self.parent_frame, bg=COLORS['surface'])
-        main_container.pack(fill='both', expand=True, padx=15, pady=15)
-        version_frame = tk.Frame(main_container, bg=COLORS['surface'], highlightbackground=COLORS['border_color'], highlightthickness=1)
-        version_frame.pack(fill='x', pady=(0, 15))
-        version_header = tk.Frame(version_frame, bg=COLORS['surface'], height=40)
-        version_header.pack(fill='x')
-        version_header.pack_propagate(False)
-        version_title = tk.Label(version_header, text='版本信息', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('title_medium', bold=True), anchor=tk.W)
-        version_title.pack(side=tk.LEFT, fill='y', padx=15, pady=10)
-        version_content = tk.Frame(version_frame, bg=COLORS['surface'])
-        version_content.pack(fill='x', padx=15, pady=15)
-        current_version_frame = tk.Frame(version_content, bg=COLORS['surface'])
+        """设置设置页面UI"""
+        # 触控设置区域
+        touch_frame = ttk.LabelFrame(self.parent_frame, text="触控设置", padding="15")
+        touch_frame.pack(fill='x', pady=(0, 20))
+        
+        # 触控方式选择
+        touch_method_frame = ttk.Frame(touch_frame)
+        touch_method_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(touch_method_frame, text="触控方式:", style='Header.TLabel').pack(side=tk.LEFT)
+        
+        self.touch_method_var = tk.StringVar()
+        touch_method_options = ["maatouch", "adb_input"]
+        self.touch_method_combo = ttk.Combobox(
+            touch_method_frame,
+            textvariable=self.touch_method_var,
+            values=touch_method_options,
+            state="readonly",
+            width=20
+        )
+        self.touch_method_combo.pack(side=tk.LEFT, padx=(10, 0))
+        
+        # 设置当前值
+        current_touch_method = self.config.get('touch', {}).get('touch_method', 'maatouch')
+        self.touch_method_var.set(current_touch_method)
+        
+        # 失败处理选项
+        fail_on_error_frame = ttk.Frame(touch_frame)
+        fail_on_error_frame.pack(fill='x', pady=(0, 10))
+        self.fail_on_error_var = tk.BooleanVar()
+        current_fail_on_error = self.config.get('touch', {}).get('fail_on_error', True)
+        self.fail_on_error_var.set(current_fail_on_error)
+        
+        ttk.Checkbutton(
+            fail_on_error_frame,
+            text="失败时停止执行（不回退到ADB）",
+            variable=self.fail_on_error_var,
+            style='TCheckbutton'
+        ).pack(side=tk.LEFT)
+        
+        # 保存按钮
+        save_btn = ttk.Button(touch_frame, text="保存设置", command=self.save_touch_settings, style='Primary.TButton')
+        save_btn.pack(side=tk.LEFT, pady=(10, 0))
+        
+        # 分隔线
+        ttk.Separator(self.parent_frame, orient='horizontal').pack(fill='x', pady=10)
+        
+        # 版本信息区域
+        version_frame = ttk.LabelFrame(self.parent_frame, text="版本信息", padding="15")
+        version_frame.pack(fill='x', pady=(0, 20))
+        
+        # 当前版本
+        current_version_frame = ttk.Frame(version_frame)
         current_version_frame.pack(fill='x', pady=(0, 10))
-        current_label = tk.Label(current_version_frame, text='当前版本:', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_medium'))
-        current_label.pack(side=tk.LEFT)
-        self.current_version_label = tk.Label(current_version_frame, text='加载中...', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium', bold=True))
+        ttk.Label(current_version_frame, text="当前版本:", style='Header.TLabel').pack(side=tk.LEFT)
+        self.current_version_label = ttk.Label(current_version_frame, text="加载中...", style='Muted.TLabel')
         self.current_version_label.pack(side=tk.LEFT, padx=(10, 0))
-        latest_version_frame = tk.Frame(version_content, bg=COLORS['surface'])
+        
+        # 最新版本
+        latest_version_frame = ttk.Frame(version_frame)
         latest_version_frame.pack(fill='x', pady=(0, 10))
-        latest_label = tk.Label(latest_version_frame, text='最新版本:', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_medium'))
-        latest_label.pack(side=tk.LEFT)
-        self.latest_version_label = tk.Label(latest_version_frame, text='检查中...', bg=COLORS['surface'], fg=COLORS['text_primary'], font=get_font('body_medium', bold=True))
+        ttk.Label(latest_version_frame, text="最新版本:", style='Header.TLabel').pack(side=tk.LEFT)
+        self.latest_version_label = ttk.Label(latest_version_frame, text="检查中...", style='Muted.TLabel')
         self.latest_version_label.pack(side=tk.LEFT, padx=(10, 0))
-        self.update_status_label = tk.Label(version_content, text='', bg=COLORS['surface'], fg=COLORS['text_secondary'], font=get_font('body_small'))
+        
+        # 更新状态
+        self.update_status_label = ttk.Label(version_frame, text="", style='Muted.TLabel')
         self.update_status_label.pack(fill='x', pady=(5, 10))
-        version_btn_frame = tk.Frame(version_content, bg=COLORS['surface'])
-        version_btn_frame.pack(fill='x')
-        check_update_btn = tk.Button(version_btn_frame, text='🔍 检查更新', command=self.check_for_updates, bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium'), relief='solid', borderwidth=1, highlightbackground=COLORS['border_color'], padx=15, pady=6, cursor='hand2')
+        
+        # 检查更新按钮
+        check_update_btn = ttk.Button(version_frame, text="检查更新", command=self.check_for_updates, style='Outline.TButton')
         check_update_btn.pack(side=tk.LEFT, padx=(0, 10))
-        self.update_btn = tk.Button(version_btn_frame, text='⬆ 更新到最新版本', command=self.update_client, state='disabled', bg=COLORS['surface_container_low'], fg=COLORS['text_primary'], font=get_font('body_medium', bold=True), relief='solid', borderwidth=1, padx=15, pady=6, cursor='hand2')
+        
+        # 更新按钮
+        self.update_btn = ttk.Button(version_frame, text="更新到最新版本", command=self.update_client, state='disabled', style='Primary.TButton')
         self.update_btn.pack(side=tk.LEFT)
+        
+        # 初始化版本信息
         self.load_local_version()
         self.check_for_updates()
-
+        
     def load_local_version(self):
+        """加载本地版本信息"""
         try:
-            ver_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'ver.json')
+            ver_file = os.path.join(os.path.dirname(__file__), "..", "data", "ver.json")
             if os.path.exists(ver_file):
                 with open(ver_file, 'r', encoding='utf-8') as f:
                     ver_data = json.load(f)
@@ -69,6 +123,7 @@ class SettingsManagerGUI:
                 self.current_version_label.config(text=version)
                 return version
             else:
+                # 如果文件不存在，创建默认版本文件
                 ver_data = {'version': 'alpha_0.0.1'}
                 os.makedirs(os.path.dirname(ver_file), exist_ok=True)
                 with open(ver_file, 'w', encoding='utf-8') as f:
@@ -76,71 +131,102 @@ class SettingsManagerGUI:
                 self.current_version_label.config(text='alpha_0.0.1')
                 return 'alpha_0.0.1'
         except Exception as e:
-            self.log_callback(f'加载本地版本失败: {e}', 'version', 'ERROR')
-            self.current_version_label.config(text='未知')
-            return 'unknown'
-
+            self.log_callback(f"加载本地版本失败: {e}", "version", "ERROR")
+            self.current_version_label.config(text="未知")
+            return "unknown"
+            
     def check_for_updates(self):
+        """检查更新"""
         try:
+            # 使用TCP端口连接服务器
             server_host = self.config['server']['host']
             tcp_port = self.config['server']['port']
             password = self.config.get('communication', {}).get('password', 'default_password')
-            self.update_status_label.config(text='正在检查更新...', fg=COLORS['info'])
+            
+            self.update_status_label.config(text="正在检查更新...", foreground='blue')
             self.parent_frame.update()
+            
+            # 创建TCP通信器并发送请求
             communicator = ClientCommunicator(server_host, tcp_port, password, timeout=10)
             response = communicator.send_request('check_version', {})
+            
             if response and response.get('status') == 'success':
                 latest_version = response.get('data', {}).get('version', 'unknown')
                 self.latest_version_label.config(text=latest_version)
+                
+                # 比较版本
                 current_version = self.load_local_version()
-                if current_version != 'unknown' and latest_version != 'unknown' and (current_version != latest_version):
-                    self.update_status_label.config(text='发现新版本！', fg=COLORS['success'])
+                if current_version != 'unknown' and latest_version != 'unknown' and current_version != latest_version:
+                    self.update_status_label.config(text="发现新版本！", foreground='green')
                     self.update_btn.config(state='normal')
+                    # 更新窗口标题显示新版本
                     if self.client_main_ref and hasattr(self.client_main_ref, 'set_latest_version'):
                         self.client_main_ref.set_latest_version(latest_version)
                 else:
-                    self.update_status_label.config(text='已是最新版本', fg=COLORS['text_secondary'])
+                    self.update_status_label.config(text="已是最新版本", foreground='gray')
                     self.update_btn.config(state='disabled')
+                    # 更新窗口标题（无新版本）
                     if self.client_main_ref and hasattr(self.client_main_ref, 'set_latest_version'):
                         self.client_main_ref.set_latest_version(None)
             else:
                 error_msg = response.get('message', '未知错误') if response else '连接服务器失败'
-                self.update_status_label.config(text=f'检查失败: {error_msg}', fg=COLORS['danger'])
+                self.update_status_label.config(text=f"检查失败: {error_msg}", foreground='red')
+                    
         except Exception as e:
-            self.update_status_label.config(text=f'检查失败: {str(e)}', fg=COLORS['danger'])
-            self.log_callback(f'检查更新失败: {e}', 'version', 'ERROR')
-            messagebox.showerror('网络连接失败', '无法连接到更新服务器，请检查网络连接后重试。')
+            self.update_status_label.config(text=f"检查失败: {str(e)}", foreground='red')
+            self.log_callback(f"检查更新失败: {e}", "version", "ERROR")
+            # 网络错误时直接退出客户端
+            messagebox.showerror("网络连接失败", "无法连接到更新服务器，请检查网络连接后重试。")
+            # 使用destroy()立即关闭窗口，避免重复提示
             self.parent_frame.winfo_toplevel().destroy()
-
+            
     def update_client(self):
-        if messagebox.askyesno('确认更新', '确定要更新到最新版本吗？这将覆盖本地文件！'):
+        """更新客户端"""
+        if messagebox.askyesno("确认更新", "确定要更新到最新版本吗？这将覆盖本地文件！"):
+            # 在新线程中执行更新
             update_thread = threading.Thread(target=self._update_client_thread, daemon=True)
             update_thread.start()
-
+            
     def _update_client_thread(self):
+        """在新线程中执行更新"""
         try:
-            self.parent_frame.after(0, lambda: self.update_status_label.config(text='正在更新...', fg=COLORS['info']))
+            # 在主线程中更新UI状态
+            self.parent_frame.after(0, lambda: self.update_status_label.config(text="正在更新...", foreground='blue'))
             self.parent_frame.after(0, lambda: self.update_btn.config(state='disabled'))
             self.parent_frame.update()
+            
+            # 获取当前工作目录
             current_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            backup_dir = os.path.join(current_dir, 'backup_before_update')
+            
+            # 备份当前版本（可选）
+            backup_dir = os.path.join(current_dir, "backup_before_update")
             if os.path.exists(backup_dir):
                 shutil.rmtree(backup_dir)
             shutil.copytree(current_dir, backup_dir)
+            
+            # 执行git clone覆盖
             git_path = self.config.get('git', {}).get('path', 'git')
             if not os.path.exists(git_path):
-                git_path = 'git'
-            temp_dir = os.path.join(current_dir, 'temp_update')
+                git_path = 'git'  # 使用系统git
+            
+            # 克隆到临时目录
+            temp_dir = os.path.join(current_dir, "temp_update")
             if os.path.exists(temp_dir):
                 shutil.rmtree(temp_dir)
-            cmd = [git_path, 'clone', 'https://github.com/Xraytest/IstinaEndfieldAssistant.git', temp_dir]
+            
+            cmd = [git_path, "clone", "https://github.com/Xraytest/IstinaEndfieldAssistant.git", temp_dir]
             result = subprocess.run(cmd, capture_output=True, text=True, encoding='utf-8', errors='replace', cwd=current_dir, timeout=300)
+            
             if result.returncode == 0:
+                # 复制新文件覆盖旧文件（保留data目录和cache目录）
                 for item in os.listdir(temp_dir):
                     src_path = os.path.join(temp_dir, item)
                     dst_path = os.path.join(current_dir, item)
+                    
+                    # 跳过data和cache目录
                     if item in ['data', 'cache']:
                         continue
+                    
                     if os.path.isdir(src_path):
                         if os.path.exists(dst_path):
                             shutil.rmtree(dst_path)
@@ -149,37 +235,79 @@ class SettingsManagerGUI:
                         if os.path.exists(dst_path):
                             os.remove(dst_path)
                         shutil.copy2(src_path, dst_path)
+                
+                # 清理临时目录
                 shutil.rmtree(temp_dir)
-                ver_file = os.path.join(os.path.dirname(__file__), '..', 'data', 'ver.json')
-                latest_version = self.latest_version_label.cget('text')
-                if latest_version and latest_version != '检查中...':
+                
+                # 更新版本文件
+                ver_file = os.path.join(os.path.dirname(__file__), "..", "data", "ver.json")
+                latest_version = self.latest_version_label.cget("text")
+                if latest_version and latest_version != "检查中...":
                     with open(ver_file, 'w', encoding='utf-8') as f:
                         json.dump({'version': latest_version}, f, indent=2)
-                    self.parent_frame.after(0, lambda: self.update_status_label.config(text='更新成功！正在重启客户端...', fg=COLORS['success']))
+                    
+                    # 更新UI
+                    self.parent_frame.after(0, lambda: self.update_status_label.config(text="更新成功！正在重启客户端...", foreground='green'))
                     self.parent_frame.after(0, lambda: self.current_version_label.config(text=latest_version))
-                    self.parent_frame.after(0, lambda: messagebox.showinfo('更新成功', '客户端已更新到最新版本！\n客户端将自动重启。'))
+                    self.parent_frame.after(0, lambda: messagebox.showinfo("更新成功", "客户端已更新到最新版本！\n客户端将自动重启。"))
                 else:
-                    self.parent_frame.after(0, lambda: self.update_status_label.config(text='更新完成，但版本信息未更新', fg=COLORS['warning']))
-                    self.parent_frame.after(0, lambda: messagebox.showinfo('更新完成', '客户端已更新！\n客户端将自动重启。'))
+                    self.parent_frame.after(0, lambda: self.update_status_label.config(text="更新完成，但版本信息未更新", foreground='orange'))
+                    self.parent_frame.after(0, lambda: messagebox.showinfo("更新完成", "客户端已更新！\n客户端将自动重启。"))
+                
+                # 重启客户端
                 self.parent_frame.after(2000, self._restart_client)
+                    
             else:
+                # 恢复备份
                 if os.path.exists(backup_dir):
                     shutil.rmtree(current_dir)
                     shutil.move(backup_dir, current_dir)
+                
                 error_msg = result.stderr if result.stderr else result.stdout
-                self.parent_frame.after(0, lambda: self.update_status_label.config(text=f'更新失败: {error_msg}', fg=COLORS['danger']))
-                self.parent_frame.after(0, lambda: messagebox.showerror('更新失败', f'更新过程中发生错误:\n{error_msg}'))
+                self.parent_frame.after(0, lambda: self.update_status_label.config(text=f"更新失败: {error_msg}", foreground='red'))
+                self.parent_frame.after(0, lambda: messagebox.showerror("更新失败", f"更新过程中发生错误:\n{error_msg}"))
+                    
         except Exception as e:
-            self.parent_frame.after(0, lambda: self.update_status_label.config(text=f'更新失败: {str(e)}', fg=COLORS['danger']))
-            self.log_callback(f'更新失败: {e}', 'version', 'ERROR')
-            self.parent_frame.after(0, lambda: messagebox.showerror('更新失败', f'更新过程中发生错误:\n{str(e)}'))
-
+            self.parent_frame.after(0, lambda: self.update_status_label.config(text=f"更新失败: {str(e)}", foreground='red'))
+            self.log_callback(f"更新失败: {e}", "version", "ERROR")
+            self.parent_frame.after(0, lambda: messagebox.showerror("更新失败", f"更新过程中发生错误:\n{str(e)}"))
+            
     def _restart_client(self):
+        """重启客户端"""
         try:
+            # 获取当前Python可执行文件路径
             python_exe = sys.executable
-            client_main_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'client_main.py')
+            # 获取当前脚本路径
+            client_main_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "client_main.py")
+            
+            # 启动新的客户端实例
             subprocess.Popen([python_exe, client_main_path], cwd=os.path.dirname(client_main_path))
+            
+            # 关闭当前客户端
             self.parent_frame.winfo_toplevel().quit()
         except Exception as e:
-            self.log_callback(f'重启客户端失败: {e}', 'version', 'ERROR')
-            messagebox.showerror('重启失败', f'重启客户端时发生错误:\n{str(e)}\n请手动重启客户端。')
+            self.log_callback(f"重启客户端失败: {e}", "version", "ERROR")
+            messagebox.showerror("重启失败", f"重启客户端时发生错误:\n{str(e)}\n请手动重启客户端。")
+            
+    def save_touch_settings(self):
+        """保存触控设置"""
+        try:
+            # 更新配置
+            if 'touch' not in self.config:
+                self.config['touch'] = {}
+            
+            self.config['touch']['touch_method'] = self.touch_method_var.get()
+            self.config['touch']['fail_on_error'] = self.fail_on_error_var.get()
+            
+            # 保存到文件
+            config_path = os.path.join(os.path.dirname(__file__), "..", "config", "client_config.json")
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2, ensure_ascii=False)
+            
+            # 显示成功消息
+            messagebox.showinfo("设置已保存", "触控设置已成功保存！\n更改将在下次启动时生效。")
+            self.log_callback("触控设置已保存", "settings", "INFO")
+            
+        except Exception as e:
+            self.log_callback(f"保存触控设置失败: {e}", "settings", "ERROR")
+            messagebox.showerror("保存失败", f"保存触控设置时发生错误:\n{str(e)}")

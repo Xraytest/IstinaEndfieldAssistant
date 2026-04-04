@@ -1,0 +1,10 @@
+[2026-03-04 21:59:01.812] [INFO] [logger:_start_cleanup_thread:432] [MainThread] [-] 日志自动清理线程已启动，清理间隔: 24小时
+[2026-03-04 21:59:01.817] [INFO] [logger:info:539] [MainThread] [-] 录屏记录器初始化完成 | fps=5 | output_dir=C:\Users\xray\Documents\ArkStudio\ReAcrture\client_debug\recordings
+[2026-03-04 21:59:01.819] [INFO] [logger:info:539] [MainThread] [-] 录屏开始 | start_time=2026-03-04 21:59:01
+[2026-03-04 21:59:01.867] [DEBUG] [logger:debug:535] [MainThread] [-] 帧捕获完成 | timestamp=0.049 | frame_index=1
+[2026-03-04 21:59:01.871] [INFO] [logger:info:539] [MainThread] [-] 触控事件记录 | event_type=click | coordinates=[(50, 50)] | timestamp=0.052 | purpose=测试点击
+[2026-03-04 21:59:02.416] [INFO] [logger:info:539] [MainThread] [-] 开始导出视频 | frames_count=1 | resolution=100x100 | fps=5
+[2026-03-04 21:59:02.431] [DEBUG] [logger:debug:535] [MainThread] [-] 视频导出进度: 1/1
+[2026-03-04 21:59:02.434] [INFO] [logger:info:539] [MainThread] [-] 视频导出完成 | video_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client_debug\recordings\recording_20260304_215902.mp4 | duration_seconds=0.05
+[2026-03-04 21:59:02.437] [INFO] [logger:info:539] [MainThread] [-] 录屏结束 | frames_count=1 | touch_events_count=1 | video_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client_debug\recordings\recording_20260304_215902.mp4
+[2026-03-04 22:00:12.077] [INFO] [logger:_start_cleanup_thread:432] [MainThread] [-] 日志自动清理线程已启动，清理间隔: 24小时
