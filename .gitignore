@@ -1,0 +1,49 @@
+# 第三方工具
+3rd-part/ADB
+3rd-part/Git
+
+# MAA二进制依赖文件
+maa_integration/*.dll
+
+# minitouch二进制文件
+3rd-part/minitouch/arm64-v8a/minitouch
+3rd-part/minitouch/armeabi/minitouch
+3rd-part/minitouch/armeabi-v7a/minitouch
+3rd-part/minitouch/maatouch/minitouch
+3rd-part/minitouch/x86/minitouch
+3rd-part/minitouch/x86_64/minitouch
+
+# 缓存目录
+cache/
+
+# 日志文件
+core/logs/
+logs/
+debug/
+
+# 测试缓存
+.pytest_cache/
+test_scripts/
+__pycache__/
+*.pyc
+*.pyo
+
+# 测试文件
+test_screenshot.png
+test_screenshot.py
+
+# 其他临时文件
+*.log
+*.tmp
+
+# 用户凭证文件 - 禁止上传
+*.arkpass
+credentials/
+debug_output/
+
+# CLI调试输出
+cli-method/debug_output/
+
+# 用户配置文件（可能包含敏感信息）
+config/client_config.json
+config/user_preferences.json

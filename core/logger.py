@@ -1,0 +1,357 @@
+import os
+import sys
+import time
+import json
+import threading
+import traceback
+from datetime import datetime
+from typing import Optional, Dict, Any, List
+from enum import Enum
+
+class LogLevel(Enum):
+    DEBUG = 10
+    INFO = 20
+    WARNING = 30
+    EXCEPTION = 40
+    CRITICAL = 50
+
+class LogCategory(Enum):
+    MAIN = 'main'
+    ADB = 'adb'
+    COMMUNICATION = 'communication'
+    EXECUTION = 'execution'
+    AUTHENTICATION = 'authentication'
+    GUI = 'gui'
+    EXCEPTION = 'exception'
+    PERFORMANCE = 'performance'
+    DEVICE = 'device'
+
+class LogRecord:
+
+    def __init__(self, level: LogLevel, category: LogCategory, message: str, module: str='', function: str='', line: int=0, thread_id: str='', device_id: str='', extra: Optional[Dict[str, Any]]=None, exception_info: Optional[str]=None):
+        self.level = level
+        self.category = category
+        self.message = message
+        self.module = module
+        self.function = function
+        self.line = line
+        self.thread_id = thread_id
+        self.device_id = device_id
+        self.extra = extra or {}
+        self.exception_info = exception_info
+        self.timestamp = datetime.now()
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {'timestamp': self.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], 'level': self.level.name, 'category': self.category.value, 'module': self.module, 'function': self.function, 'line': self.line, 'thread_id': self.thread_id, 'device_id': self.device_id, 'extra': self.extra, 'exception_info': self.exception_info, 'message': self.message}
+
+class LogFormatter:
+
+    def __init__(self, format_string: Optional[str]=None):
+        self.format_string = format_string or '[{timestamp}] [{level}] [{module}:{function}:{line}] [{thread}] [{device}] {message}'
+
+    def format(self, record: LogRecord) -> str:
+        formatted = self.format_string.format(timestamp=record.timestamp.strftime('%Y-%m-%d %H:%M:%S.%f')[:-3], level=record.level.name, category=record.category.value, module=record.module, function=record.function, line=record.line, thread=record.thread_id, device=record.device_id or '-', message=record.message)
+        if record.extra:
+            extra_str = ' | '.join((f'{k}={v}' for k, v in record.extra.items()))
+            formatted = f'{formatted} | {extra_str}'
+        if record.exception_info:
+            formatted = f'{formatted}\n{record.exception_info}'
+        return formatted
+
+class LogHandler:
+
+    def __init__(self, formatter: Optional[LogFormatter]=None):
+        self.formatter = formatter or LogFormatter()
+        self._lock = threading.Lock()
+
+    def emit(self, record: LogRecord) -> None:
+        raise NotImplementedError
+
+    def format(self, record: LogRecord) -> str:
+        return self.formatter.format(record)
+
+class ConsoleHandler(LogHandler):
+
+    def __init__(self, formatter: Optional[LogFormatter]=None, min_level: LogLevel=LogLevel.DEBUG):
+        super().__init__(formatter)
+        self.min_level = min_level
+
+    def emit(self, record: LogRecord) -> None:
+        if record.level.value < self.min_level.value:
+            return
+        with self._lock:
+            print(self.format(record))
+
+class FileHandler(LogHandler):
+
+    def __init__(self, log_dir: str, category: LogCategory, formatter: Optional[LogFormatter]=None, min_level: LogLevel=LogLevel.DEBUG, max_size: int=50 * 1024 * 1024, encoding: str='utf-8'):
+        super().__init__(formatter)
+        self.log_dir = log_dir
+        self.category = category
+        self.min_level = min_level
+        self.max_size = max_size
+        self.encoding = encoding
+        self._current_file = None
+        self._ensure_log_dir()
+
+    def _ensure_log_dir(self) -> None:
+        if not os.path.exists(self.log_dir):
+            os.makedirs(self.log_dir)
+
+    def _get_log_filename(self) -> str:
+        date_str = datetime.now().strftime('%Y-%m-%d')
+        return os.path.join(self.log_dir, f'{self.category.value}_{date_str}.log')
+
+    def _check_file_size(self, filepath: str) -> bool:
+        if not os.path.exists(filepath):
+            return False
+        return os.path.getsize(filepath) >= self.max_size
+
+    def emit(self, record: LogRecord) -> None:
+        if record.level.value < self.min_level.value:
+            return
+        with self._lock:
+            filepath = self._get_log_filename()
+            try:
+                with open(filepath, 'a', encoding=self.encoding) as f:
+                    f.write(self.format(record) + '\n')
+            except Exception as e:
+                print(f'日志写入异常: {e}')
+
+class GUIHandler(LogHandler):
+
+    def __init__(self, log_widget, formatter: Optional[LogFormatter]=None, min_level: LogLevel=LogLevel.INFO, max_lines: int=1000):
+        super().__init__(formatter)
+        self.log_widget = log_widget
+        self.min_level = min_level
+        self.max_lines = max_lines
+        self._line_count = 0
+
+    def emit(self, record: LogRecord) -> None:
+        if record.level.value < self.min_level.value or self.log_widget is None:
+            return
+        with self._lock:
+            try:
+                self.log_widget.insert('end', self.format(record) + '\n')
+                self.log_widget.see('end')
+                self._line_count += 1
+                if self._line_count > self.max_lines:
+                    self.log_widget.delete('1.0', '2.0')
+                    self._line_count = self.max_lines
+            except Exception:
+                pass
+
+class LogRotator:
+
+    def __init__(self, log_dir: str, retention_days: int=3):
+        self.log_dir = log_dir
+        self.retention_days = retention_days
+
+    def rotate(self) -> None:
+        pass
+
+    def clean_old_logs(self) -> List[str]:
+        if not os.path.exists(self.log_dir):
+            return []
+        current_time = time.time()
+        removed_files = []
+        for filename in os.listdir(self.log_dir):
+            filepath = os.path.join(self.log_dir, filename)
+            if not os.path.isfile(filepath):
+                continue
+            if not filename.endswith('.log'):
+                continue
+            file_age = current_time - os.path.getmtime(filepath)
+            days_old = file_age / (24 * 60 * 60)
+            if days_old > self.retention_days:
+                try:
+                    os.remove(filepath)
+                    removed_files.append(filename)
+                except Exception as e:
+                    print(f'删除日志文件异常: {filepath}, {e}')
+        return removed_files
+
+class PerformanceMonitor:
+
+    def __init__(self):
+        self._operations: Dict[str, List[float]] = {}
+        self._lock = threading.Lock()
+
+    def record_operation(self, operation_name: str, duration_ms: float) -> None:
+        with self._lock:
+            if operation_name not in self._operations:
+                self._operations[operation_name] = []
+            self._operations[operation_name].append(duration_ms)
+
+    def get_statistics(self, operation_name: str) -> Optional[Dict[str, float]]:
+        with self._lock:
+            if operation_name not in self._operations or not self._operations[operation_name]:
+                return None
+            durations = self._operations[operation_name]
+            return {'count': len(durations), 'total_ms': sum(durations), 'avg_ms': sum(durations) / len(durations), 'min_ms': min(durations), 'max_ms': max(durations)}
+
+class ClientLogger:
+
+    def __init__(self, config_path: Optional[str]=None):
+        self._handlers: List[LogHandler] = []
+        self._device_context = ''
+        self._config = self._load_config(config_path)
+        log_dir = self._config.get('log_dir', 'logs')
+        if not os.path.isabs(log_dir):
+            client_dir = os.path.dirname(os.path.abspath(__file__))
+            log_dir = os.path.join(client_dir, log_dir)
+        self._config['log_dir'] = log_dir
+        self._performance_monitor = PerformanceMonitor()
+        self._rotator = LogRotator(log_dir, self._config.get('retention_days', 3))
+        self._cleanup_thread = None
+        self._cleanup_stop_event = threading.Event()
+        self._cleanup_interval = self._config.get('cleanup_interval_hours', 24) * 3600
+        self._setup_handlers()
+        self._clean_old_logs_on_startup()
+        self._start_cleanup_thread()
+
+    def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
+        default_config = {'enabled': True, 'log_dir': 'logs', 'retention_days': 3, 'cleanup_interval_hours': 24, 'global_level': 'DEBUG', 'handlers': {'file': {'enabled': True, 'max_size': 50 * 1024 * 1024, 'encoding': 'utf-8'}, 'console': {'enabled': True, 'level': 'INFO'}, 'gui': {'enabled': False, 'level': 'INFO', 'max_lines': 1000}}, 'performance': {'enabled': True, 'log_slow_operations': True, 'slow_threshold_ms': 1000}}
+        if config_path and os.path.exists(config_path):
+            try:
+                with open(config_path, 'r', encoding='utf-8') as f:
+                    user_config = json.load(f)
+                    self._merge_config(default_config, user_config)
+            except Exception as e:
+                print(f'加载日志配置异常: {e}')
+        return default_config
+
+    def _merge_config(self, base: Dict, update: Dict) -> None:
+        for key, value in update.items():
+            if key in base and isinstance(base[key], dict) and isinstance(value, dict):
+                self._merge_config(base[key], value)
+            else:
+                base[key] = value
+
+    def _setup_handlers(self) -> None:
+        formatter = LogFormatter()
+        if self._config['handlers']['file']['enabled']:
+            for category in LogCategory:
+                handler = FileHandler(log_dir=self._config['log_dir'], category=category, formatter=formatter, max_size=self._config['handlers']['file']['max_size'], encoding=self._config['handlers']['file']['encoding'])
+                self._handlers.append(handler)
+        if self._config['handlers']['console']['enabled']:
+            level = LogLevel[self._config['handlers']['console']['level']]
+            handler = ConsoleHandler(formatter=formatter, min_level=level)
+            self._handlers.append(handler)
+
+    def _clean_old_logs_on_startup(self) -> None:
+        removed = self._rotator.clean_old_logs()
+        if removed:
+            self.log(LogLevel.INFO, LogCategory.MAIN, f"清理旧日志文件: {', '.join(removed)}")
+
+    def _start_cleanup_thread(self) -> None:
+        if self._cleanup_interval > 0:
+            self._cleanup_thread = threading.Thread(target=self._cleanup_worker, daemon=True, name='LogCleanupThread')
+            self._cleanup_thread.start()
+            self.log(LogLevel.INFO, LogCategory.MAIN, f'日志自动清理线程已启动，清理间隔: {self._cleanup_interval // 3600}小时')
+
+    def _cleanup_worker(self) -> None:
+        while not self._cleanup_stop_event.is_set():
+            self._cleanup_stop_event.wait(self._cleanup_interval)
+            if self._cleanup_stop_event.is_set():
+                break
+            try:
+                removed = self._rotator.clean_old_logs()
+                if removed:
+                    self.log(LogLevel.INFO, LogCategory.MAIN, f"定期清理旧日志文件: {', '.join(removed)}")
+            except Exception as e:
+                print(f'定期清理日志异常: {e}')
+
+    def stop_cleanup_thread(self) -> None:
+        if self._cleanup_thread and self._cleanup_thread.is_alive():
+            self._cleanup_stop_event.set()
+            self._cleanup_thread.join(timeout=5)
+            self.log(LogLevel.INFO, LogCategory.MAIN, '日志自动清理线程已停止')
+
+    def set_gui_handler(self, log_widget) -> None:
+        if self._config['handlers']['gui']['enabled']:
+            formatter = LogFormatter()
+            level = LogLevel[self._config['handlers']['gui']['level']]
+            handler = GUIHandler(log_widget=log_widget, formatter=formatter, min_level=level, max_lines=self._config['handlers']['gui']['max_lines'])
+            self._handlers.append(handler)
+
+    def set_device_context(self, device_serial: str) -> None:
+        self._device_context = device_serial
+
+    def clear_device_context(self) -> None:
+        self._device_context = ''
+
+    def _get_caller_info(self) -> tuple:
+        frame = sys._getframe(2)
+        module = frame.f_globals.get('__name__', '')
+        function = frame.f_code.co_name
+        line = frame.f_lineno
+        return (module, function, line)
+
+    def log(self, level: LogLevel, category: LogCategory, message: str, extra: Optional[Dict[str, Any]]=None, exception_info: Optional[str]=None) -> None:
+        if not self._config.get('enabled', True):
+            return
+        module, function, line = self._get_caller_info()
+        thread_id = threading.current_thread().name
+        record = LogRecord(level=level, category=category, message=message, module=module, function=function, line=line, thread_id=thread_id, device_id=self._device_context, extra=extra, exception_info=exception_info)
+        for handler in self._handlers:
+            try:
+                handler.emit(record)
+            except Exception as e:
+                print(f'日志处理器异常: {e}')
+
+    def debug(self, category: LogCategory, message: str, **extra) -> None:
+        self.log(LogLevel.DEBUG, category, message, extra if extra else None)
+
+    def info(self, category: LogCategory, message: str, **extra) -> None:
+        self.log(LogLevel.INFO, category, message, extra if extra else None)
+
+    def warning(self, category: LogCategory, message: str, **extra) -> None:
+        self.log(LogLevel.WARNING, category, message, extra if extra else None)
+
+    def error(self, category: LogCategory, message: str, exc_info: bool=False, **extra) -> None:
+        exception_text = None
+        if exc_info:
+            exception_text = traceback.format_exc()
+        self.log(LogLevel.EXCEPTION, category, message, extra if extra else None, exception_text)
+
+    def exception(self, category: LogCategory, message: str, exc_info: bool=False, **extra) -> None:
+        exception_text = None
+        if exc_info:
+            exception_text = traceback.format_exc()
+        self.log(LogLevel.EXCEPTION, category, message, extra if extra else None, exception_text)
+
+    def critical(self, category: LogCategory, message: str, exc_info: bool=False, **extra) -> None:
+        exception_text = None
+        if exc_info:
+            exception_text = traceback.format_exc()
+        self.log(LogLevel.CRITICAL, category, message, extra if extra else None, exception_text)
+
+    def log_performance(self, operation_name: str, duration_ms: float, **extra) -> None:
+        self._performance_monitor.record_operation(operation_name, duration_ms)
+        if self._config['performance']['enabled']:
+            message = f'操作: {operation_name}, 耗时: {duration_ms:.3f}ms'
+            self.log(LogLevel.DEBUG, LogCategory.PERFORMANCE, message, extra if extra else None)
+            if self._config['performance']['log_slow_operations'] and duration_ms > self._config['performance']['slow_threshold_ms']:
+                self.log(LogLevel.WARNING, LogCategory.PERFORMANCE, f"操作耗时超过阈值: {operation_name}, 阈值: {self._config['performance']['slow_threshold_ms']}ms", {'actual_ms': duration_ms})
+
+    def get_performance_statistics(self, operation_name: str) -> Optional[Dict[str, float]]:
+        return self._performance_monitor.get_statistics(operation_name)
+
+    def clean_old_logs(self) -> List[str]:
+        return self._rotator.clean_old_logs()
+_global_logger: Optional[ClientLogger] = None
+_logger_lock = threading.Lock()
+
+def get_logger(config_path: Optional[str]=None) -> ClientLogger:
+    global _global_logger
+    with _logger_lock:
+        if _global_logger is None:
+            _global_logger = ClientLogger(config_path)
+    return _global_logger
+
+def init_logger(config_path: Optional[str]=None) -> ClientLogger:
+    global _global_logger
+    with _logger_lock:
+        _global_logger = ClientLogger(config_path)
+    return _global_logger

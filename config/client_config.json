@@ -1,0 +1,45 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 9999
+  },
+  "adb": {
+    "path": "3rd-part/ADB/adb.exe",
+    "timeout": 10
+  },
+  "git": {
+    "path": "3rd-part/Git/bin/git.exe"
+  },
+  "screen": {
+    "use_original_resolution": true
+  },
+  "touch": {
+    "touch_method": "maatouch",
+    "maa_style": {
+      "enabled": true,
+      "press_duration_ms": 50,
+      "press_jitter_px": 2,
+      "swipe_delay_min_ms": 100,
+      "swipe_delay_max_ms": 300,
+      "use_normalized_coords": true
+    },
+    "fail_on_error": true,
+    "swipe_duration_ms": 300,
+    "long_press_duration_ms": 500,
+    "minitouch": {
+      "enabled": false,
+      "binary_path": "client/3rd-part/minitouch/armeabi-v7a/minitouch"
+    },
+    "maatouch": {
+      "enabled": true,
+      "binary_path": "client/3rd-part/minitouch/maatouch/minitouch"
+    }
+  },
+  "security": {
+    "enable_safe_press": true,
+    "enable_jitter": true
+  },
+  "communication": {
+    "password": "default_password"
+  }
+}
