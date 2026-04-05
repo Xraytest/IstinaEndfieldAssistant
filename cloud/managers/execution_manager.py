@@ -323,6 +323,10 @@ class ExecutionManager:
                     # 兼容旧格式：如果顶级没有，尝试从 data 子对象获取
                     if not touch_actions:
                         touch_actions = response.get('data', {}).get('touch_actions', [])
+                    
+                    # 调试日志：记录touch_actions内容
+                    log_callback(f"服务端响应touch_actions: {touch_actions}", "execution", "INFO")
+                    
                     if touch_actions and self.touch_executor:
                         # 使用新的 execute_tool_call 方法
                         for action in touch_actions:
@@ -437,6 +441,53 @@ class ExecutionManager:
             error_msg = f"重新认证过程中发生异常: {str(e)}"
             log_callback(error_msg, "execution", "ERROR")
             return False, error_msg
+    
+    # ========== CLI 模式支持方法 ==========
+    
+    def set_cli_mode(self, enabled: bool = True, screenshot_callback=None, output_dir: str = None):
+        """配置CLI模式"""
+        self._cli_mode = enabled
+        self._cli_screenshot_callback = screenshot_callback
+        self._cli_output_dir = output_dir
+        self._cli_screenshot_data = []
+    
+    def run_cli_automation(self, log_callback, execution_count: int = 1, control_scheme: str = "ADB", window_title: str = None) -> bool:
+        """CLI模式运行自动化"""
+        if not self.auth_manager.get_login_status():
+            log_callback("请先登录后再执行任务", "execution", "ERROR")
+            return False
+        
+        if not self.device_manager.current_device:
+            log_callback("请先连接设备", "execution", "ERROR")
+            return False
+        
+        if self.client_running:
+            log_callback("执行已在进行中", "execution", "ERROR")
+            return False
+        
+        self.client_running = True
+        self._cli_screenshot_data = []
+        
+        try:
+            # 设置执行次数
+            self.task_queue_manager.execution_count = execution_count
+            
+            # 运行自动化
+            self.run_automation(
+                log_callback=log_callback,
+                update_ui_callback=lambda k, v: None,  # CLI模式不需要UI更新
+                preview_update_callback=self._cli_screenshot_callback
+            )
+            return True
+        except Exception as e:
+            log_callback(f"执行异常: {e}", "execution", "ERROR")
+            return False
+        finally:
+            self.client_running = False
+    
+    def get_cli_screenshot_data(self) -> list:
+        """获取CLI模式的截图数据"""
+        return getattr(self, '_cli_screenshot_data', [])
 
     def get_client_running_status(self):
         """获取客户端运行状态"""

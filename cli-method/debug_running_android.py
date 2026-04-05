@@ -96,9 +96,12 @@ class CLIDebugRunnerAndroid:
         self.running = False
         self.current_task_name = ""
         self.current_task_variables = {}
+        self.run_start_time = ""
         
         # 截图数据
         self.screenshot_data_list: List[Dict[str, Any]] = []
+        self.screenshot_running = False
+        self.screenshot_thread = None
         
     def init_components(self) -> bool:
         """初始化所有组件（安卓设备版本）"""
@@ -130,7 +133,7 @@ class CLIDebugRunnerAndroid:
             
             # 初始化认证管理模块
             cache_dir = os.path.join(client_dir, "cache")
-            self.auth_manager = AuthManager(self.communicator, config, cache_dir)
+            self.auth_manager = AuthManager(self.communicator, config)
             self.auth_manager.is_logged_in = True
             self.auth_manager.user_id = self.user_id
             self.auth_manager.session_id = ""  # 将在登录后获取
@@ -142,9 +145,8 @@ class CLIDebugRunnerAndroid:
                 return False
             
             # 初始化设备管理模块
-            self.device_manager = DeviceManager(self.adb_manager, config, cache_dir)
-            self.device_manager.set_pc_mode(False)  # 安卓设备模式
-            self.device_manager.set_current_device(self.device_address)
+            self.device_manager = DeviceManager(self.adb_manager, config)
+            self.device_manager.current_device = self.device_address
             
             # 初始化屏幕捕获模块
             self.screen_capture = ScreenCapture(self.adb_manager)
@@ -179,7 +181,7 @@ class CLIDebugRunnerAndroid:
             )
             
             # 初始化任务队列管理模块
-            self.task_queue_manager = TaskQueueManager(self.task_manager, cache_dir)
+            self.task_queue_manager = TaskQueueManager(self.task_manager)
             
             # 初始化执行管理模块
             self.execution_manager = ExecutionManager(
@@ -189,7 +191,7 @@ class CLIDebugRunnerAndroid:
                 self.task_queue_manager,
                 self.communicator,
                 self.auth_manager,
-                get_device_type_callback=lambda: "Android"
+                config=config
             )
             
             self.logger.info(LogCategory.MAIN, "CLI调试运行器（安卓设备）初始化完成")
@@ -238,16 +240,104 @@ class CLIDebugRunnerAndroid:
         except Exception as e:
             return False, str(e)
     
-    def _capture_screenshot(self) -> Optional[str]:
-        """捕获屏幕截图（Base64格式字符串）"""
+    def _capture_screenshot(self, screen_data=None) -> Optional[str]:
+        """捕获屏幕截图（Base64格式字符串）并保存到文件
+        
+        Args:
+            screen_data: 可选的屏幕数据，如果提供则直接使用
+        """
         try:
+            # 如果已经提供了screen_data，直接使用
+            if screen_data:
+                # screen_data可能是bytes或str，需要转换为str
+                if isinstance(screen_data, bytes):
+                    base64_str = screen_data.decode('utf-8')
+                else:
+                    base64_str = screen_data
+                # 保存截图到文件
+                self._save_screenshot_to_file(base64_str)
+                return screen_data
+            # 否则主动捕获
             screenshot_data = self.screen_capture.capture_screen(self.device_address)
             if screenshot_data:
-                # screen_capture.capture_screen already returns base64 string
+                # screenshot_data是bytes，需要解码为str
+                if isinstance(screenshot_data, bytes):
+                    base64_str = screenshot_data.decode('utf-8')
+                else:
+                    base64_str = screenshot_data
+                # 保存截图到文件
+                self._save_screenshot_to_file(base64_str)
                 return screenshot_data
         except Exception as e:
             self.logger.error(LogCategory.MAIN, f"截图失败: {e}")
         return None
+    
+    def _save_screenshot_to_file(self, base64_data: str) -> bool:
+        """将Base64截图数据保存到文件
+        
+        Args:
+            base64_data: Base64编码的截图数据
+            
+        Returns:
+            是否保存成功
+        """
+        try:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
+            task_name_safe = self._safe_filename(self.current_task_name)
+            
+            # 保存截图
+            screenshot_filename = f"{timestamp}_{task_name_safe}.png"
+            screenshot_path = os.path.join(self.output_dir, screenshot_filename)
+            
+            # 解码Base64并保存
+            image_data = base64.b64decode(base64_data)
+            with open(screenshot_path, 'wb') as f:
+                f.write(image_data)
+            
+            # 记录截图信息
+            screenshot_info = {
+                "timestamp": timestamp,
+                "datetime": datetime.now().isoformat(),
+                "task_name": self.current_task_name,
+                "task_variables": self.current_task_variables.copy(),
+                "screenshot_file": screenshot_filename
+            }
+            self.screenshot_data_list.append(screenshot_info)
+            
+            # 更新JSON描述文件
+            self._update_description_json()
+            
+            self.logger.info(LogCategory.MAIN, f"截图已保存: {screenshot_filename}")
+            return True
+            
+        except Exception as e:
+            self.logger.error(LogCategory.MAIN, f"保存截图失败: {e}")
+            return False
+    
+    def _safe_filename(self, name: str) -> str:
+        """将字符串转换为安全的文件名"""
+        if not name:
+            return "unknown"
+        # 替换不安全的字符
+        safe_name = "".join(c if c.isalnum() or c in ('_', '-') else '_' for c in name)
+        return safe_name[:50]  # 限制长度
+    
+    def _update_description_json(self):
+        """更新任务描述JSON文件"""
+        try:
+            description = {
+                "run_start_time": self.run_start_time,
+                "device_address": self.device_address,
+                "screenshot_interval": self.screenshot_interval,
+                "screenshots": self.screenshot_data_list
+            }
+            
+            json_path = os.path.join(self.output_dir, "task_description.json")
+            with open(json_path, 'w', encoding='utf-8') as f:
+                json.dump(description, f, ensure_ascii=False, indent=2)
+                
+        except Exception as e:
+            self.logger.error(LogCategory.MAIN, f"更新描述文件失败: {e}")
     
     def set_task_chain(self, tasks: List[Dict[str, Any]]):
         """
