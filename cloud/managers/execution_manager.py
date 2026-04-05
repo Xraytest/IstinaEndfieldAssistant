@@ -318,7 +318,11 @@ class ExecutionManager:
                             break
                         
                     # 执行触控动作
-                    touch_actions = response.get('data', {}).get('touch_actions', [])
+                    # 服务端返回的 touch_actions 在顶级字段，不是在 data 子对象中
+                    touch_actions = response.get('touch_actions', [])
+                    # 兼容旧格式：如果顶级没有，尝试从 data 子对象获取
+                    if not touch_actions:
+                        touch_actions = response.get('data', {}).get('touch_actions', [])
                     if touch_actions and self.touch_executor:
                         # 使用新的 execute_tool_call 方法
                         for action in touch_actions:
