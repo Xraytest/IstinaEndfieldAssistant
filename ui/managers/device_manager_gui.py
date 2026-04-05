@@ -55,20 +55,20 @@ class DeviceManagerGUI:
     
     def _setup_pc_ui(self):
         """设置PC模式UI"""
+        # 固定窗口标题
+        self.window_title = "Endfield"
+        
         # PC窗口连接区域
         conn_frame = ttk.LabelFrame(self.parent_frame, text="PC窗口连接", padding="6")
         conn_frame.pack(fill='x', pady=(0, 6))
         
-        # 窗口标题输入
+        # 显示固定窗口标题
         window_frame = ttk.Frame(conn_frame)
         window_frame.pack(side=tk.LEFT, padx=(0, 10))
-        ttk.Label(window_frame, text="窗口标题:").pack(side=tk.LEFT)
-        self.window_title_var = tk.StringVar(value="Endfield")
-        window_entry = ttk.Entry(window_frame, textvariable=self.window_title_var, width=20)
-        window_entry.pack(side=tk.LEFT, padx=(5, 5))
+        ttk.Label(window_frame, text=f"目标窗口: {self.window_title}", style='Header.TLabel').pack(side=tk.LEFT)
         
         connect_btn = ttk.Button(window_frame, text="连接窗口", command=self.connect_pc_window)
-        connect_btn.pack(side=tk.LEFT)
+        connect_btn.pack(side=tk.LEFT, padx=(10, 0))
         
         # 连接状态
         self.device_status_label = ttk.Label(conn_frame, text="未连接PC窗口", style='Muted.TLabel')
@@ -84,9 +84,9 @@ class DeviceManagerGUI:
         # 提示信息
         info_frame = ttk.LabelFrame(self.parent_frame, text="PC模式说明", padding="6")
         info_frame.pack(fill='x', pady=(0, 6))
-        ttk.Label(info_frame, text="PC前台模式：直接控制PC上的游戏窗口，无需Android设备。",
+        ttk.Label(info_frame, text="PC前台模式：直接控制PC上的Endfield游戏窗口，无需Android设备。",
                   style='Muted.TLabel').pack(anchor=tk.W)
-        ttk.Label(info_frame, text="请确保游戏窗口已打开且标题包含输入的关键词。",
+        ttk.Label(info_frame, text="请确保Endfield游戏窗口已打开。",
                   style='Muted.TLabel').pack(anchor=tk.W)
     
     def _setup_android_ui(self):
@@ -227,10 +227,8 @@ class DeviceManagerGUI:
             messagebox.showerror("错误", "触控执行器未初始化")
             return
         
-        window_title = self.window_title_var.get().strip()
-        if not window_title:
-            messagebox.showwarning("警告", "请输入窗口标题")
-            return
+        # 使用固定的窗口标题
+        window_title = self.window_title
         
         self.log_callback(f"尝试连接PC窗口: {window_title}", "device", "INFO")
         

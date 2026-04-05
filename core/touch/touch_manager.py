@@ -269,36 +269,63 @@ class TouchManager:
         mapped_action = action_mapping.get(action, action)
         
         if mapped_action in ('safe_press', 'click'):
-            coordinates = params.get("coordinates", {})
-            if "start" in coordinates:
+            coordinates = params.get("coordinates")
+            x, y = 0, 0
+            
+            # 格式1: 对象格式 {"start": [x, y]}
+            if isinstance(coordinates, dict) and "start" in coordinates:
                 x, y = coordinates["start"]
+            # 格式2: 数组格式 [x, y]
+            elif isinstance(coordinates, list) and len(coordinates) >= 2:
+                x, y = coordinates[0], coordinates[1]
+            # 格式3: 单独的 x, y 字段
             else:
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
+                x = params.get("x", 0)
+                y = params.get("y", 0)
             
             return self._pc_executor.click(int(x), int(y))
         
         elif mapped_action in ('safe_swipe', 'swipe', 'drag'):
-            coordinates = params.get("coordinates", {})
-            if "start" in coordinates and "end" in coordinates:
+            coordinates = params.get("coordinates")
+            end_coordinates = params.get("end_coordinates")
+            x1, y1, x2, y2 = 0, 0, 0, 0
+            
+            # 格式1: 对象格式 {"start": [x, y], "end": [x, y]}
+            if isinstance(coordinates, dict) and "start" in coordinates and "end" in coordinates:
                 x1, y1 = coordinates["start"]
                 x2, y2 = coordinates["end"]
+            # 格式2: 数组格式 [x1, y1, x2, y2]
+            elif isinstance(coordinates, list) and len(coordinates) >= 4:
+                x1, y1 = coordinates[0], coordinates[1]
+                x2, y2 = coordinates[2], coordinates[3]
+            # 格式3: coordinates 为起点，end_coordinates 为终点
+            elif isinstance(coordinates, list) and isinstance(end_coordinates, list):
+                x1, y1 = coordinates[0], coordinates[1]
+                x2, y2 = end_coordinates[0], end_coordinates[1]
+            # 格式4: 单独的 x1, y1, x2, y2 字段
             else:
-                x1 = params.get("x1", params.get("coordinates", [0, 0])[0])
-                y1 = params.get("y1", params.get("coordinates", [0, 0])[1])
-                x2 = params.get("x2", params.get("end_coordinates", [0, 0])[0])
-                y2 = params.get("y2", params.get("end_coordinates", [0, 0])[1])
+                x1 = params.get("x1", 0)
+                y1 = params.get("y1", 0)
+                x2 = params.get("x2", 0)
+                y2 = params.get("y2", 0)
             
             duration = params.get("duration", 300)
             return self._pc_executor.swipe(int(x1), int(y1), int(x2), int(y2), duration)
         
         elif mapped_action in ('safe_long_press', 'long_press'):
-            coordinates = params.get("coordinates", {})
-            if "start" in coordinates:
+            coordinates = params.get("coordinates")
+            x, y = 0, 0
+            
+            # 格式1: 对象格式 {"start": [x, y]}
+            if isinstance(coordinates, dict) and "start" in coordinates:
                 x, y = coordinates["start"]
+            # 格式2: 数组格式 [x, y]
+            elif isinstance(coordinates, list) and len(coordinates) >= 2:
+                x, y = coordinates[0], coordinates[1]
+            # 格式3: 单独的 x, y 字段
             else:
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
+                x = params.get("x", 0)
+                y = params.get("y", 0)
             
             duration_ms = params.get("duration", 500)
             return self._pc_executor.swipe(int(x), int(y), int(x), int(y), duration_ms)
@@ -307,6 +334,15 @@ class TouchManager:
             duration_ms = params.get("duration", 1000)
             time.sleep(duration_ms / 1000.0)
             return True
+        
+        elif action == "open_app":
+            # PC模式打开应用（窗口已固定为Endfield）
+            self.logger.info(LogCategory.MAIN, f"PC模式打开应用: {params.get('app_name', 'Endfield')}")
+            return True
+        
+        elif action == "key":
+            key_code = params.get("key_code", params.get("key", ""))
+            return self._pc_executor.press_key(str(key_code))
         
         else:
             self.logger.warning(LogCategory.MAIN, f"PC不支持的动作: {action}")

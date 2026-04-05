@@ -323,13 +323,18 @@ class ExecutionManager:
                         # 使用新的 execute_tool_call 方法
                         for action in touch_actions:
                             action_type = action.get('action', '')
-                            params = action.get('parameters', {})
                             
-                            # 转换坐标格式（兼容旧格式）
-                            if 'coordinates' in action:
-                                params['coordinates'] = action['coordinates']
-                            if 'end_coordinates' in action.get('parameters', {}):
-                                params['end_coordinates'] = action['parameters']['end_coordinates']
+                            # 构建参数对象：将顶级字段作为参数（服务端返回的格式）
+                            params = {}
+                            # 从 action 顶级字段获取参数
+                            for key in ['coordinates', 'end_coordinates', 'app_name', 'key_code',
+                                         'text', 'duration', 'x', 'y', 'x1', 'y1', 'x2', 'y2']:
+                                if key in action:
+                                    params[key] = action[key]
+                            
+                            # 如果有 parameters 子对象，合并进来
+                            if 'parameters' in action and isinstance(action['parameters'], dict):
+                                params.update(action['parameters'])
                             
                             # 生成操作ID并记录运行中操作
                             operation_id = self._start_operation(action_type, params)

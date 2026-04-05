@@ -1888,3 +1888,438 @@ AttributeError: 'ReAcrtureClientGUI' object has no attribute 'load_task_queue'
 [2026-04-05 18:32:10.987] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭请求
 [2026-04-05 18:32:11.011] [DEBUG] [core.logger:debug:535] [MainThread] [-] 任务队列已保存
 [2026-04-05 18:32:11.014] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭 | run_duration_ms=28652.075
+[2026-04-05 18:55:51.397] [INFO] [core.logger:_start_cleanup_thread:432] [MainThread] [-] 日志自动清理线程已启动，清理间隔: 24小时
+[2026-04-05 18:55:51.401] [INFO] [core.logger:info:539] [MainThread] [-] 程序启动 | working_dir=C:\Users\xray\Documents\ArkStudio\ReAcrture\client
+[2026-04-05 18:55:51.405] [DEBUG] [core.logger:debug:535] [MainThread] [-] 配置文件加载 | config_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client\config/client_config.json
+[2026-04-05 18:55:51.408] [DEBUG] [core.logger:debug:535] [MainThread] [-] 配置文件加载完成
+[2026-04-05 18:55:51.418] [INFO] [core.logger:info:539] [MainThread] [-] 开始初始化组件
+[2026-04-05 18:55:51.421] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化ADB设备管理器 | adb_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client\3rd-part/ADB/adb.exe
+[2026-04-05 18:55:51.425] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化屏幕捕获模块
+[2026-04-05 18:55:51.429] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化触控管理器
+[2026-04-05 18:55:51.432] [INFO] [core.logger:info:539] [MainThread] [-] 触控管理器初始化完成
+[2026-04-05 18:55:51.436] [INFO] [core.logger:info:539] [MainThread] [-] 触控管理器初始化完成 | touch_method=maatouch | fail_on_error=True
+[2026-04-05 18:55:51.439] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化任务管理模块
+[2026-04-05 18:55:51.443] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化通信模块
+[2026-04-05 18:55:51.446] [DEBUG] [core.logger:debug:535] [MainThread] [-] 创建加密器
+[2026-04-05 18:55:51.511] [INFO] [core.logger:info:539] [MainThread] [-] 通信器初始化完成 | server=127.0.0.1:9999 | timeout_seconds=300
+[2026-04-05 18:55:51.515] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化认证管理模块
+[2026-04-05 18:55:51.519] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化设备管理模块
+[2026-04-05 18:55:51.524] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化任务队列管理模块
+[2026-04-05 18:55:51.527] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加载任务队列
+[2026-04-05 18:55:51.532] [INFO] [core.logger:info:539] [MainThread] [-] 任务队列加载完成 | task_count=7
+[2026-04-05 18:55:51.535] [INFO] [__main__:log_message:444] [MainThread] [-] 已从本地加载任务队列
+[2026-04-05 18:55:51.538] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化执行管理模块
+[2026-04-05 18:55:51.542] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化GUI管理器
+[2026-04-05 18:55:52.664] [DEBUG] [core.logger:debug:535] [MainThread] [-] 创建加密器
+[2026-04-05 18:55:52.703] [INFO] [core.logger:info:539] [MainThread] [-] 通信器初始化完成 | server=127.0.0.1:9999 | timeout_seconds=10
+[2026-04-05 18:55:52.707] [DEBUG] [core.logger:debug:535] [MainThread] [-] 准备发送请求 | endpoint=check_version
+[2026-04-05 18:55:52.710] [DEBUG] [core.logger:debug:535] [MainThread] [-] 序列化请求数据 | endpoint=check_version | json_size=69
+[2026-04-05 18:55:52.714] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加密请求数据 | endpoint=check_version | encrypted_size=184
+[2026-04-05 18:55:52.718] [DEBUG] [core.logger:debug:535] [MainThread] [-] 打包消息 | data_size=184 | protocol_version=1
+[2026-04-05 18:55:52.721] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=193
+[2026-04-05 18:55:52.725] [DEBUG] [core.logger:debug:535] [MainThread] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:55:53.230] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发送消息数据
+[2026-04-05 18:55:53.238] [DEBUG] [core.logger:debug:535] [MainThread] [-] 接收响应头完成 | data_size=164
+[2026-04-05 18:55:53.241] [INFO] [core.logger:info:539] [MainThread] [-] 通信完成 | message_size=193 | response_size=173 | duration_ms=519.747
+[2026-04-05 18:55:53.245] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: communication, 耗时: 519.747ms | server=127.0.0.1:9999
+[2026-04-05 18:55:53.248] [DEBUG] [core.logger:debug:535] [MainThread] [-] 消息解包完成 | data_size=164
+[2026-04-05 18:55:53.251] [INFO] [core.logger:info:539] [MainThread] [-] 请求处理完成 | endpoint=check_version | duration_ms=544.448
+[2026-04-05 18:55:53.266] [DEBUG] [core.logger:debug:535] [MainThread] [-] 本地版本加载完成 | version=alpha_0.0.1
+[2026-04-05 18:55:53.333] [INFO] [core.logger:info:539] [MainThread] [-] 所有组件初始化完成
+[2026-04-05 18:55:53.390] [INFO] [__main__:log_message:444] [MainThread] [-] 所有组件初始化成功
+[2026-04-05 18:55:53.399] [DEBUG] [core.logger:debug:535] [MainThread] [-] 检查登录状态
+[2026-04-05 18:55:53.406] [DEBUG] [core.logger:debug:535] [MainThread] [-] 准备发送请求 | endpoint=login
+[2026-04-05 18:55:53.409] [DEBUG] [core.logger:debug:535] [MainThread] [-] 序列化请求数据 | endpoint=login | json_size=155
+[2026-04-05 18:55:53.412] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加密请求数据 | endpoint=login | encrypted_size=292
+[2026-04-05 18:55:53.415] [DEBUG] [core.logger:debug:535] [MainThread] [-] 打包消息 | data_size=292 | protocol_version=1
+[2026-04-05 18:55:53.418] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=301
+[2026-04-05 18:55:53.421] [DEBUG] [core.logger:debug:535] [MainThread] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:55:53.425] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发送消息数据
+[2026-04-05 18:55:53.441] [DEBUG] [core.logger:debug:535] [MainThread] [-] 接收响应头完成 | data_size=228
+[2026-04-05 18:55:53.445] [INFO] [core.logger:info:539] [MainThread] [-] 通信完成 | message_size=301 | response_size=237 | duration_ms=27.18
+[2026-04-05 18:55:53.460] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: communication, 耗时: 27.180ms | server=127.0.0.1:9999
+[2026-04-05 18:55:53.463] [DEBUG] [core.logger:debug:535] [MainThread] [-] 消息解包完成 | data_size=228
+[2026-04-05 18:55:53.466] [INFO] [core.logger:info:539] [MainThread] [-] 请求处理完成 | endpoint=login | duration_ms=60.118
+[2026-04-05 18:55:53.490] [INFO] [core.logger:info:539] [MainThread] [-] 登录状态已更新 | is_logged_in=True
+[2026-04-05 18:55:53.531] [DEBUG] [core.logger:debug:535] [MainThread] [-] 已登录状态
+[2026-04-05 18:55:53.534] [INFO] [core.logger:info:539] [MainThread] [-] 登录成功
+[2026-04-05 18:55:53.541] [INFO] [core.logger:info:539] [MainThread] [-] 扫描设备列表
+[2026-04-05 18:55:53.568] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: devices -l
+[2026-04-05 18:55:53.598] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 30.716ms | command=devices -l
+[2026-04-05 18:55:53.602] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: devices -l | return_code=0 | duration_ms=30.716
+[2026-04-05 18:55:53.605] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16384 | state=device
+[2026-04-05 18:55:53.607] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16512 | state=device
+[2026-04-05 18:55:53.610] [INFO] [core.logger:info:539] [MainThread] [-] 设备列表扫描完成 | device_count=2 | duration_ms=42.594
+[2026-04-05 18:55:53.615] [INFO] [__main__:log_message:444] [MainThread] [-] 发现 2 个设备
+[2026-04-05 18:55:53.632] [INFO] [__main__:log_message:444] [MainThread] [-] 尝试自动连接上次设备: 127.0.0.1:16512
+[2026-04-05 18:55:53.674] [INFO] [core.logger:info:539] [MainThread] [-] 手动连接设备 | device_serial=127.0.0.1:16512
+[2026-04-05 18:55:53.688] [DEBUG] [core.logger:debug:535] [MainThread] [-] 有效的网络地址: 127.0.0.1:16512
+[2026-04-05 18:55:53.691] [DEBUG] [core.logger:debug:535] [MainThread] [-] 检测到网络地址 | address=127.0.0.1:16512
+[2026-04-05 18:55:53.694] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: connect 127.0.0.1:16512
+[2026-04-05 18:55:53.724] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 30.621ms | command=connect 127.0.0.1:16512
+[2026-04-05 18:55:53.728] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: connect 127.0.0.1:16512 | return_code=0 | duration_ms=30.621
+[2026-04-05 18:55:53.731] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: -s 127.0.0.1:16512 shell echo connected
+[2026-04-05 18:55:53.769] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 38.268ms | command=-s 127.0.0.1:16512 shell echo connected
+[2026-04-05 18:55:53.773] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell echo connected | return_code=0 | duration_ms=38.268
+[2026-04-05 18:55:53.776] [INFO] [core.logger:info:539] [MainThread] [-] 设备连接完成 | device_serial=127.0.0.1:16512
+[2026-04-05 18:55:53.782] [INFO] [core.logger:info:539] [MainThread] [-] 扫描设备列表
+[2026-04-05 18:55:53.793] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: devices -l
+[2026-04-05 18:55:53.837] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 43.928ms | command=devices -l
+[2026-04-05 18:55:53.841] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: devices -l | return_code=0 | duration_ms=43.928
+[2026-04-05 18:55:53.844] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16384 | state=device
+[2026-04-05 18:55:53.848] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16512 | state=device
+[2026-04-05 18:55:53.852] [INFO] [core.logger:info:539] [MainThread] [-] 设备列表扫描完成 | device_count=2 | duration_ms=58.948
+[2026-04-05 18:55:53.870] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 18:55:53.873] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 18:55:55.346] [DEBUG] [core.logger:debug:535] [MainThread] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718945
+[2026-04-05 18:55:55.391] [DEBUG] [core.logger:debug:535] [MainThread] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 18:55:55.395] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: image_process, 耗时: 3.093ms
+[2026-04-05 18:55:55.451] [DEBUG] [core.logger:debug:535] [MainThread] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 18:55:55.841] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: image_to_base64, 耗时: 386.194ms | format=PNG
+[2026-04-05 18:55:55.844] [INFO] [core.logger:info:539] [MainThread] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718945 | base64_length=2052556 | total_duration_ms=1973.942
+[2026-04-05 18:55:55.874] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: screen_capture, 耗时: 1973.942ms | device_serial=127.0.0.1:16512
+[2026-04-05 18:55:55.877] [WARNING] [core.logger:log_performance:584] [MainThread] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1973.9415645599365
+[2026-04-05 18:55:56.014] [INFO] [__main__:log_message:444] [MainThread] [-] 自动连接到上次的设备: 127.0.0.1:16512
+[2026-04-05 18:55:56.028] [DEBUG] [core.logger:debug:535] [MainThread] [-] 启动时检查更新
+[2026-04-05 18:55:56.031] [DEBUG] [core.logger:debug:535] [MainThread] [-] 本地版本加载完成 | version=alpha_0.0.1
+[2026-04-05 18:55:56.034] [DEBUG] [core.logger:debug:535] [MainThread] [-] 版本检查完成 | current_version=alpha_0.0.1
+[2026-04-05 18:55:57.147] [DEBUG] [core.logger:debug:535] [MainThread] [-] 准备发送请求 | endpoint=get_user_info
+[2026-04-05 18:55:57.152] [DEBUG] [core.logger:debug:535] [MainThread] [-] 序列化请求数据 | endpoint=get_user_info | json_size=170
+[2026-04-05 18:55:57.155] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加密请求数据 | endpoint=get_user_info | encrypted_size=312
+[2026-04-05 18:55:57.158] [DEBUG] [core.logger:debug:535] [MainThread] [-] 打包消息 | data_size=312 | protocol_version=1
+[2026-04-05 18:55:57.161] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=321
+[2026-04-05 18:55:57.164] [DEBUG] [core.logger:debug:535] [MainThread] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:55:57.168] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发送消息数据
+[2026-04-05 18:55:57.178] [DEBUG] [core.logger:debug:535] [MainThread] [-] 接收响应头完成 | data_size=484
+[2026-04-05 18:55:57.181] [INFO] [core.logger:info:539] [MainThread] [-] 通信完成 | message_size=321 | response_size=493 | duration_ms=20.889
+[2026-04-05 18:55:57.189] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: communication, 耗时: 20.889ms | server=127.0.0.1:9999
+[2026-04-05 18:55:57.192] [DEBUG] [core.logger:debug:535] [MainThread] [-] 消息解包完成 | data_size=484
+[2026-04-05 18:55:57.195] [INFO] [core.logger:info:539] [MainThread] [-] 请求处理完成 | endpoint=get_user_info | duration_ms=48.35
+[2026-04-05 18:55:57.208] [INFO] [__main__:log_message:444] [MainThread] [-] 用户信息已刷新
+[2026-04-05 18:56:01.139] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 开始自动化执行...
+[2026-04-05 18:56:01.165] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行第 1/1 次
+[2026-04-05 18:56:01.180] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 18:56:01.213] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:01.216] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:02.617] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718945
+[2026-04-05 18:56:02.620] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 18:56:02.624] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 3.280ms
+[2026-04-05 18:56:02.680] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 18:56:03.068] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 384.091ms | format=PNG
+[2026-04-05 18:56:03.072] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718945 | base64_length=2052556 | total_duration_ms=1859.497
+[2026-04-05 18:56:03.085] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 1859.497ms | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:03.089] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1859.4970703125
+[2026-04-05 18:56:03.188] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:03.192] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:03.194] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:03.243] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 48.003ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:03.246] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=48.003
+[2026-04-05 18:56:03.248] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 18:56:03.251] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:03.255] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:03.293] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 37.811ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:03.295] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=37.811
+[2026-04-05 18:56:03.299] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 18:56:03.303] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 18:56:03.306] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 18:56:03.318] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052908
+[2026-04-05 18:56:03.341] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2737292
+[2026-04-05 18:56:03.345] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2737292 | protocol_version=1
+[2026-04-05 18:56:03.348] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2737301
+[2026-04-05 18:56:03.352] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:56:03.355] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 18:56:05.206] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749924
+[2026-04-05 18:56:05.581] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2737301 | response_size=2749933 | duration_ms=2232.458
+[2026-04-05 18:56:05.595] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2232.458ms | server=127.0.0.1:9999
+[2026-04-05 18:56:05.598] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2232.4583530426025
+[2026-04-05 18:56:05.615] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749924
+[2026-04-05 18:56:05.647] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2340.309
+[2026-04-05 18:56:06.661] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 18:56:06.675] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:06.679] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:08.070] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718895
+[2026-04-05 18:56:08.073] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 18:56:08.076] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 2.695ms
+[2026-04-05 18:56:08.132] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 18:56:08.513] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 377.807ms | format=PNG
+[2026-04-05 18:56:08.518] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718895 | base64_length=2052484 | total_duration_ms=1843.206
+[2026-04-05 18:56:08.535] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 1843.206ms | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:08.538] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1843.2056903839111
+[2026-04-05 18:56:08.639] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:08.643] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:08.645] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:08.691] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 45.864ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:08.694] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=45.864
+[2026-04-05 18:56:08.697] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 18:56:08.701] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:08.704] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:08.738] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 34.201ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:08.741] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=34.201
+[2026-04-05 18:56:08.744] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 18:56:08.747] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 18:56:08.751] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 18:56:08.763] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052836
+[2026-04-05 18:56:08.788] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2737208
+[2026-04-05 18:56:08.792] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2737208 | protocol_version=1
+[2026-04-05 18:56:08.796] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2737217
+[2026-04-05 18:56:08.799] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:56:08.803] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 18:56:10.557] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749836
+[2026-04-05 18:56:10.897] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2737217 | response_size=2749845 | duration_ms=2101.499
+[2026-04-05 18:56:10.912] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2101.499ms | server=127.0.0.1:9999
+[2026-04-05 18:56:10.915] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2101.498603820801
+[2026-04-05 18:56:10.932] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749836
+[2026-04-05 18:56:10.964] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2212.379
+[2026-04-05 18:56:11.981] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 18:56:11.995] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:11.998] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:13.412] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718895
+[2026-04-05 18:56:13.416] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 18:56:13.419] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 3.216ms
+[2026-04-05 18:56:13.480] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 18:56:13.872] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 387.885ms | format=PNG
+[2026-04-05 18:56:13.875] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718895 | base64_length=2052484 | total_duration_ms=1880.126
+[2026-04-05 18:56:13.890] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 1880.126ms | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:13.894] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1880.1255226135254
+[2026-04-05 18:56:13.993] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:13.996] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:13.999] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:14.047] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 48.655ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:14.051] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=48.655
+[2026-04-05 18:56:14.055] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 18:56:14.057] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:14.060] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:14.103] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 42.401ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:14.106] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=42.401
+[2026-04-05 18:56:14.109] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 18:56:14.113] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 18:56:14.117] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 18:56:14.131] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052836
+[2026-04-05 18:56:14.158] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2737208
+[2026-04-05 18:56:14.162] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2737208 | protocol_version=1
+[2026-04-05 18:56:14.166] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2737217
+[2026-04-05 18:56:14.170] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:56:14.174] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 18:56:16.438] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749836
+[2026-04-05 18:56:16.811] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2737217 | response_size=2749845 | duration_ms=2645.272
+[2026-04-05 18:56:16.830] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2645.272ms | server=127.0.0.1:9999
+[2026-04-05 18:56:16.834] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2645.2724933624268
+[2026-04-05 18:56:16.857] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749836
+[2026-04-05 18:56:16.892] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2774.946
+[2026-04-05 18:56:17.910] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 18:56:17.930] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:17.934] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:19.443] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718895
+[2026-04-05 18:56:19.446] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 18:56:19.449] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 2.630ms
+[2026-04-05 18:56:19.509] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 18:56:19.918] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 404.715ms | format=PNG
+[2026-04-05 18:56:19.922] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718895 | base64_length=2052484 | total_duration_ms=1992.408
+[2026-04-05 18:56:19.939] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 1992.408ms | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:19.942] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1992.4077987670898
+[2026-04-05 18:56:20.049] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:20.054] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:20.057] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:20.106] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 49.152ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 18:56:20.109] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=49.152
+[2026-04-05 18:56:20.112] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 18:56:20.115] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 18:56:20.119] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:20.158] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 39.198ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 18:56:20.161] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=39.198
+[2026-04-05 18:56:20.164] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 18:56:20.167] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 18:56:20.173] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 18:56:20.185] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052836
+[2026-04-05 18:56:20.213] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2737208
+[2026-04-05 18:56:20.216] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2737208 | protocol_version=1
+[2026-04-05 18:56:20.221] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2737217
+[2026-04-05 18:56:20.224] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 18:56:20.227] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 18:56:21.243] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭请求
+[2026-04-05 18:56:21.291] [DEBUG] [core.logger:debug:535] [MainThread] [-] 任务队列已保存
+[2026-04-05 18:56:21.294] [WARNING] [core.logger:warning:543] [MainThread] [-] 执行正在进行中
+[2026-04-05 18:56:22.156] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749836
+[2026-04-05 18:56:22.538] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2737217 | response_size=2749845 | duration_ms=2317.339
+[2026-04-05 18:56:22.553] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2317.339ms | server=127.0.0.1:9999
+[2026-04-05 18:56:22.557] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2317.3394203186035
+[2026-04-05 18:56:22.575] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749836
+[2026-04-05 18:56:22.606] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2433.333
+[2026-04-05 18:56:23.168] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行已停止
+[2026-04-05 18:56:23.173] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭 | run_duration_ms=31768.458
+[2026-04-05 19:13:03.614] [INFO] [core.logger:_start_cleanup_thread:432] [MainThread] [-] 日志自动清理线程已启动，清理间隔: 24小时
+[2026-04-05 19:13:03.617] [INFO] [core.logger:info:539] [MainThread] [-] 程序启动 | working_dir=C:\Users\xray\Documents\ArkStudio\ReAcrture\client
+[2026-04-05 19:13:03.623] [DEBUG] [core.logger:debug:535] [MainThread] [-] 配置文件加载 | config_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client\config/client_config.json
+[2026-04-05 19:13:03.627] [DEBUG] [core.logger:debug:535] [MainThread] [-] 配置文件加载完成
+[2026-04-05 19:13:03.637] [INFO] [core.logger:info:539] [MainThread] [-] 开始初始化组件
+[2026-04-05 19:13:03.640] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化ADB设备管理器 | adb_path=C:\Users\xray\Documents\ArkStudio\ReAcrture\client\3rd-part/ADB/adb.exe
+[2026-04-05 19:13:03.645] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化屏幕捕获模块
+[2026-04-05 19:13:03.648] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化触控管理器
+[2026-04-05 19:13:03.651] [INFO] [core.logger:info:539] [MainThread] [-] 触控管理器初始化完成
+[2026-04-05 19:13:03.656] [INFO] [core.logger:info:539] [MainThread] [-] 触控管理器初始化完成 | touch_method=maatouch | fail_on_error=True
+[2026-04-05 19:13:03.659] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化任务管理模块
+[2026-04-05 19:13:03.664] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化通信模块
+[2026-04-05 19:13:03.667] [DEBUG] [core.logger:debug:535] [MainThread] [-] 创建加密器
+[2026-04-05 19:13:03.734] [INFO] [core.logger:info:539] [MainThread] [-] 通信器初始化完成 | server=127.0.0.1:9999 | timeout_seconds=300
+[2026-04-05 19:13:03.738] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化认证管理模块
+[2026-04-05 19:13:03.741] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化设备管理模块
+[2026-04-05 19:13:03.746] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化任务队列管理模块
+[2026-04-05 19:13:03.749] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加载任务队列
+[2026-04-05 19:13:03.755] [INFO] [core.logger:info:539] [MainThread] [-] 任务队列加载完成 | task_count=7
+[2026-04-05 19:13:03.759] [INFO] [__main__:log_message:444] [MainThread] [-] 已从本地加载任务队列
+[2026-04-05 19:13:03.763] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化执行管理模块
+[2026-04-05 19:13:03.767] [DEBUG] [core.logger:debug:535] [MainThread] [-] 初始化GUI管理器
+[2026-04-05 19:13:05.013] [DEBUG] [core.logger:debug:535] [MainThread] [-] 创建加密器
+[2026-04-05 19:13:05.051] [INFO] [core.logger:info:539] [MainThread] [-] 通信器初始化完成 | server=127.0.0.1:9999 | timeout_seconds=10
+[2026-04-05 19:13:05.055] [DEBUG] [core.logger:debug:535] [MainThread] [-] 准备发送请求 | endpoint=check_version
+[2026-04-05 19:13:05.059] [DEBUG] [core.logger:debug:535] [MainThread] [-] 序列化请求数据 | endpoint=check_version | json_size=69
+[2026-04-05 19:13:05.064] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加密请求数据 | endpoint=check_version | encrypted_size=184
+[2026-04-05 19:13:05.066] [DEBUG] [core.logger:debug:535] [MainThread] [-] 打包消息 | data_size=184 | protocol_version=1
+[2026-04-05 19:13:05.070] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=193
+[2026-04-05 19:13:05.075] [DEBUG] [core.logger:debug:535] [MainThread] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 19:13:06.079] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发送消息数据
+[2026-04-05 19:13:06.086] [DEBUG] [core.logger:debug:535] [MainThread] [-] 接收响应头完成 | data_size=164
+[2026-04-05 19:13:06.090] [INFO] [core.logger:info:539] [MainThread] [-] 通信完成 | message_size=193 | response_size=173 | duration_ms=1019.192
+[2026-04-05 19:13:06.093] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: communication, 耗时: 1019.192ms | server=127.0.0.1:9999
+[2026-04-05 19:13:06.097] [WARNING] [core.logger:log_performance:584] [MainThread] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=1019.1924571990967
+[2026-04-05 19:13:06.100] [DEBUG] [core.logger:debug:535] [MainThread] [-] 消息解包完成 | data_size=164
+[2026-04-05 19:13:06.104] [INFO] [core.logger:info:539] [MainThread] [-] 请求处理完成 | endpoint=check_version | duration_ms=1048.785
+[2026-04-05 19:13:06.108] [DEBUG] [core.logger:debug:535] [MainThread] [-] 本地版本加载完成 | version=alpha_0.0.1
+[2026-04-05 19:13:06.152] [INFO] [core.logger:info:539] [MainThread] [-] 所有组件初始化完成
+[2026-04-05 19:13:06.233] [INFO] [__main__:log_message:444] [MainThread] [-] 所有组件初始化成功
+[2026-04-05 19:13:06.247] [DEBUG] [core.logger:debug:535] [MainThread] [-] 检查登录状态
+[2026-04-05 19:13:06.264] [DEBUG] [core.logger:debug:535] [MainThread] [-] 准备发送请求 | endpoint=login
+[2026-04-05 19:13:06.267] [DEBUG] [core.logger:debug:535] [MainThread] [-] 序列化请求数据 | endpoint=login | json_size=155
+[2026-04-05 19:13:06.272] [DEBUG] [core.logger:debug:535] [MainThread] [-] 加密请求数据 | endpoint=login | encrypted_size=292
+[2026-04-05 19:13:06.276] [DEBUG] [core.logger:debug:535] [MainThread] [-] 打包消息 | data_size=292 | protocol_version=1
+[2026-04-05 19:13:06.279] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=301
+[2026-04-05 19:13:06.283] [DEBUG] [core.logger:debug:535] [MainThread] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 19:13:06.288] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发送消息数据
+[2026-04-05 19:13:06.309] [DEBUG] [core.logger:debug:535] [MainThread] [-] 接收响应头完成 | data_size=228
+[2026-04-05 19:13:06.312] [INFO] [core.logger:info:539] [MainThread] [-] 通信完成 | message_size=301 | response_size=237 | duration_ms=33.097
+[2026-04-05 19:13:06.327] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: communication, 耗时: 33.097ms | server=127.0.0.1:9999
+[2026-04-05 19:13:06.330] [DEBUG] [core.logger:debug:535] [MainThread] [-] 消息解包完成 | data_size=228
+[2026-04-05 19:13:06.334] [INFO] [core.logger:info:539] [MainThread] [-] 请求处理完成 | endpoint=login | duration_ms=70.328
+[2026-04-05 19:13:06.360] [INFO] [core.logger:info:539] [MainThread] [-] 登录状态已更新 | is_logged_in=True
+[2026-04-05 19:13:06.402] [DEBUG] [core.logger:debug:535] [MainThread] [-] 已登录状态
+[2026-04-05 19:13:06.406] [INFO] [core.logger:info:539] [MainThread] [-] 登录成功
+[2026-04-05 19:13:06.413] [INFO] [core.logger:info:539] [MainThread] [-] 扫描设备列表
+[2026-04-05 19:13:06.441] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: devices -l
+[2026-04-05 19:13:06.470] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 29.872ms | command=devices -l
+[2026-04-05 19:13:06.474] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: devices -l | return_code=0 | duration_ms=29.872
+[2026-04-05 19:13:06.476] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16384 | state=device
+[2026-04-05 19:13:06.479] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16512 | state=device
+[2026-04-05 19:13:06.482] [INFO] [core.logger:info:539] [MainThread] [-] 设备列表扫描完成 | device_count=2 | duration_ms=41.66
+[2026-04-05 19:13:06.488] [INFO] [__main__:log_message:444] [MainThread] [-] 发现 2 个设备
+[2026-04-05 19:13:06.506] [INFO] [__main__:log_message:444] [MainThread] [-] 尝试自动连接上次设备: 127.0.0.1:16512
+[2026-04-05 19:13:06.544] [INFO] [core.logger:info:539] [MainThread] [-] 手动连接设备 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:06.557] [DEBUG] [core.logger:debug:535] [MainThread] [-] 有效的网络地址: 127.0.0.1:16512
+[2026-04-05 19:13:06.559] [DEBUG] [core.logger:debug:535] [MainThread] [-] 检测到网络地址 | address=127.0.0.1:16512
+[2026-04-05 19:13:06.562] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: connect 127.0.0.1:16512
+[2026-04-05 19:13:06.592] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 29.722ms | command=connect 127.0.0.1:16512
+[2026-04-05 19:13:06.595] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: connect 127.0.0.1:16512 | return_code=0 | duration_ms=29.722
+[2026-04-05 19:13:06.598] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: -s 127.0.0.1:16512 shell echo connected
+[2026-04-05 19:13:06.632] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 34.143ms | command=-s 127.0.0.1:16512 shell echo connected
+[2026-04-05 19:13:06.636] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell echo connected | return_code=0 | duration_ms=34.143
+[2026-04-05 19:13:06.639] [INFO] [core.logger:info:539] [MainThread] [-] 设备连接完成 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:06.645] [INFO] [core.logger:info:539] [MainThread] [-] 扫描设备列表
+[2026-04-05 19:13:06.650] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB命令: devices -l
+[2026-04-05 19:13:06.678] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: adb_command, 耗时: 27.419ms | command=devices -l
+[2026-04-05 19:13:06.681] [DEBUG] [core.logger:debug:535] [MainThread] [-] ADB命令执行完成: devices -l | return_code=0 | duration_ms=27.419
+[2026-04-05 19:13:06.684] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16384 | state=device
+[2026-04-05 19:13:06.686] [DEBUG] [core.logger:debug:535] [MainThread] [-] 发现设备 | serial=127.0.0.1:16512 | state=device
+[2026-04-05 19:13:06.689] [INFO] [core.logger:info:539] [MainThread] [-] 设备列表扫描完成 | device_count=2 | duration_ms=39.121
+[2026-04-05 19:13:06.708] [DEBUG] [core.logger:debug:535] [MainThread] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:06.711] [DEBUG] [core.logger:debug:535] [MainThread] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:08.125] [DEBUG] [core.logger:debug:535] [MainThread] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718336
+[2026-04-05 19:13:08.162] [DEBUG] [core.logger:debug:535] [MainThread] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 19:13:08.165] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: image_process, 耗时: 3.396ms
+[2026-04-05 19:13:08.222] [DEBUG] [core.logger:debug:535] [MainThread] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 19:13:08.619] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: image_to_base64, 耗时: 394.101ms | format=PNG
+[2026-04-05 19:13:08.624] [INFO] [core.logger:info:539] [MainThread] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718336 | base64_length=2051864 | total_duration_ms=1916.656
+[2026-04-05 19:13:08.659] [DEBUG] [core.logger:log_performance:575] [MainThread] [-] 操作: screen_capture, 耗时: 1916.656ms | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:08.663] [WARNING] [core.logger:log_performance:584] [MainThread] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1916.656255722046
+[2026-04-05 19:13:08.824] [INFO] [__main__:log_message:444] [MainThread] [-] 自动连接到上次的设备: 127.0.0.1:16512
+[2026-04-05 19:13:08.864] [DEBUG] [core.logger:debug:535] [MainThread] [-] 启动时检查更新
+[2026-04-05 19:13:08.870] [DEBUG] [core.logger:debug:535] [MainThread] [-] 本地版本加载完成 | version=alpha_0.0.1
+[2026-04-05 19:13:08.875] [DEBUG] [core.logger:debug:535] [MainThread] [-] 版本检查完成 | current_version=alpha_0.0.1
+[2026-04-05 19:13:08.882] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 开始自动化执行...
+[2026-04-05 19:13:08.954] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行第 1/1 次
+[2026-04-05 19:13:08.982] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 19:13:09.020] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 截图间隔不足，等待 0.700 秒 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:09.724] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:09.727] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:11.292] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718336
+[2026-04-05 19:13:11.297] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 19:13:11.300] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 3.150ms
+[2026-04-05 19:13:11.371] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 19:13:11.786] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 409.349ms | format=PNG
+[2026-04-05 19:13:11.789] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718336 | base64_length=2051864 | total_duration_ms=2065.248
+[2026-04-05 19:13:11.811] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 2065.248ms | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:11.815] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=2065.2475357055664
+[2026-04-05 19:13:11.918] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:11.922] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:11.925] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 19:13:11.983] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 57.644ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 19:13:11.986] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=57.644
+[2026-04-05 19:13:11.990] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 19:13:11.993] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:11.996] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 19:13:12.037] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 40.257ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 19:13:12.040] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=40.257
+[2026-04-05 19:13:12.042] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 19:13:12.047] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 19:13:12.050] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 19:13:12.063] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052216
+[2026-04-05 19:13:12.087] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2736376
+[2026-04-05 19:13:12.090] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2736376 | protocol_version=1
+[2026-04-05 19:13:12.094] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2736385
+[2026-04-05 19:13:12.097] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 19:13:12.101] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 19:13:14.126] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749004
+[2026-04-05 19:13:14.535] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2736385 | response_size=2749013 | duration_ms=2441.046
+[2026-04-05 19:13:14.549] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2441.046ms | server=127.0.0.1:9999
+[2026-04-05 19:13:14.554] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2441.0464763641357
+[2026-04-05 19:13:14.572] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749004
+[2026-04-05 19:13:14.608] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2557.809
+[2026-04-05 19:13:15.623] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 执行任务: 游戏登录确认
+[2026-04-05 19:13:15.638] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始屏幕捕获 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:15.641] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB截图命令 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:17.158] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] PNG数据获取完成 | device_serial=127.0.0.1:16512 | size_bytes=1718336
+[2026-04-05 19:13:17.161] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 跳过图像尺寸调整 | original_size=1920x1080 | reason=使用归一化坐标，保持原始分辨率
+[2026-04-05 19:13:17.164] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_process, 耗时: 2.609ms
+[2026-04-05 19:13:17.223] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 图像处理完成 | device_serial=127.0.0.1:16512 | original_size=1920x1080 | processed_size=1920x1080 | format=PNG
+[2026-04-05 19:13:17.611] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: image_to_base64, 耗时: 385.430ms | format=PNG
+[2026-04-05 19:13:17.616] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 屏幕捕获完成 | device_serial=127.0.0.1:16512 | png_size_bytes=1718336 | base64_length=2051864 | total_duration_ms=1978.687
+[2026-04-05 19:13:17.632] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: screen_capture, 耗时: 1978.687ms | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:17.636] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: screen_capture, 阈值: 1000ms | actual_ms=1978.686809539795
+[2026-04-05 19:13:17.759] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备信息 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:17.766] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备分辨率 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:17.771] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell wm size
+[2026-04-05 19:13:17.835] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 64.195ms | command=-s 127.0.0.1:16512 shell wm size
+[2026-04-05 19:13:17.839] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell wm size | return_code=0 | duration_ms=64.195
+[2026-04-05 19:13:17.842] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备分辨率获取完成 | device_serial=127.0.0.1:16512 | resolution=1080x1920
+[2026-04-05 19:13:17.846] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 获取设备型号 | device_serial=127.0.0.1:16512
+[2026-04-05 19:13:17.850] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 执行ADB命令: -s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 19:13:17.893] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: adb_command, 耗时: 42.334ms | command=-s 127.0.0.1:16512 shell getprop ro.product.model
+[2026-04-05 19:13:17.896] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] ADB命令执行完成: -s 127.0.0.1:16512 shell getprop ro.product.model | return_code=0 | duration_ms=42.334
+[2026-04-05 19:13:17.900] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备型号获取完成 | device_serial=127.0.0.1:16512 | model=SM-F721N
+[2026-04-05 19:13:17.903] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 设备信息获取完成 | device_serial=127.0.0.1:16512 | resolution=[1080, 1920] | model=SM-F721N | image_size=[1920, 1080]
+[2026-04-05 19:13:17.908] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 准备发送请求 | endpoint=process_image
+[2026-04-05 19:13:17.920] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 序列化请求数据 | endpoint=process_image | json_size=2052216
+[2026-04-05 19:13:17.945] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 加密请求数据 | endpoint=process_image | encrypted_size=2736376
+[2026-04-05 19:13:17.948] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 打包消息 | data_size=2736376 | protocol_version=1
+[2026-04-05 19:13:17.951] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 开始发送消息 | server=127.0.0.1:9999 | message_size=2736385
+[2026-04-05 19:13:17.955] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 连接服务器 | server=127.0.0.1:9999
+[2026-04-05 19:13:17.958] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 发送消息数据
+[2026-04-05 19:13:19.940] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 接收响应头完成 | data_size=2749004
+[2026-04-05 19:13:20.329] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 通信完成 | message_size=2736385 | response_size=2749013 | duration_ms=2378.126
+[2026-04-05 19:13:20.345] [DEBUG] [core.logger:log_performance:575] [Thread-11 (run_automation)] [-] 操作: communication, 耗时: 2378.126ms | server=127.0.0.1:9999
+[2026-04-05 19:13:20.349] [WARNING] [core.logger:log_performance:584] [Thread-11 (run_automation)] [-] 操作耗时超过阈值: communication, 阈值: 1000ms | actual_ms=2378.126382827759
+[2026-04-05 19:13:20.366] [DEBUG] [core.logger:debug:535] [Thread-11 (run_automation)] [-] 消息解包完成 | data_size=2749004
+[2026-04-05 19:13:20.397] [INFO] [core.logger:info:539] [Thread-11 (run_automation)] [-] 请求处理完成 | endpoint=process_image | duration_ms=2489.303
+[2026-04-05 19:13:21.377] [INFO] [__main__:log_message:444] [MainThread] [-] 执行已停止
+[2026-04-05 19:13:21.412] [INFO] [__main__:log_message:444] [Thread-11 (run_automation)] [-] 自动化执行结束
+[2026-04-05 19:13:26.005] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭请求
+[2026-04-05 19:13:26.029] [DEBUG] [core.logger:debug:535] [MainThread] [-] 任务队列已保存
+[2026-04-05 19:13:26.033] [INFO] [core.logger:info:539] [MainThread] [-] 程序关闭 | run_duration_ms=22410.014

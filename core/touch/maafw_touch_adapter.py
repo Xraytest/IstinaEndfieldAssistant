@@ -494,18 +494,28 @@ class MaaFwTouchExecutor:
         mapped_action = action_mapping.get(action, action)
 
         if mapped_action == "safe_press" or action == "click":
-            # 获取坐标（支持归一化坐标和像素坐标）
-            coordinates = params.get("coordinates", {})
+            # 获取坐标（支持多种格式）
+            coordinates = params.get("coordinates")
+            device_x, device_y = 0, 0
 
-            # 归一化坐标
-            if "start" in coordinates and isinstance(coordinates["start"], list):
+            # 格式1: 对象格式 {"start": [x, y], "end": [x, y]} - 归一化坐标
+            if isinstance(coordinates, dict) and "start" in coordinates and isinstance(coordinates["start"], list):
                 norm_x, norm_y = coordinates["start"]
-                # 转换为像素坐标
                 device_x, device_y = self._normalize_to_pixel_coords(device_serial, norm_x, norm_y)
+            # 格式2: 数组格式 [x, y] 或 [x1, y1, x2, y2] - 像素坐标
+            elif isinstance(coordinates, list) and len(coordinates) >= 2:
+                x, y = coordinates[0], coordinates[1]
+                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+            # 格式3: 兼容旧格式 - 单独的 x, y 字段
+            elif params.get("x") is not None or params.get("y") is not None:
+                x = params.get("x", 0)
+                y = params.get("y", 0)
+                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+            # 格式4: coordinates 为 None 但有其他坐标字段
             else:
-                # 兼容旧格式
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
+                # 尝试从 params 中获取
+                x = params.get("x", 0)
+                y = params.get("y", 0)
                 device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
 
             purpose = params.get("purpose", "点击")
@@ -514,43 +524,56 @@ class MaaFwTouchExecutor:
             return self.safe_press(device_serial, device_x, device_y, purpose)
 
         elif mapped_action == "safe_swipe" or action == "swipe" or action == "drag":
-            coordinates = params.get("coordinates", {})
+            coordinates = params.get("coordinates")
+            end_coordinates = params.get("end_coordinates")
+            start_x, start_y, end_x, end_y = 0, 0, 0, 0
 
-            # 归一化坐标
-            if "start" in coordinates and "end" in coordinates:
+            # 格式1: 对象格式 {"start": [x, y], "end": [x, y]} - 归一化坐标
+            if isinstance(coordinates, dict) and "start" in coordinates and "end" in coordinates:
                 start_norm = coordinates["start"]
                 end_norm = coordinates["end"]
-                # 转换为像素坐标
                 start_x, start_y = self._normalize_to_pixel_coords(device_serial, start_norm[0], start_norm[1])
                 end_x, end_y = self._normalize_to_pixel_coords(device_serial, end_norm[0], end_norm[1])
+            # 格式2: 数组格式 [x1, y1, x2, y2] - 像素坐标
+            elif isinstance(coordinates, list) and len(coordinates) >= 4:
+                start_x, start_y = self._validate_pixel_coords(device_serial, int(coordinates[0]), int(coordinates[1]))
+                end_x, end_y = self._validate_pixel_coords(device_serial, int(coordinates[2]), int(coordinates[3]))
+            # 格式3: coordinates 为起点数组，end_coordinates 为终点数组
+            elif isinstance(coordinates, list) and isinstance(end_coordinates, list):
+                start_x, start_y = self._validate_pixel_coords(device_serial, int(coordinates[0]), int(coordinates[1]))
+                end_x, end_y = self._validate_pixel_coords(device_serial, int(end_coordinates[0]), int(end_coordinates[1]))
+            # 格式4: 兼容旧格式 - 单独的 x1, y1, x2, y2 字段
             else:
-                # 兼容旧格式
-                x1 = params.get("x1", params.get("coordinates", [0, 0])[0])
-                y1 = params.get("y1", params.get("coordinates", [0, 0])[1])
-                x2 = params.get("x2", params.get("end_coordinates", [0, 0])[0])
-                y2 = params.get("y2", params.get("end_coordinates", [0, 0])[1])
+                x1 = params.get("x1", 0)
+                y1 = params.get("y1", 0)
+                x2 = params.get("x2", 0)
+                y2 = params.get("y2", 0)
                 start_x, start_y = self._validate_pixel_coords(device_serial, int(x1), int(y1))
                 end_x, end_y = self._validate_pixel_coords(device_serial, int(x2), int(y2))
 
-            duration = params.get("duration", params.get("parameters", {}).get("duration", 300))
+            duration = params.get("duration", 300)
             purpose = params.get("purpose", "滑动")
 
             return self.safe_swipe(device_serial, start_x, start_y, end_x, end_y, duration, purpose)
 
         elif mapped_action == "safe_long_press" or action == "long_press":
-            coordinates = params.get("coordinates", {})
+            coordinates = params.get("coordinates")
+            device_x, device_y = 0, 0
 
-            # 归一化坐标
-            if "start" in coordinates and isinstance(coordinates["start"], list):
+            # 格式1: 对象格式 {"start": [x, y]} - 归一化坐标
+            if isinstance(coordinates, dict) and "start" in coordinates and isinstance(coordinates["start"], list):
                 norm_x, norm_y = coordinates["start"]
                 device_x, device_y = self._normalize_to_pixel_coords(device_serial, norm_x, norm_y)
+            # 格式2: 数组格式 [x, y] - 像素坐标
+            elif isinstance(coordinates, list) and len(coordinates) >= 2:
+                device_x, device_y = self._validate_pixel_coords(device_serial, int(coordinates[0]), int(coordinates[1]))
+            # 格式3: 兼容旧格式 - 单独的 x, y 字段
             else:
-                # 兼容旧格式
-                x = params.get("x", params.get("coordinates", [0, 0])[0])
-                y = params.get("y", params.get("coordinates", [0, 0])[1])
+                x = params.get("x", 0)
+                y = params.get("y", 0)
                 device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
 
-            duration_ms = params.get("duration", params.get("parameters", {}).get("duration", 500))
+            duration_ms = params.get("duration", 500)
             purpose = params.get("purpose", "长按")
 
             return self.safe_long_press(device_serial, device_x, device_y, duration_ms, purpose)
