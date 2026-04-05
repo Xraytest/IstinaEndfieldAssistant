@@ -1,2 +1,0 @@
-# MAA Touch Controller requirements
-# No external dependencies required, only standard library
