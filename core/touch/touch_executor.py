@@ -17,13 +17,8 @@ from typing import Dict, List, Any, Optional, Tuple
 from enum import Enum
 from dataclasses import dataclass
 
-# 添加当前目录到Python路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-from client.core.adb_manager import ADBDeviceManager
-from client.core.logger import get_logger, LogCategory
+from core.adb_manager import ADBDeviceManager
+from core.logger import get_logger, LogCategory
 
 
 class TouchMethod(Enum):

@@ -10,8 +10,7 @@ import threading
 from pathlib import Path
 
 # 导入communicator模块
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-from client.core.communication.communicator import ClientCommunicator
+from core.communication.communicator import ClientCommunicator
 
 
 class SettingsManagerGUI:

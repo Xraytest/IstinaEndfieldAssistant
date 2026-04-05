@@ -12,12 +12,7 @@ if sys.platform == 'win32':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
     sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
 
-# 添加当前目录到Python路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-from client.core.logger import init_logger, get_logger, LogCategory
+from core.logger import init_logger, get_logger, LogCategory
 
 
 def test_logger_error_method():

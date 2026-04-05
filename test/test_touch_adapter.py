@@ -4,12 +4,7 @@
 import sys
 import os
 
-# 添加当前目录到 Python 路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-from client.core.touch.touch_adapter import TouchExecutor, MaaTouchConfig, TouchMethod
+from core.touch.touch_adapter import TouchExecutor, MaaTouchConfig, TouchMethod
 
 class MockADBManager:
     def __init__(self):

@@ -1,7 +1,7 @@
 """云服务管理GUI模块 - 处理用户信息和配额显示的UI逻辑"""
 import tkinter as tk
 from tkinter import ttk, messagebox
-from client.ui.theme import get_tier_color, get_status_color
+from ui.theme import get_tier_color, get_status_color
 
 
 class CloudServiceManagerGUI:

@@ -6,17 +6,12 @@ import time
 import os
 import sys
 
-# 添加当前目录到Python路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-from client.ui.managers.auth_manager_gui import AuthManagerGUI
-from client.ui.managers.device_manager_gui import DeviceManagerGUI
-from client.ui.managers.task_manager_gui import TaskManagerGUI
-from client.ui.managers.settings_manager_gui import SettingsManagerGUI
-from client.ui.managers.cloud_service_manager_gui import CloudServiceManagerGUI
-from client.ui.theme import configure_scrolledtext, configure_canvas
+from ui.managers.auth_manager_gui import AuthManagerGUI
+from ui.managers.device_manager_gui import DeviceManagerGUI
+from ui.managers.task_manager_gui import TaskManagerGUI
+from ui.managers.settings_manager_gui import SettingsManagerGUI
+from ui.managers.cloud_service_manager_gui import CloudServiceManagerGUI
+from ui.theme import configure_scrolledtext, configure_canvas
 
 
 class MainGUIManager:

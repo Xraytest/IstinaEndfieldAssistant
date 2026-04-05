@@ -12,17 +12,14 @@ import subprocess
 from typing import Dict, Optional, Tuple
 from enum import IntEnum, auto, unique
 
-# 添加当前目录到 Python 路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
 # 添加 maa_integration 到路径
-maa_integration_path = os.path.join(current_dir, 'maa_integration')
+import sys
+import os
+maa_integration_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'maa_integration')
 if maa_integration_path not in sys.path:
     sys.path.insert(0, maa_integration_path)
 
-from client.core.logger import get_logger, LogCategory
+from core.logger import get_logger, LogCategory
 
 
 try:

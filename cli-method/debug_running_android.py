@@ -24,16 +24,16 @@ if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
 # 导入核心组件
-from client.core.logger import init_logger, get_logger, LogCategory, LogLevel
-from client.core.adb_manager import ADBDeviceManager
-from client.core.screen_capture import ScreenCapture
-from client.core.touch import MaaFwTouchExecutor as TouchExecutor, MaaFwTouchConfig
-from client.cloud.task_manager import TaskManager
-from client.core.communication.communicator import ClientCommunicator
-from client.cloud.managers.auth_manager import AuthManager
-from client.cloud.managers.device_manager import DeviceManager
-from client.cloud.managers.execution_manager import ExecutionManager
-from client.cloud.managers.task_queue_manager import TaskQueueManager
+from core.logger import init_logger, get_logger, LogCategory, LogLevel
+from core.adb_manager import ADBDeviceManager
+from core.screen_capture import ScreenCapture
+from core.touch import MaaFwTouchExecutor as TouchExecutor, MaaFwTouchConfig
+from cloud.task_manager import TaskManager
+from core.communication.communicator import ClientCommunicator
+from cloud.managers.auth_manager import AuthManager
+from cloud.managers.device_manager import DeviceManager
+from cloud.managers.execution_manager import ExecutionManager
+from cloud.managers.task_queue_manager import TaskQueueManager
 
 
 class CLIDebugRunnerAndroid:

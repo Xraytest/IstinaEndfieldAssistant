@@ -2,7 +2,7 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, scrolledtext
 import json
-from theme import configure_listbox
+from ui.theme import configure_listbox
 
 
 class TaskManagerGUI:

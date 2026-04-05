@@ -13,25 +13,20 @@ from PIL import Image, ImageTk
 import io
 import sys
 
-# 添加项目根目录到Python路径（使client包可被导入）
-current_dir = os.path.dirname(os.path.abspath(__file__))
-project_root = os.path.dirname(current_dir)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
-from client.core.logger import init_logger, get_logger, LogCategory, LogLevel
-from client.core.adb_manager import ADBDeviceManager
-from client.core.screen_capture import ScreenCapture
-from client.core.touch.maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
-from client.cloud.task_manager import TaskManager
-from client.core.communication.communicator import ClientCommunicator
-from client.cloud.managers.auth_manager import AuthManager
-from client.cloud.managers.device_manager import DeviceManager
-from client.cloud.managers.execution_manager import ExecutionManager
-from client.cloud.managers.task_queue_manager import TaskQueueManager
-from client.ui.managers.main_gui_manager import MainGUIManager
-from client.ui.managers.auth_manager_gui import AuthManagerGUI
-from client.ui.theme import setup_ttk_styles, configure_tk_root, COLORS
+# 当前目录已在Python路径中（执行环境为client目录）
+from core.logger import init_logger, get_logger, LogCategory, LogLevel
+from core.adb_manager import ADBDeviceManager
+from core.screen_capture import ScreenCapture
+from core.touch.maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
+from cloud.task_manager import TaskManager
+from core.communication.communicator import ClientCommunicator
+from cloud.managers.auth_manager import AuthManager
+from cloud.managers.device_manager import DeviceManager
+from cloud.managers.execution_manager import ExecutionManager
+from cloud.managers.task_queue_manager import TaskQueueManager
+from ui.managers.main_gui_manager import MainGUIManager
+from ui.managers.auth_manager_gui import AuthManagerGUI
+from ui.theme import setup_ttk_styles, configure_tk_root, COLORS
 
 
 class ReAcrtureClientGUI:

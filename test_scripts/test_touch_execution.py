@@ -17,21 +17,12 @@ import base64
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 
-# 添加项目路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-client_dir = os.path.dirname(current_dir)
-project_root = os.path.dirname(client_dir)
-if client_dir not in sys.path:
-    sys.path.insert(0, client_dir)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
-
 # 导入客户端组件
-from client.core.logger import init_logger, get_logger, LogCategory
+from core.logger import init_logger, get_logger, LogCategory
 
 # PC设备支持 - 使用MaaFramework库
 try:
-    from client.core.touch import MaaFwWin32Executor, MaaFwWin32Config
+    from core.touch import MaaFwWin32Executor, MaaFwWin32Config
     from maa.define import MaaWin32ScreencapMethodEnum, MaaWin32InputMethodEnum
     PC_CONTROLLER_AVAILABLE = True
 except ImportError as e:
@@ -40,9 +31,9 @@ except ImportError as e:
 
 # Android设备支持
 try:
-    from client.core.adb_manager import ADBDeviceManager
-    from client.core.touch import MaaFwTouchExecutor, MaaFwTouchConfig
-    from client.core.screen_capture import ScreenCapture
+    from core.adb_manager import ADBDeviceManager
+    from core.touch import MaaFwTouchExecutor, MaaFwTouchConfig
+    from core.screen_capture import ScreenCapture
     ANDROID_CONTROLLER_AVAILABLE = True
 except ImportError as e:
     ANDROID_CONTROLLER_AVAILABLE = False

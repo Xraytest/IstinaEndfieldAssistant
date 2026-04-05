@@ -12,12 +12,7 @@ from maa.context import Context
 from maa.resource import Resource
 from maa.tasker import Tasker
 
-# 添加当前目录到 Python 路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
-from client.core.logger import get_logger, LogCategory
+from core.logger import get_logger, LogCategory
 
 
 class MaaFwTouchConfig:

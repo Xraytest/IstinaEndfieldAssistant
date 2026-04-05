@@ -9,13 +9,8 @@ from typing import List, Dict, Optional, Tuple
 from PIL import Image
 from io import BytesIO
 
-# 添加路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-if current_dir not in sys.path:
-    sys.path.insert(0, current_dir)
-
 from maa_integration.asst import Asst
-from client.core.logger import get_logger, LogCategory
+from core.logger import get_logger, LogCategory
 
 logger = get_logger()
 
