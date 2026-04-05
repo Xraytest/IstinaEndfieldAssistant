@@ -113,7 +113,9 @@ class MainGUIManager:
             device_frame,
             self.device_manager,
             self.execution_manager.screen_capture,
-            self.log_callback
+            self.log_callback,
+            touch_executor=self.execution_manager.touch_executor,
+            config=self.config
         )
         
         # Content Notebook（保持在设备管理区域下方）
@@ -187,7 +189,18 @@ class MainGUIManager:
     def auto_scan_and_connect_devices(self):
        """自动扫描设备并尝试连接上次的设备"""
        try:
-           # 首先扫描设备
+           # 检查触控模式
+           touch_config = self.config.get('touch', {})
+           touch_method = touch_config.get('touch_method', 'maatouch')
+           is_pc_mode = touch_method == 'pc_foreground'
+           
+           if is_pc_mode:
+               # PC模式：不扫描设备，显示提示
+               self.log_callback("PC前台模式：无需扫描Android设备", "device", "INFO")
+               self.log_callback("请在设备管理区域输入窗口标题并点击连接", "device", "INFO")
+               return
+           
+           # Android模式：首先扫描设备
            if self.device_gui:
                self.device_gui.scan_devices()
                
@@ -210,7 +223,7 @@ class MainGUIManager:
            if self.device_manager.connect_device_manual(last_device):
                # 更新GUI状态
                if self.device_gui:
-                   self.device_gui.update_device_status(f"已连接: {last_device}", 'green')
+                   self.device_gui.update_device_status(f"已连接: {last_device}", 'success')
                    self.device_gui.start_preview_refresh()
                self.log_callback(f"自动连接到上次的设备: {last_device}", "device", "INFO")
            else:

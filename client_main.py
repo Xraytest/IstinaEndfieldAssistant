@@ -17,7 +17,9 @@ import sys
 from core.logger import init_logger, get_logger, LogCategory, LogLevel
 from core.adb_manager import ADBDeviceManager
 from core.screen_capture import ScreenCapture
-from core.touch.maafw_touch_adapter import MaaFwTouchExecutor as TouchExecutor
+from core.touch import TouchManager, TouchDeviceType
+from core.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
+from core.touch.maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
 from cloud.task_manager import TaskManager
 from core.communication.communicator import ClientCommunicator
 from cloud.managers.auth_manager import AuthManager
@@ -169,36 +171,21 @@ class ReAcrtureClientGUI:
                 adb_manager=self.adb_manager
             )
             
-            self.logger.debug(LogCategory.MAIN, "初始化触控执行模块（MAA风格）")
-            from core.touch.maafw_touch_adapter import MaaFwTouchConfig
-
+            self.logger.debug(LogCategory.MAIN, "初始化触控管理器")
+            
             touch_config = self.config.get('touch', {})
+            touch_method = touch_config.get('touch_method', 'maatouch')
             maa_style_config = touch_config.get('maa_style', {})
 
-            # 获取失败处理选项
-            fail_on_error = touch_config.get('fail_on_error', True)
+            # 获取失败处理选项（强制启用）
+            fail_on_error = True
 
-            # 创建MAA风格配置
-            maa_config = MaaFwTouchConfig(
-                press_duration_ms=maa_style_config.get('press_duration_ms', 50),
-                press_jitter_px=maa_style_config.get('press_jitter_px', 2),
-                swipe_delay_min_ms=maa_style_config.get('swipe_delay_min_ms', 100),
-                swipe_delay_max_ms=maa_style_config.get('swipe_delay_max_ms', 300),
-                use_normalized_coords=maa_style_config.get('use_normalized_coords', True),
-                fail_on_error=fail_on_error
-            )
+            # 创建统一触控管理器
+            self.touch_executor = TouchManager()
             
-            self.logger.info(LogCategory.MAIN, "触控配置加载完成")
-            
-            self.touch_executor = TouchExecutor(
-                adb_manager=self.adb_manager,
-                config=maa_config
-            )
-            
-            self.logger.info(LogCategory.MAIN, "触控执行器初始化完成（MAA风格）",
-                           press_duration_ms=maa_config.press_duration_ms,
-                           jitter_px=maa_config.press_jitter_px,
-                           normalized_coords=maa_config.use_normalized_coords)
+            self.logger.info(LogCategory.MAIN, "触控管理器初始化完成",
+                           touch_method=touch_method,
+                           fail_on_error=fail_on_error)
             
             self.logger.debug(LogCategory.MAIN, "初始化任务管理模块")
             self.task_manager = TaskManager(
@@ -234,7 +221,8 @@ class ReAcrtureClientGUI:
                 self.touch_executor,
                 self.task_queue_manager,
                 self.communicator,
-                self.auth_manager
+                self.auth_manager,
+                self.config  # 传递配置以支持PC模式判断
             )
             
             # 初始化GUI管理器

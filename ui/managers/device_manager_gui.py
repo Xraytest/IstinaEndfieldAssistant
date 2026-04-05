@@ -10,18 +10,27 @@ from ui.theme import configure_canvas
 class DeviceManagerGUI:
     """设备管理GUI类"""
     
-    def __init__(self, parent_frame, device_manager, screen_capture, log_callback):
+    def __init__(self, parent_frame, device_manager, screen_capture, log_callback,
+                 touch_executor=None, config=None):
         self.parent_frame = parent_frame
         self.device_manager = device_manager
         self.screen_capture = screen_capture
         self.log_callback = log_callback
+        self.touch_executor = touch_executor  # TouchManager实例
+        self.config = config or {}
         self.current_image = None
+        
+        # 获取触控方式配置
+        touch_config = self.config.get('touch', {})
+        self.touch_method = touch_config.get('touch_method', 'maatouch')
+        self.is_pc_mode = self.touch_method == 'pc_foreground'
         
         # UI组件引用
         self.device_tree = None
         self.device_status_label = None
         self.preview_canvas = None
         self.manual_device_var = None
+        self.window_title_var = None  # PC窗口标题
         
         # 预览自动刷新相关
         self.preview_refresh_job = None
@@ -31,6 +40,57 @@ class DeviceManagerGUI:
         
     def setup_ui(self):
         """设置设备管理UI"""
+        if self.is_pc_mode:
+            self._setup_pc_ui()
+        else:
+            self._setup_android_ui()
+        
+        # 屏幕预览（缩小比例）- 两种模式都需要
+        preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="6")
+        preview_frame.pack(fill='both', expand=True)
+        
+        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=150)
+        configure_canvas(self.preview_canvas)
+        self.preview_canvas.pack(fill='both', expand=True)
+    
+    def _setup_pc_ui(self):
+        """设置PC模式UI"""
+        # PC窗口连接区域
+        conn_frame = ttk.LabelFrame(self.parent_frame, text="PC窗口连接", padding="6")
+        conn_frame.pack(fill='x', pady=(0, 6))
+        
+        # 窗口标题输入
+        window_frame = ttk.Frame(conn_frame)
+        window_frame.pack(side=tk.LEFT, padx=(0, 10))
+        ttk.Label(window_frame, text="窗口标题:").pack(side=tk.LEFT)
+        self.window_title_var = tk.StringVar(value="Endfield")
+        window_entry = ttk.Entry(window_frame, textvariable=self.window_title_var, width=20)
+        window_entry.pack(side=tk.LEFT, padx=(5, 5))
+        
+        connect_btn = ttk.Button(window_frame, text="连接窗口", command=self.connect_pc_window)
+        connect_btn.pack(side=tk.LEFT)
+        
+        # 连接状态
+        self.device_status_label = ttk.Label(conn_frame, text="未连接PC窗口", style='Muted.TLabel')
+        self.device_status_label.pack(side=tk.LEFT)
+        
+        # 操作按钮
+        device_btn_frame = ttk.Frame(self.parent_frame)
+        device_btn_frame.pack(fill='x', pady=(0, 6))
+        
+        disconnect_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
+        disconnect_btn.pack(side=tk.LEFT)
+        
+        # 提示信息
+        info_frame = ttk.LabelFrame(self.parent_frame, text="PC模式说明", padding="6")
+        info_frame.pack(fill='x', pady=(0, 6))
+        ttk.Label(info_frame, text="PC前台模式：直接控制PC上的游戏窗口，无需Android设备。",
+                  style='Muted.TLabel').pack(anchor=tk.W)
+        ttk.Label(info_frame, text="请确保游戏窗口已打开且标题包含输入的关键词。",
+                  style='Muted.TLabel').pack(anchor=tk.W)
+    
+    def _setup_android_ui(self):
+        """设置Android模式UI"""
         # 设备连接区域
         conn_frame = ttk.LabelFrame(self.parent_frame, text="设备连接", padding="6")
         conn_frame.pack(fill='x', pady=(0, 6))
@@ -81,14 +141,6 @@ class DeviceManagerGUI:
         
         disconnect_device_btn = ttk.Button(device_btn_frame, text="断开连接", command=self.disconnect_device)
         disconnect_device_btn.pack(side=tk.LEFT)
-        
-        # 屏幕预览（缩小比例）
-        preview_frame = ttk.LabelFrame(self.parent_frame, text="屏幕预览", padding="6")
-        preview_frame.pack(fill='both', expand=True)
-        
-        self.preview_canvas = tk.Canvas(preview_frame, bg='black', highlightthickness=0, height=150)
-        configure_canvas(self.preview_canvas)
-        self.preview_canvas.pack(fill='both', expand=True)
         
     def scan_devices(self):
         """扫描设备"""
@@ -169,12 +221,54 @@ class DeviceManagerGUI:
             messagebox.showerror("连接失败", f"无法连接到设备: {device_serial}")
             self.log_callback(f"连接设备失败: {device_serial}", "device", "ERROR")
             
+    def connect_pc_window(self):
+        """连接PC窗口"""
+        if not self.touch_executor:
+            messagebox.showerror("错误", "触控执行器未初始化")
+            return
+        
+        window_title = self.window_title_var.get().strip()
+        if not window_title:
+            messagebox.showwarning("警告", "请输入窗口标题")
+            return
+        
+        self.log_callback(f"尝试连接PC窗口: {window_title}", "device", "INFO")
+        
+        # 获取触控配置
+        touch_config = self.config.get('touch', {})
+        maa_style_config = touch_config.get('maa_style', {})
+        
+        # 创建配置字典
+        win32_config = {
+            'press_duration_ms': maa_style_config.get('press_duration_ms', 50),
+            'swipe_delay_min_ms': maa_style_config.get('swipe_delay_min_ms', 100),
+            'swipe_delay_max_ms': maa_style_config.get('swipe_delay_max_ms', 300),
+            'fail_on_error': True
+        }
+        
+        if self.touch_executor.connect_pc(window_title, win32_config):
+            self.update_device_status(f"已连接PC窗口: {window_title}", color='success')
+            self.log_callback(f"成功连接到PC窗口: {window_title}", "device", "INFO")
+            # 启动屏幕预览自动刷新
+            self.start_preview_refresh()
+        else:
+            messagebox.showerror("连接失败", f"无法连接到PC窗口: {window_title}\n请确保窗口已打开且标题正确")
+            self.log_callback(f"连接PC窗口失败: {window_title}", "device", "ERROR")
+    
     def disconnect_device(self):
         """断开设备连接"""
         # 停止屏幕预览自动刷新
         self.stop_preview_refresh()
-        self.device_manager.disconnect_device()
-        self.update_device_status("未连接设备")
+        
+        if self.is_pc_mode:
+            # PC模式断开触控管理器
+            if self.touch_executor:
+                self.touch_executor.disconnect()
+            self.update_device_status("未连接PC窗口")
+        else:
+            # Android模式断开设备管理器
+            self.device_manager.disconnect_device()
+            self.update_device_status("未连接设备")
         self.log_callback("设备连接已断开", "device", "INFO")
         
     def update_device_status(self, status_text, color='muted'):
@@ -205,21 +299,38 @@ class DeviceManagerGUI:
         Args:
             screen_data: 可选的屏幕数据（Base64编码），如果提供则直接使用，否则重新捕获
         """
-        current_device = self.device_manager.get_current_device()
-        if not current_device or not self.screen_capture:
-            # 如果没有连接设备，停止自动刷新
-            if self.preview_refresh_job:
-                self.preview_refresh_job = None
-            return
+        # 检查连接状态
+        if self.is_pc_mode:
+            # PC模式检查触控管理器连接
+            if not self.touch_executor or not self.touch_executor.is_connected:
+                if self.preview_refresh_job:
+                    self.preview_refresh_job = None
+                return
+        else:
+            # Android模式检查设备连接
+            current_device = self.device_manager.get_current_device()
+            if not current_device or not self.screen_capture:
+                if self.preview_refresh_job:
+                    self.preview_refresh_job = None
+                return
             
         try:
             # 如果没有提供screen_data，则重新捕获
             if screen_data is None:
-                screen_data = self.screen_capture.capture_screen(current_device)
-                if not screen_data:
-                    # 安排下一次刷新尝试
-                    self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
-                    return
+                if self.is_pc_mode:
+                    # PC模式使用触控管理器截图
+                    screen_bytes = self.touch_executor.screencap()
+                    if screen_bytes:
+                        screen_data = base64.b64encode(screen_bytes).decode('utf-8')
+                    else:
+                        self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
+                        return
+                else:
+                    # Android模式使用ScreenCapture
+                    screen_data = self.screen_capture.capture_screen(current_device)
+                    if not screen_data:
+                        self.preview_refresh_job = self.parent_frame.after(self.preview_refresh_interval, self.update_screen_preview)
+                        return
             
             # 解码Base64图像
             image_data = base64.b64decode(screen_data)

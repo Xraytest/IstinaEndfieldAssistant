@@ -576,7 +576,8 @@ class MaaFwTouchExecutor:
             return self._press_system_button(device_serial, button_name)
 
         elif action == "open_app":
-            app_name = params.get("app_name", "")
+            # 支持两种参数格式：app_name 或 text
+            app_name = params.get("app_name", params.get("text", ""))
             return self._open_app(device_serial, app_name)
 
         elif action == "terminate":

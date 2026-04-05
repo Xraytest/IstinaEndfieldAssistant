@@ -42,7 +42,7 @@ class SettingsManagerGUI:
         ttk.Label(touch_method_frame, text="触控方式:", style='Header.TLabel').pack(side=tk.LEFT)
         
         self.touch_method_var = tk.StringVar()
-        touch_method_options = ["maatouch", "minitouch"]
+        touch_method_options = ["maatouch", "pc_foreground"]  # 移除minitouch，添加PC-前台
         self.touch_method_combo = ttk.Combobox(
             touch_method_frame,
             textvariable=self.touch_method_var,
@@ -56,19 +56,8 @@ class SettingsManagerGUI:
         current_touch_method = self.config.get('touch', {}).get('touch_method', 'maatouch')
         self.touch_method_var.set(current_touch_method)
         
-        # 失败处理选项
-        fail_on_error_frame = ttk.Frame(touch_frame)
-        fail_on_error_frame.pack(fill='x', pady=(0, 10))
-        self.fail_on_error_var = tk.BooleanVar()
-        current_fail_on_error = self.config.get('touch', {}).get('fail_on_error', True)
-        self.fail_on_error_var.set(current_fail_on_error)
-        
-        ttk.Checkbutton(
-            fail_on_error_frame,
-            text="失败时停止执行（不回退到ADB）",
-            variable=self.fail_on_error_var,
-            style='TCheckbutton'
-        ).pack(side=tk.LEFT)
+        # 失败时停止执行 - 强制启用，不显示UI选项
+        self.fail_on_error_var = tk.BooleanVar(value=True)
         
         # 保存按钮
         save_btn = ttk.Button(touch_frame, text="保存设置", command=self.save_touch_settings, style='Primary.TButton')

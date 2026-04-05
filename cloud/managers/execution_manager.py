@@ -6,13 +6,19 @@ import base64
 class ExecutionManager:
     """执行管理业务逻辑类"""
     
-    def __init__(self, device_manager, screen_capture, touch_executor, task_queue_manager, communicator, auth_manager):
+    def __init__(self, device_manager, screen_capture, touch_executor, task_queue_manager, communicator, auth_manager, config=None):
         self.device_manager = device_manager
         self.screen_capture = screen_capture
         self.touch_executor = touch_executor
         self.task_queue_manager = task_queue_manager
         self.communicator = communicator
         self.auth_manager = auth_manager
+        self.config = config or {}
+        
+        # 获取触控方式配置
+        touch_config = self.config.get('touch', {})
+        self.touch_method = touch_config.get('touch_method', 'maatouch')
+        self.is_pc_mode = self.touch_method == 'pc_foreground'
         
         # 运行中操作跟踪
         self.running_operations = {}  # {operation_id: operation_info}
@@ -29,9 +35,15 @@ class ExecutionManager:
         """开始执行"""
         if not self.auth_manager.get_login_status():
             return False, "请先登录后再执行任务"
-            
-        if not self.device_manager.get_current_device():
-            return False, "请先连接设备"
+        
+        # PC模式不需要检查Android设备连接
+        if not self.is_pc_mode:
+            if not self.device_manager.get_current_device():
+                return False, "请先连接设备"
+        else:
+            # PC模式需要检查触控管理器是否已连接PC窗口
+            if not self.touch_executor.is_connected:
+                return False, "请先连接PC窗口（触控未初始化）"
             
         if self.task_queue_manager.is_queue_empty():
             return False, "任务队列为空"
@@ -208,22 +220,47 @@ class ExecutionManager:
                     
                     # 捕获屏幕
                     current_device = self.device_manager.get_current_device()
-                    if self.screen_capture and current_device:
-                        screen_data = self.screen_capture.capture_screen(current_device)
+                    
+                    if self.is_pc_mode:
+                        # PC模式：使用TouchManager的截图功能
+                        screen_data = self.touch_executor.screencap()
                         if not screen_data:
-                            log_callback("屏幕捕获失败", "execution", "ERROR")
+                            log_callback("PC窗口截图失败", "execution", "ERROR")
                             break
-                        # 获取实际发送的图像尺寸
-                        image_size = self.screen_capture.last_image_size
+                        # 获取PC窗口分辨率
+                        resolution = self.touch_executor.get_resolution()
+                        if resolution:
+                            image_size = resolution  # (width, height)
+                        else:
+                            image_size = (1920, 1080)
                         # 捕获成功后，调用预览更新回调
                         if preview_update_callback:
                             preview_update_callback(screen_data)
                     else:
-                        log_callback("屏幕捕获模块未初始化或设备未连接", "execution", "ERROR")
-                        break
+                        # Android模式：使用ScreenCapture模块
+                        if self.screen_capture and current_device:
+                            screen_data = self.screen_capture.capture_screen(current_device)
+                            if not screen_data:
+                                log_callback("屏幕捕获失败", "execution", "ERROR")
+                                break
+                            # 获取实际发送的图像尺寸
+                            image_size = self.screen_capture.last_image_size
+                            # 捕获成功后，调用预览更新回调
+                            if preview_update_callback:
+                                preview_update_callback(screen_data)
+                        else:
+                            log_callback("屏幕捕获模块未初始化或设备未连接", "execution", "ERROR")
+                            break
                         
                     # 获取设备信息
-                    if self.screen_capture and current_device:
+                    if self.is_pc_mode:
+                        # PC模式设备信息
+                        device_info = {
+                            'resolution': list(image_size) if image_size else [1920, 1080],
+                            'model': 'PC',
+                            'image_size': image_size
+                        }
+                    elif self.screen_capture and current_device:
                         device_info = self.screen_capture.get_device_info(current_device)
                         # 确保 image_size 在 device_info 中
                         if 'image_size' not in device_info or device_info['image_size'] is None:
@@ -282,7 +319,7 @@ class ExecutionManager:
                         
                     # 执行触控动作
                     touch_actions = response.get('data', {}).get('touch_actions', [])
-                    if touch_actions and self.touch_executor and current_device:
+                    if touch_actions and self.touch_executor:
                         # 使用新的 execute_tool_call 方法
                         for action in touch_actions:
                             action_type = action.get('action', '')
@@ -297,9 +334,10 @@ class ExecutionManager:
                             # 生成操作ID并记录运行中操作
                             operation_id = self._start_operation(action_type, params)
                             
-                            # 执行工具调用
+                            # 执行工具调用（PC模式不需要device_serial，Android模式需要）
+                            device_serial = current_device if not self.is_pc_mode else None
                             success = self.touch_executor.execute_tool_call(
-                                current_device, action_type, params
+                                device_serial, action_type, params
                             )
                             
                             # 标记操作完成
