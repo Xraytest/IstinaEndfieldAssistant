@@ -53,9 +53,15 @@ class MaaFwTouchExecutor:
         self.maa_resource = None
         self.connected_devices = {}  # device_serial -> controller
 
-        # 初始化 MaaFramework
-        user_path = "./"
-        Toolkit.init_option(user_path)
+        # 初始化 MaaFramework - 设置正确的DLL路径
+        # DLL文件位于 client/maa_integration 目录
+        maa_integration_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "maa_integration")
+        if os.path.exists(maa_integration_path):
+            Toolkit.init_option(maa_integration_path)
+            self.logger.debug(LogCategory.MAIN, f"MaaFramework DLL路径: {maa_integration_path}")
+        else:
+            # 回退到当前目录
+            Toolkit.init_option("./")
 
         self.logger.info(LogCategory.MAIN, "MaaFramework 触控执行器初始化完成",
                         normalized_coords=self.config.use_normalized_coords)
@@ -109,6 +115,9 @@ class MaaFwTouchExecutor:
             return self.connected_devices[device_serial]
 
         try:
+            # 获取ADB路径
+            adb_path = getattr(self.adb_manager, 'adb_path', 'adb')
+            
             # 查找 ADB 设备
             adb_devices = Toolkit.find_adb_devices()
             target_device = None
@@ -118,30 +127,50 @@ class MaaFwTouchExecutor:
                     target_device = device
                     break
 
+            # 基本ADB配置 - 使用简单的JSON对象格式
+            # 参考: https://github.com/MaaXYZ/MaaFramework
+            import json
+            adb_config = {
+                "configName": "Default",
+                "devices": "[Adb] devices",
+                "addressRegex": "([^\\n]+)\\tdevice",
+                "connect": "[Adb] connect [AdbSerial]",
+                "uuid": "[Adb] -s [AdbSerial] shell settings get secure android_id",
+                "screencapRawWithGzip": "[Adb] -s [AdbSerial] exec-out \"screencap | gzip -1\"",
+                "screencapEncode": "[Adb] -s [AdbSerial] exec-out screencap -p",
+                "click": "[Adb] -s [AdbSerial] shell input tap [x] [y]",
+                "swipe": "[Adb] -s [AdbSerial] shell input swipe [x1] [y1] [x2] [y2] [duration]",
+                "pressEsc": "[Adb] -s [AdbSerial] shell input keyevent 111"
+            }
+            config_json = json.dumps(adb_config)
+
             if not target_device:
                 # 如果没找到精确匹配，尝试使用序列号作为地址
                 self.logger.warning(LogCategory.MAIN,
                                   f"未找到设备 {device_serial}，尝试直接连接")
-                # 创建一个基本的设备配置
-                from maa.define import MaaAdbScreencapMethod, MaaAdbInputMethod
-                target_device = type('MockDevice', (), {
-                    'adb_path': getattr(self.adb_manager, 'adb_path', 'adb'),
-                    'address': device_serial,
-                    'screencap_methods': MaaAdbScreencapMethod.All,
-                    'input_methods': MaaAdbInputMethod.All,
-                    'config': ''
-                })()
-
-            # 创建控制器
-            controller = AdbController(
-                adb_path=target_device.adb_path,
-                address=target_device.address,
-                screencap_methods=target_device.screencap_methods,
-                input_methods=target_device.input_methods,
-                config=target_device.config,
-            )
+                
+                from maa.define import MaaAdbScreencapMethodEnum, MaaAdbInputMethodEnum
+                # 创建控制器
+                controller = AdbController(
+                    adb_path=adb_path,
+                    address=device_serial,
+                    screencap_methods=MaaAdbScreencapMethodEnum.Default,
+                    input_methods=MaaAdbInputMethodEnum.Default,
+                    config=config_json,
+                )
+            else:
+                # 使用找到的设备信息创建控制器
+                controller = AdbController(
+                    adb_path=target_device.adb_path,
+                    address=target_device.address,
+                    screencap_methods=target_device.screencap_methods,
+                    input_methods=target_device.input_methods,
+                    config=config_json,
+                )
 
             # 连接设备
+            self.logger.info(LogCategory.MAIN,
+                           f"正在连接设备 {device_serial}")
             connection_result = controller.post_connection().wait()
             if not connection_result:
                 self.logger.error(LogCategory.MAIN,
@@ -247,31 +276,32 @@ class MaaFwTouchExecutor:
             start_y = y
 
         self.logger.info(LogCategory.MAIN,
-                        f"👆 MAA安全按压 ({start_x},{start_y})→({end_x},{end_y}) "
+                        f"MAA安全按压 ({start_x},{start_y})→({end_x},{end_y}) "
                         f"duration={self.config.press_duration_ms}ms | "
                         f"抖动±{jitter} | purpose={purpose}")
 
-        # 执行点击（使用 MaaFramework 的 click 方法）
+        # 执行点击
         controller = self._get_or_create_controller(device_serial)
-        if not controller:
-            self.logger.error(LogCategory.MAIN, "无法获取 MaaFramework 控制器")
-            return False
-
-        try:
-            # MaaFramework 的 click 方法已经处理了底层协议
-            result = controller.post_click(end_x, end_y).wait()
-            if result:
-                self.logger.info(LogCategory.MAIN,
-                                f"MaaFramework 点击执行成功：({end_x},{end_y})")
-            else:
-                self.logger.error(LogCategory.MAIN,
-                                f"MaaFramework 点击执行失败：({end_x},{end_y})")
-                return False
-
-        except Exception as e:
-            self.logger.exception(LogCategory.MAIN,
-                                f"MaaFramework 点击执行异常：{e}")
-            return False
+        if controller:
+            try:
+                # MaaFramework 的 click 方法
+                result = controller.post_click(end_x, end_y).wait()
+                if result:
+                    self.logger.info(LogCategory.MAIN,
+                                    f"MaaFramework 点击执行成功：({end_x},{end_y})")
+                else:
+                    self.logger.error(LogCategory.MAIN,
+                                    f"MaaFramework 点击执行失败，尝试ADB回退")
+                    # 回退到ADB命令
+                    return self._adb_click(device_serial, end_x, end_y)
+            except Exception as e:
+                self.logger.warning(LogCategory.MAIN,
+                                f"MaaFramework 点击执行异常，尝试ADB回退：{e}")
+                return self._adb_click(device_serial, end_x, end_y)
+        else:
+            # 直接使用ADB命令
+            self.logger.info(LogCategory.MAIN, "使用ADB命令执行点击")
+            return self._adb_click(device_serial, end_x, end_y)
 
         # MAA风格：操作后添加随机延迟
         delay = random.uniform(self.config.swipe_delay_min_ms,
@@ -281,6 +311,62 @@ class MaaFwTouchExecutor:
                         f"MAA延迟: {delay:.1f}ms")
 
         return True
+
+    def _adb_click(self, device_serial: str, x: int, y: int) -> bool:
+        """使用ADB命令执行点击（回退方案）"""
+        try:
+            if hasattr(self.adb_manager, '_run_adb_command'):
+                success, output = self.adb_manager._run_adb_command([
+                    "-s", device_serial, "shell", "input", "tap", str(x), str(y)
+                ])
+                if success:
+                    self.logger.info(LogCategory.MAIN,
+                                    f"ADB点击执行成功：({x},{y})")
+                    # 添加延迟
+                    delay = random.uniform(self.config.swipe_delay_min_ms,
+                                         self.config.swipe_delay_max_ms)
+                    time.sleep(delay / 1000)
+                    return True
+                else:
+                    self.logger.error(LogCategory.MAIN,
+                                    f"ADB点击执行失败：{output}")
+                    return False
+            else:
+                self.logger.error(LogCategory.MAIN, "ADB管理器不可用")
+                return False
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN,
+                                f"ADB点击执行异常：{e}")
+            return False
+
+    def _adb_swipe(self, device_serial: str, x1: int, y1: int,
+                   x2: int, y2: int, duration: int = 300) -> bool:
+        """使用ADB命令执行滑动（回退方案）"""
+        try:
+            if hasattr(self.adb_manager, '_run_adb_command'):
+                success, output = self.adb_manager._run_adb_command([
+                    "-s", device_serial, "shell", "input", "swipe",
+                    str(x1), str(y1), str(x2), str(y2), str(duration)
+                ])
+                if success:
+                    self.logger.info(LogCategory.MAIN,
+                                    f"ADB滑动执行成功：({x1},{y1})->({x2},{y2})")
+                    # 添加延迟
+                    delay = random.uniform(self.config.swipe_delay_min_ms,
+                                         self.config.swipe_delay_max_ms)
+                    time.sleep(delay / 1000)
+                    return True
+                else:
+                    self.logger.error(LogCategory.MAIN,
+                                    f"ADB滑动执行失败：{output}")
+                    return False
+            else:
+                self.logger.error(LogCategory.MAIN, "ADB管理器不可用")
+                return False
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN,
+                                f"ADB滑动执行异常：{e}")
+            return False
 
     def safe_swipe(self, device_serial: str, x1: int, y1: int,
                    x2: int, y2: int, duration: int = 300,
@@ -307,30 +393,30 @@ class MaaFwTouchExecutor:
             end_y = max(0, min(end_y, resolution[1] - 1))
 
         self.logger.info(LogCategory.MAIN,
-                        f"👆 MAA安全滑动 ({start_x},{start_y})→({end_x},{end_y}) "
+                        f"MAA安全滑动 ({start_x},{start_y})→({end_x},{end_y}) "
                         f"duration={duration}ms | "
                         f"抖动±{jitter} | purpose={purpose}")
 
         # 执行滑动
         controller = self._get_or_create_controller(device_serial)
-        if not controller:
-            self.logger.error(LogCategory.MAIN, "无法获取 MaaFramework 控制器")
-            return False
-
-        try:
-            result = controller.post_swipe(start_x, start_y, end_x, end_y, duration).wait()
-            if result:
-                self.logger.info(LogCategory.MAIN,
-                                f"MaaFramework 滑动执行成功：({start_x},{start_y})→({end_x},{end_y})")
-            else:
-                self.logger.error(LogCategory.MAIN,
-                                f"MaaFramework 滑动执行失败：({start_x},{start_y})→({end_x},{end_y})")
-                return False
-
-        except Exception as e:
-            self.logger.exception(LogCategory.MAIN,
-                                f"MaaFramework 滑动执行异常：{e}")
-            return False
+        if controller:
+            try:
+                result = controller.post_swipe(start_x, start_y, end_x, end_y, duration).wait()
+                if result:
+                    self.logger.info(LogCategory.MAIN,
+                                    f"MaaFramework 滑动执行成功：({start_x},{start_y})→({end_x},{end_y})")
+                else:
+                    self.logger.warning(LogCategory.MAIN,
+                                    f"MaaFramework 滑动执行失败，尝试ADB回退")
+                    return self._adb_swipe(device_serial, start_x, start_y, end_x, end_y, duration)
+            except Exception as e:
+                self.logger.warning(LogCategory.MAIN,
+                                f"MaaFramework 滑动执行异常，尝试ADB回退：{e}")
+                return self._adb_swipe(device_serial, start_x, start_y, end_x, end_y, duration)
+        else:
+            # 直接使用ADB命令
+            self.logger.info(LogCategory.MAIN, "使用ADB命令执行滑动")
+            return self._adb_swipe(device_serial, start_x, start_y, end_x, end_y, duration)
 
         # MAA风格：操作后添加随机延迟
         delay = random.uniform(self.config.swipe_delay_min_ms,
@@ -355,7 +441,7 @@ class MaaFwTouchExecutor:
         end_y = y
 
         self.logger.info(LogCategory.MAIN,
-                        f"👆 MAA安全长按 ({start_x},{start_y})→({end_x},{end_y}) "
+                        f"MAA安全长按 ({start_x},{start_y})→({end_x},{end_y}) "
                         f"duration={duration_ms}ms | "
                         f"抖动±{jitter} | purpose={purpose}")
 
@@ -458,16 +544,40 @@ class MaaFwTouchExecutor:
             self.logger.warning(LogCategory.MAIN, "应用名称为空")
             return False
 
-        self.logger.debug(LogCategory.MAIN, "执行打开应用操作", app_name=app_name)
+        # 应用名称到包名的映射表
+        app_package_mapping = {
+            "明日方舟：终末地": "com.hypergryph.endfield",
+            "明日方舟终末地": "com.hypergryph.endfield",
+            "终末地": "com.hypergryph.endfield",
+            "endfield": "com.hypergryph.endfield",
+            "arknights": "com.hypergryph.arknights",
+            "明日方舟": "com.hypergryph.arknights",
+            "blue archive": "com.nexon.bluearchive",
+            "蔚蓝档案": "com.nexon.bluearchive",
+        }
+
+        # 获取包名：优先使用映射表，如果app_name看起来像包名则直接使用
+        package_name = app_package_mapping.get(app_name, app_name)
+        
+        # 如果app_name不像是包名（不包含点），尝试通过映射查找
+        if '.' not in app_name and app_name not in app_package_mapping:
+            self.logger.warning(LogCategory.MAIN, f"未知应用名称: {app_name}, 尝试使用原始名称")
+            package_name = app_name
+
+        self.logger.debug(LogCategory.MAIN, "执行打开应用操作",
+                         app_name=app_name, package_name=package_name)
+        
         # 使用 ADB monkey 命令启动应用
         if hasattr(self.adb_manager, '_run_adb_command'):
-            cmd = ["-s", device_serial, "shell", "monkey", "-p", app_name,
+            cmd = ["-s", device_serial, "shell", "monkey", "-p", package_name,
                    "-c", "android.intent.category.LAUNCHER", "1"]
             success, _ = self.adb_manager._run_adb_command(cmd)
             if success:
-                self.logger.debug(LogCategory.MAIN, "打开应用操作执行完成", app_name=app_name)
+                self.logger.info(LogCategory.MAIN, "打开应用操作执行完成",
+                                app_name=app_name, package_name=package_name)
             else:
-                self.logger.exception(LogCategory.MAIN, "打开应用操作执行失败", app_name=app_name)
+                self.logger.exception(LogCategory.MAIN, "打开应用操作执行失败",
+                                     app_name=app_name, package_name=package_name)
             return success
         else:
             self.logger.warning(LogCategory.MAIN, f"无法打开应用：{app_name}")
@@ -502,21 +612,37 @@ class MaaFwTouchExecutor:
             if isinstance(coordinates, dict) and "start" in coordinates and isinstance(coordinates["start"], list):
                 norm_x, norm_y = coordinates["start"]
                 device_x, device_y = self._normalize_to_pixel_coords(device_serial, norm_x, norm_y)
-            # 格式2: 数组格式 [x, y] 或 [x1, y1, x2, y2] - 像素坐标
+            # 格式2: 数组格式 [x, y] - 需要判断是归一化坐标还是像素坐标
             elif isinstance(coordinates, list) and len(coordinates) >= 2:
                 x, y = coordinates[0], coordinates[1]
-                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                # 判断是否为归一化坐标（值在0-1范围内）
+                if x <= 1.0 and y <= 1.0:
+                    # 归一化坐标，需要转换
+                    device_x, device_y = self._normalize_to_pixel_coords(device_serial, x, y)
+                    self.logger.debug(LogCategory.MAIN,
+                                    f"检测到归一化坐标 [{x}, {y}]，转换为像素坐标 ({device_x}, {device_y})")
+                else:
+                    # 像素坐标，直接使用
+                    device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
             # 格式3: 兼容旧格式 - 单独的 x, y 字段
             elif params.get("x") is not None or params.get("y") is not None:
                 x = params.get("x", 0)
                 y = params.get("y", 0)
-                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                # 判断是否为归一化坐标
+                if x <= 1.0 and y <= 1.0:
+                    device_x, device_y = self._normalize_to_pixel_coords(device_serial, x, y)
+                else:
+                    device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
             # 格式4: coordinates 为 None 但有其他坐标字段
             else:
                 # 尝试从 params 中获取
                 x = params.get("x", 0)
                 y = params.get("y", 0)
-                device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
+                # 判断是否为归一化坐标
+                if x <= 1.0 and y <= 1.0:
+                    device_x, device_y = self._normalize_to_pixel_coords(device_serial, x, y)
+                else:
+                    device_x, device_y = self._validate_pixel_coords(device_serial, int(x), int(y))
 
             purpose = params.get("purpose", "点击")
 

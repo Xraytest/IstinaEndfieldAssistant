@@ -224,6 +224,8 @@ class MainGUIManager:
                # 更新GUI状态
                if self.device_gui:
                    self.device_gui.update_device_status(f"已连接: {last_device}", 'success')
+                   # 初始化触控执行器
+                   self.device_gui._init_touch_executor(last_device)
                    self.device_gui.start_preview_refresh()
                self.log_callback(f"自动连接到上次的设备: {last_device}", "device", "INFO")
            else:

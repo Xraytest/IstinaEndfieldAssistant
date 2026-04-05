@@ -274,7 +274,20 @@ def interactive_session(analyzer: VLMMultiTurnAnalyzer, image_path: str):
     
     # 开始初始分析
     initial_response = analyzer.start_analysis(image_path)
-    print(f"\n[VLM响应]:\n{initial_response}\n")
+    # 移除emoji字符避免GBK编码错误
+    import re
+    emoji_pattern = re.compile("["
+        u"\U0001F600-\U0001F64F"  # emoticons
+        u"\U0001F300-\U0001F5FF"  # symbols & pictographs
+        u"\U0001F680-\U0001F6FF"  # transport & map symbols
+        u"\U0001F1E0-\U0001F1FF"  # flags
+        u"\U00002702-\U000027B0"
+        u"\U000024C2-\U0001F251"
+        u"\u2b50"  # star
+        u"\u2605"  # star
+        "]+", flags=re.UNICODE)
+    safe_response = emoji_pattern.sub('', initial_response)
+    print(f"\n[VLM响应]:\n{safe_response}\n")
     
     # 进入交互循环
     print("=" * 60)

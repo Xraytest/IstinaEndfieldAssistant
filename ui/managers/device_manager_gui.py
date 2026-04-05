@@ -185,6 +185,8 @@ class DeviceManagerGUI:
                 if self.device_manager.connect_device_manual(last_connected):
                     self.update_device_status(f"已连接: {last_connected}", color='success')
                     self.log_callback(f"成功连接到上次设备: {last_connected}", "device", "INFO")
+                    # 初始化触控执行器（Android设备需要）
+                    self._init_touch_executor(last_connected)
                     # 启动屏幕预览自动刷新
                     self.start_preview_refresh()
                     return
@@ -199,6 +201,8 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device(device_serial):
             self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
+            # 初始化触控执行器（Android设备需要）
+            self._init_touch_executor(device_serial)
             # 启动屏幕预览自动刷新
             self.start_preview_refresh()
         else:
@@ -215,6 +219,8 @@ class DeviceManagerGUI:
         if self.device_manager.connect_device_manual(device_serial):
             self.update_device_status(f"已连接: {device_serial}", color='success')
             self.log_callback(f"成功连接到设备: {device_serial}", "device", "INFO")
+            # 初始化触控执行器（Android设备需要）
+            self._init_touch_executor(device_serial)
             # 启动屏幕预览自动刷新
             self.start_preview_refresh()
         else:
@@ -268,6 +274,34 @@ class DeviceManagerGUI:
             self.device_manager.disconnect_device()
             self.update_device_status("未连接设备")
         self.log_callback("设备连接已断开", "device", "INFO")
+        
+    def _init_touch_executor(self, device_serial: str):
+        """初始化Android设备的触控执行器
+        
+        Args:
+            device_serial: 设备序列号
+        """
+        if not self.touch_executor:
+            self.log_callback("触控执行器未初始化，跳过触控连接", "device", "WARNING")
+            return
+            
+        # 获取触控配置
+        touch_config = self.config.get('touch', {})
+        
+        # 获取ADB管理器
+        adb_manager = self.device_manager.adb_manager if hasattr(self.device_manager, 'adb_manager') else None
+        if not adb_manager:
+            self.log_callback("ADB管理器未初始化，无法连接触控执行器", "device", "ERROR")
+            return
+        
+        # 连接Android设备到触控执行器
+        try:
+            if self.touch_executor.connect_android(adb_manager, device_serial, touch_config):
+                self.log_callback(f"触控执行器已连接到设备: {device_serial}", "device", "INFO")
+            else:
+                self.log_callback(f"触控执行器连接失败: {device_serial}", "device", "WARNING")
+        except Exception as e:
+            self.log_callback(f"触控执行器连接异常: {str(e)}", "device", "ERROR")
         
     def update_device_status(self, status_text, color='muted'):
         """更新设备状态显示"""

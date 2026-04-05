@@ -318,9 +318,19 @@ class ExecutionManager:
                             break
                         
                     # 执行触控动作
-                    # 服务端返回的 touch_actions 在顶级字段，不是在 data 子对象中
-                    touch_actions = response.get('touch_actions', [])
-                    # 兼容旧格式：如果顶级没有，尝试从 data 子对象获取
+                    # 调试日志：记录完整响应内容的关键字段
+                    log_callback(f"服务端响应状态: {response.get('status')}", "execution", "INFO")
+                    log_callback(f"服务端响应keys: {list(response.keys())}", "execution", "INFO")
+                    
+                    # 服务端返回格式: {"status": "success", "result": {...}}
+                    # touch_actions 在 result 子对象中
+                    result_data = response.get('result', {})
+                    touch_actions = result_data.get('touch_actions', [])
+                    
+                    # 兼容旧格式：如果result中没有，尝试从顶级获取
+                    if not touch_actions:
+                        touch_actions = response.get('touch_actions', [])
+                    # 再兼容data子对象格式
                     if not touch_actions:
                         touch_actions = response.get('data', {}).get('touch_actions', [])
                     
