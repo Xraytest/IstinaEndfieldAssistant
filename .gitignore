@@ -1,3 +1,25 @@
+# 3rd-party tools
 3rd-part/ADB
 3rd-part/Git
+
+# Cache files
 cache/
+
+# Logs
+logs/
+core/logs/
+*.log
+
+# Debug outputs
+debug_output/
+debug/
+
+# Test files
+test_screenshot.png
+test_tap.png
+
+# Pytest cache
+.pytest_cache/
+
+# Sensitive files
+*.arkpass
