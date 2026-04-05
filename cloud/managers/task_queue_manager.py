@@ -85,7 +85,7 @@ class TaskQueueManager:
         import os
         import json
         
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
             

@@ -15,7 +15,7 @@ class DeviceManager:
         
     def _load_last_connected_device(self):
         """加载上次连接的设备"""
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         device_cache_file = os.path.join(cache_dir, "last_device.json")
         
         if os.path.exists(device_cache_file):
@@ -29,7 +29,7 @@ class DeviceManager:
         
     def _save_last_connected_device(self, device_serial):
         """保存上次连接的设备"""
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
             
@@ -79,7 +79,7 @@ class DeviceManager:
     def clear_last_connected_device(self):
         """清除上次连接的设备缓存"""
         self.last_connected_device = None
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         device_cache_file = os.path.join(cache_dir, "last_device.json")
         if os.path.exists(device_cache_file):
             try:

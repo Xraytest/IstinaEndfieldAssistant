@@ -33,7 +33,7 @@ class AuthManager:
                         "server_port": self.config['server']['port']
                     }
                     
-                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    cache_dir = "cache"
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
                         
@@ -101,7 +101,7 @@ class AuthManager:
                 session_id = response.get('session_id')
                 if session_id:
                     # 缓存arkpass文件到本地
-                    cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+                    cache_dir = "cache"
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
                         
@@ -162,7 +162,7 @@ class AuthManager:
         possible_paths = []
 
         # 1. 客户端缓存目录
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         else:
@@ -280,7 +280,7 @@ class AuthManager:
         possible_paths = []
         
         # 1. 客户端缓存目录
-        cache_dir = os.path.join(os.path.dirname(__file__), "..", "cache")
+        cache_dir = "cache"
         if os.path.exists(cache_dir):
             cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
             possible_paths.extend(cache_files)

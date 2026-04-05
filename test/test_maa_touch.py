@@ -248,15 +248,15 @@ def test_maatouch_service_management():
     # 测试配置加载
     adb_manager = MockADBManager()
     
-    # 测试ADB Input模式（默认）
-    adb_config = MaaTouchConfig(
-        touch_method=TouchMethod.ADB_INPUT,
+    # 测试Minitouch模式
+    minitouch_config = MaaTouchConfig(
+        touch_method=TouchMethod.MINITOUCH,
         minitouch_binary_path=config_path,
         maatouch_binary_path=config_path
     )
-    executor = TouchExecutor(adb_manager=adb_manager, config=adb_config)
-    assert executor.config.touch_method == TouchMethod.ADB_INPUT
-    print(f"✓ ADB Input模式配置正确")
+    executor = TouchExecutor(adb_manager=adb_manager, config=minitouch_config)
+    assert executor.config.touch_method == TouchMethod.MINITOUCH
+    print(f"✓ Minitouch模式配置正确")
     
     # 测试MaaTouch模式
     maatouch_config = MaaTouchConfig(

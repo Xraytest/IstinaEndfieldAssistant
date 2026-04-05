@@ -23,7 +23,6 @@ from core.logger import get_logger, LogCategory
 
 class TouchMethod(Enum):
     """触控方法枚举"""
-    ADB_INPUT = "adb_input"          # 基础方案
     MINITOUCH = "minitouch"          # 高精度方案
     MAATOUCH = "maatouch"            # MAA兼容方案
 
@@ -41,7 +40,7 @@ class MaaTouchConfig:
     use_normalized_coords: bool = True  # 使用归一化坐标 [0, 1]
     
     # 触控方法
-    touch_method: TouchMethod = TouchMethod.ADB_INPUT
+    touch_method: TouchMethod = TouchMethod.MAATOUCH
     
     # 高级参数
     enable_swipe_with_pause: bool = False  # 启用滑动暂停检测
@@ -467,38 +466,8 @@ class TouchExecutor:
             return self._swipe_minitouch(device_serial, x1, y1, x2, y2, duration)
         elif method == TouchMethod.MAATOUCH:
             return self._swipe_maatouch(device_serial, x1, y1, x2, y2, duration)
-        else:  # TouchMethod.ADB_INPUT
-            return self._swipe_adb_input(device_serial, x1, y1, x2, y2, duration)
-    
-    def _swipe_adb_input(self, device_serial: str, x1: int, y1: int,
-                        x2: int, y2: int, duration: int) -> bool:
-        """
-        使用ADB shell input swipe执行滑动（基础方案）
-        
-        命令格式：
-        adb -s <device> shell input swipe <sx> <sy> <ex> <ey> <duration>
-        
-        Args:
-            device_serial: 设备序列号
-            x1: 起始X坐标
-            y1: 起始Y坐标
-            x2: 结束X坐标
-            y2: 结束Y坐标
-            duration: 持续时间（毫秒）
-            
-        Returns:
-            操作是否成功
-        """
-        cmd = ["-s", device_serial, "shell", "input", "swipe",
-               str(x1), str(y1), str(x2), str(y2), str(duration)]
-        success, _ = self.adb_manager._run_adb_command(cmd)
-        if success:
-            self.logger.debug(LogCategory.MAIN,
-                            f"ADB Input滑动执行成功: ({x1},{y1})→({x2},{y2})")
-        else:
-            self.logger.exception(LogCategory.MAIN,
-                            f"ADB Input滑动执行失败")
-        return success
+        else:  # 默认使用MaaTouch
+            return self._swipe_maatouch(device_serial, x1, y1, x2, y2, duration)
     
     def _swipe_minitouch(self, device_serial: str, x1: int, y1: int,
                         x2: int, y2: int, duration: int) -> bool:
@@ -527,8 +496,8 @@ class TouchExecutor:
         # 确保minitouch服务已启动
         if not self._ensure_minitouch(device_serial):
             self.logger.warning(LogCategory.MAIN,
-                              "Minitouch不可用，回退到ADB Input")
-            return self._swipe_adb_input(device_serial, x1, y1, x2, y2, duration)
+                              "Minitouch不可用，尝试使用MaaTouch")
+            return self._swipe_maatouch(device_serial, x1, y1, x2, y2, duration)
         
         try:
             # 获取设备分辨率用于归一化
@@ -557,8 +526,8 @@ class TouchExecutor:
         except Exception as e:
             self.logger.exception(LogCategory.MAIN,
                                 f"Minitouch滑动执行失败: {e}")
-            # 回退到ADB Input
-            return self._swipe_adb_input(device_serial, x1, y1, x2, y2, duration)
+            # 尝试使用MaaTouch
+            return self._swipe_maatouch(device_serial, x1, y1, x2, y2, duration)
     
     def _swipe_maatouch(self, device_serial: str, x1: int, y1: int,
                        x2: int, y2: int, duration: int) -> bool:
@@ -582,8 +551,8 @@ class TouchExecutor:
         # 确保maatouch服务已启动
         if not self._ensure_maatouch(device_serial):
             self.logger.warning(LogCategory.MAIN,
-                              "MaaTouch不可用，回退到ADB Input")
-            return self._swipe_adb_input(device_serial, x1, y1, x2, y2, duration)
+                              "MaaTouch不可用，触控操作失败")
+            return False
         
         try:
             # 获取设备分辨率用于归一化
@@ -611,8 +580,7 @@ class TouchExecutor:
         except Exception as e:
             self.logger.exception(LogCategory.MAIN,
                                 f"MaaTouch滑动执行失败: {e}")
-            # 回退到ADB Input
-            return self._swipe_adb_input(device_serial, x1, y1, x2, y2, duration)
+            return False
     
     # ===== Minitouch/MaaTouch服务管理 =====
     def _ensure_minitouch(self, device_serial: str) -> bool:

@@ -390,13 +390,9 @@ class MinitouchController:
                     time.sleep(0.1)
                     return True
                 else:
-                    # Fallback to basic ADB mode
-                    self.adb_manager.execute_shell_command(
-                        self.device_id,
-                        f"input tap {x} {y}"
-                    )
-                    time.sleep(0.1)
-                    return True
+                    # Minitouch不可用，触控操作失败
+                    logger.error("Minitouch not available, click operation failed")
+                    return False
 
         except Exception as e:
             logger.error(f"Click operation failed: {e}")
@@ -465,13 +461,9 @@ class MinitouchController:
                     time.sleep(duration / 1000 + 0.1)
                     return True
                 else:
-                    # Fallback to basic ADB mode
-                    self.adb_manager.execute_shell_command(
-                        self.device_id,
-                        f"input swipe {x1} {y1} {x2} {y2} {duration}"
-                    )
-                    time.sleep(duration / 1000 + 0.1)
-                    return True
+                    # Minitouch不可用，触控操作失败
+                    logger.error("Minitouch not available, swipe operation failed")
+                    return False
 
         except Exception as e:
             logger.error(f"Swipe operation failed: {e}")

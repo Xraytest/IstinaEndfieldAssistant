@@ -37,11 +37,10 @@ except ImportError as e:
 
 class TouchMethod:
     """触控方法枚举（兼容旧版）"""
-    ADB_INPUT = "adb_input"
     MINITOUCH = "minitouch"
     MAATOUCH = "maatouch"
     
-    def __init__(self, value: str = "adb_input"):
+    def __init__(self, value: str = "maatouch"):
         self.value = value
     
     def __str__(self):

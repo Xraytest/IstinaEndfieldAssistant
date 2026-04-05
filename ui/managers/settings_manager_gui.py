@@ -42,7 +42,7 @@ class SettingsManagerGUI:
         ttk.Label(touch_method_frame, text="触控方式:", style='Header.TLabel').pack(side=tk.LEFT)
         
         self.touch_method_var = tk.StringVar()
-        touch_method_options = ["maatouch", "adb_input"]
+        touch_method_options = ["maatouch", "minitouch"]
         self.touch_method_combo = ttk.Combobox(
             touch_method_frame,
             textvariable=self.touch_method_var,
