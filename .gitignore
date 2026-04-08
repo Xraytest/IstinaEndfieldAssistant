@@ -2,24 +2,48 @@
 3rd-part/ADB
 3rd-part/Git
 
+# MAA Integration DLLs and resources
+maa_integration/*.dll
+maa_integration/resource/
+maa_integration/config/
+
 # Cache files
 cache/
+**/cache/
 
 # Logs
 logs/
 core/logs/
+**/logs/
 *.log
 
 # Debug outputs
 debug_output/
 debug/
+**/debug_output/
+**/debug/
 
-# Test files
+# Extracted UI images
+extracted_images/
+
+# Test files and scripts output
 test_screenshot.png
 test_tap.png
+test_scripts/diagnostic_screenshot.png
+**/test_*.png
 
 # Pytest cache
 .pytest_cache/
+**/.pytest_cache/
 
 # Sensitive files
 *.arkpass
+
+# Python compiled files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# IDE files
+.idea/
+.vscode/
