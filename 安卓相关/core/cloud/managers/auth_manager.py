@@ -33,10 +33,13 @@ class AuthManager:
                         "server_port": self.config['server']['port']
                     }
                     
-                    cache_dir = "cache"
+                    # 使用IstinaEndfieldAssistant根目录下的cache目录
+                    # auth_manager.py -> managers -> cloud -> core -> 安卓相关 -> IstinaEndfieldAssistant
+                    istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+                    cache_dir = os.path.join(istina_root, "cache")
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
-                        
+                    
                     arkpass_path = os.path.join(cache_dir, f"{username}.arkpass")
                     with open(arkpass_path, 'w', encoding='utf-8') as f:
                         json.dump(arkpass_data, f, indent=2)
@@ -100,11 +103,13 @@ class AuthManager:
             if response.get('status') == 'success':
                 session_id = response.get('session_id')
                 if session_id:
-                    # 缓存arkpass文件到本地
-                    cache_dir = "cache"
+                    # 缓存arkpass文件到IstinaEndfieldAssistant根目录下的cache目录
+                    # auth_manager.py -> managers -> cloud -> core -> 安卓相关 -> IstinaEndfieldAssistant
+                    istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+                    cache_dir = os.path.join(istina_root, "cache")
                     if not os.path.exists(cache_dir):
                         os.makedirs(cache_dir)
-                        
+                    
                     filename = os.path.basename(file_path)
                     cache_path = os.path.join(cache_dir, filename)
                     with open(cache_path, 'w', encoding='utf-8') as f:
@@ -161,18 +166,19 @@ class AuthManager:
         # 检查多个可能的arkpass文件位置
         possible_paths = []
 
-        # 1. 客户端缓存目录
-        cache_dir = "cache"
+        # 1. IstinaEndfieldAssistant根目录下的cache目录
+        # auth_manager.py -> managers -> cloud -> core -> 安卓相关 -> IstinaEndfieldAssistant
+        istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        cache_dir = os.path.join(istina_root, "cache")
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
         else:
             cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
             possible_paths.extend(cache_files)
 
-        # 2. 项目根目录（相对于client目录的上一级）
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        if os.path.exists(project_root):
-            root_files = [os.path.join(project_root, f) for f in os.listdir(project_root) if f.endswith('.arkpass')]
+        # 2. IstinaEndfieldAssistant根目录
+        if os.path.exists(istina_root):
+            root_files = [os.path.join(istina_root, f) for f in os.listdir(istina_root) if f.endswith('.arkpass')]
             possible_paths.extend(root_files)
 
         # 3. 当前工作目录
@@ -279,16 +285,17 @@ class AuthManager:
         # 检查多个可能的arkpass文件位置
         possible_paths = []
         
-        # 1. 客户端缓存目录
-        cache_dir = "cache"
+        # 1. IstinaEndfieldAssistant根目录下的cache目录
+        # auth_manager.py -> managers -> cloud -> core -> 安卓相关 -> IstinaEndfieldAssistant
+        istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        cache_dir = os.path.join(istina_root, "cache")
         if os.path.exists(cache_dir):
             cache_files = [os.path.join(cache_dir, f) for f in os.listdir(cache_dir) if f.endswith('.arkpass')]
             possible_paths.extend(cache_files)
         
-        # 2. 项目根目录
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
-        if os.path.exists(project_root):
-            root_files = [os.path.join(project_root, f) for f in os.listdir(project_root) if f.endswith('.arkpass')]
+        # 2. IstinaEndfieldAssistant根目录
+        if os.path.exists(istina_root):
+            root_files = [os.path.join(istina_root, f) for f in os.listdir(istina_root) if f.endswith('.arkpass')]
             possible_paths.extend(root_files)
         
         # 3. 当前工作目录

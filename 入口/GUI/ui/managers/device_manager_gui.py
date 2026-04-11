@@ -157,12 +157,12 @@ class DeviceManagerGUI:
         last_device_selected = False
         for device in devices:
             item_id = self.device_tree.insert('', 'end', values=(
-                device['serial'],
-                device['model'] or 'Unknown',
-                device['state']
+                device.serial,
+                device.address or 'Unknown',
+                device.status
             ))
             # 如果这是上次连接的设备，自动选中它
-            if last_connected and device['serial'] == last_connected:
+            if last_connected and device.serial == last_connected:
                 self.device_tree.selection_set(item_id)
                 last_device_selected = True
                 

@@ -35,7 +35,7 @@ from cloud.managers.device_manager import DeviceManager
 from cloud.managers.execution_manager import ExecutionManager
 from cloud.managers.task_queue_manager import TaskQueueManager
 
-# PC设备支持 - 使用MaaFramework库
+# PC设备支持 - 使用MaaFramework库（pip install MaaFw，导入名 maa）
 try:
     from core.touch import MaaFwWin32Executor, MaaFwWin32Config
     from maa.define import MaaWin32ScreencapMethodEnum, MaaWin32InputMethodEnum

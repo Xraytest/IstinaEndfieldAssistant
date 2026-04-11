@@ -45,7 +45,7 @@ class DeviceManager:
         if not self.adb_manager:
             return []
             
-        devices = self.adb_manager.get_devices(force_refresh=True)
+        devices = self.adb_manager.get_devices()
         return devices
         
     def connect_device(self, device_serial):
@@ -57,8 +57,8 @@ class DeviceManager:
         return False
         
     def connect_device_manual(self, device_serial):
-        """手动连接设备"""
-        if self.adb_manager and self.adb_manager.connect_device_manual(device_serial):
+        """手动连接设备（网络设备地址如 127.0.0.1:5555）"""
+        if self.adb_manager and self.adb_manager.connect_device(device_serial):
             self.current_device = device_serial
             self._save_last_connected_device(device_serial)
             return True

@@ -13,22 +13,32 @@ from PIL import Image, ImageTk
 import io
 import sys
 
-# 当前目录已在Python路径中（执行环境为client目录）
+# 添加安卓相关目录到Python路径
+import sys
+import os
+istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+安卓相关_dir = os.path.join(istina_root, "安卓相关")
+入口_dir = os.path.join(istina_root, "入口")
+if 安卓相关_dir not in sys.path:
+    sys.path.insert(0, 安卓相关_dir)
+if 入口_dir not in sys.path:
+    sys.path.insert(0, 入口_dir)
+
 from core.logger import init_logger, get_logger, LogCategory, LogLevel
-from core.adb_manager import ADBDeviceManager
-from core.screen_capture import ScreenCapture
-from core.touch import TouchManager, TouchDeviceType
-from core.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
-from core.touch.maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
-from cloud.task_manager import TaskManager
+from 控制.adb_manager import ADBDeviceManager
+from 图像传递.screen_capture import ScreenCapture
+from 控制.touch import TouchManager, TouchDeviceType
+from 控制.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
+from 控制.touch.maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
+from core.cloud.task_manager import TaskManager
 from core.communication.communicator import ClientCommunicator
-from cloud.managers.auth_manager import AuthManager
-from cloud.managers.device_manager import DeviceManager
-from cloud.managers.execution_manager import ExecutionManager
-from cloud.managers.task_queue_manager import TaskQueueManager
-from ui.managers.main_gui_manager import MainGUIManager
-from ui.managers.auth_manager_gui import AuthManagerGUI
-from ui.theme import setup_ttk_styles, configure_tk_root, COLORS
+from core.cloud.managers.auth_manager import AuthManager
+from core.cloud.managers.device_manager import DeviceManager
+from core.cloud.managers.execution_manager import ExecutionManager
+from core.cloud.managers.task_queue_manager import TaskQueueManager
+from GUI.ui.theme import setup_ttk_styles, configure_tk_root, COLORS
+from GUI.ui.managers.main_gui_manager import MainGUIManager
+from GUI.ui.managers.auth_manager_gui import AuthManagerGUI
 
 
 class IstinaEndfieldClientGUI:
@@ -110,7 +120,8 @@ class IstinaEndfieldClientGUI:
         
     def _load_config(self, config_file):
         """加载配置文件"""
-        config_path = os.path.join(os.path.dirname(__file__), config_file)
+        # 配置文件位于 IstinaEndfieldAssistant/config/ 目录，需要向上两级
+        config_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), config_file)
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 self.logger.debug(LogCategory.MAIN, "配置文件加载", config_path=config_path)
@@ -125,25 +136,25 @@ class IstinaEndfieldClientGUI:
                 "touch": {
                     "touch_method": "maatouch",
                     "maa_style": {
-                        "enabled": true,
+                        "enabled": True,
                         "press_duration_ms": 50,
                         "press_jitter_px": 2,
                         "swipe_delay_min_ms": 100,
                         "swipe_delay_max_ms": 300,
-                        "use_normalized_coords": true
+                        "use_normalized_coords": True
                     },
                     "swipe_duration_ms": 300,
                     "long_press_duration_ms": 500,
                     "minitouch": {
-                        "enabled": false,
+                        "enabled": False,
                         "binary_path": "device_control_system/minitouch_resources/armeabi-v7a/minitouch"
                     },
                     "maatouch": {
-                        "enabled": false,
+                        "enabled": False,
                         "binary_path": "device_control_system/minitouch_resources/maatouch/minitouch"
                     }
                 },
-                "security": {"enable_safe_press": true, "enable_jitter": true},
+                "security": {"enable_safe_press": True, "enable_jitter": True},
                 "communication": {"password": "default_password"}
             }
             
@@ -153,8 +164,9 @@ class IstinaEndfieldClientGUI:
         
         try:
             # 初始化核心功能模块
-            script_dir = os.path.dirname(os.path.abspath(__file__))
-            adb_path = os.path.join(script_dir, self.config['adb']['path'])
+            # ADB路径相对于IstinaEndfieldAssistant根目录
+            istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            adb_path = os.path.join(istina_root, self.config['adb']['path'])
             
             if not os.path.exists(adb_path):
                 self.logger.exception(LogCategory.MAIN, "ADB可执行文件不存在", adb_path=adb_path)
@@ -492,7 +504,7 @@ class IstinaEndfieldClientGUI:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = ReAcrtureClientGUI(root)
+    app = IstinaEndfieldClientGUI(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     try:
         root.mainloop()

@@ -9,7 +9,7 @@ import subprocess
 import time
 from typing import Optional
 
-from core.adb_manager import ADBDeviceManager
+from 控制.adb_manager import ADBDeviceManager
 from core.logger import get_logger, LogCategory, LogLevel
 
 try:
