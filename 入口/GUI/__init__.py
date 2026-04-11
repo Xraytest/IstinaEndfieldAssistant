@@ -1,5 +1,5 @@
 """GUI入口模块"""
 
-from .client_main import ReAcrtureClientGUI
+from .client_main import IstinaEndfieldClientGUI
 
-__all__ = ['ReAcrtureClientGUI']
+__all__ = ['IstinaEndfieldClientGUI']

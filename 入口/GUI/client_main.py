@@ -31,8 +31,8 @@ from ui.managers.auth_manager_gui import AuthManagerGUI
 from ui.theme import setup_ttk_styles, configure_tk_root, COLORS
 
 
-class ReAcrtureClientGUI:
-    """ReAcrture客户端GUI主类"""
+class IstinaEndfieldClientGUI:
+    """IstinaEndfield客户端GUI主类"""
     
     def __init__(self, root):
         self.root = root
