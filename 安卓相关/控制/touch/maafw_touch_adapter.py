@@ -141,17 +141,50 @@ class MaaFwTouchExecutor:
             self._resource = Resource()
             self.logger.debug(LogCategory.MAIN, "Resource创建完成")
             
-            # 创建ADB控制器
+            # 使用Toolkit自动发现设备信息（解决MuMu等模拟器需要专用配置的问题）
+            adb_path = self.config.adb_path
+            address = self.config.address
+            screencap_methods = self.config.screencap_methods
+            input_methods = self.config.input_methods
+            device_config = self.config.config
+            
+            # 尝试使用Toolkit.find_adb_devices()查找目标设备
+            try:
+                discovered_devices = Toolkit.find_adb_devices()
+                self.logger.debug(LogCategory.MAIN, f"Toolkit发现{len(discovered_devices)}个ADB设备")
+                
+                # 查找匹配目标地址的设备
+                for dev in discovered_devices:
+                    if dev.address == address:
+                        self.logger.info(LogCategory.MAIN, "使用Toolkit发现的设备信息",
+                                        name=dev.name,
+                                        adb_path=dev.adb_path,
+                                        address=dev.address,
+                                        screencap_methods=dev.screencap_methods,
+                                        config=str(dev.config))
+                        # 使用发现的设备信息（包含模拟器专用配置）
+                        adb_path = dev.adb_path
+                        screencap_methods = dev.screencap_methods
+                        input_methods = dev.input_methods
+                        device_config = dev.config
+                        break
+                        
+            except Exception as e:
+                self.logger.warning(LogCategory.MAIN, "Toolkit.find_adb_devices失败，使用默认配置",
+                                   error=str(e))
+            
+            # 创建ADB控制器（使用发现或默认的设备信息）
             self._controller = AdbController(
-                adb_path=Path(self.config.adb_path),
-                address=self.config.address,
-                screencap_methods=self.config.screencap_methods,
-                input_methods=self.config.input_methods,
-                config=self.config.config
+                adb_path=Path(adb_path),
+                address=address,
+                screencap_methods=screencap_methods,
+                input_methods=input_methods,
+                config=device_config
             )
             self.logger.debug(LogCategory.MAIN, "AdbController创建完成",
-                             adb_path=self.config.adb_path,
-                             address=self.config.address)
+                             adb_path=adb_path,
+                             address=address,
+                             screencap_methods=screencap_methods)
             
             # 连接设备
             job = self._controller.post_connection()
@@ -163,9 +196,21 @@ class MaaFwTouchExecutor:
             
             # 获取设备信息
             self._uuid = self._controller.uuid
-            cached_image = self._controller.cached_image
-            if cached_image is not None:
-                self._resolution = (cached_image.shape[1], cached_image.shape[0])
+            
+            # 连接成功后需要先截图才能获取cached_image
+            screencap_job = self._controller.post_screencap()
+            screencap_job.wait()
+            
+            if screencap_job.succeeded:
+                cached_image = self._controller.cached_image
+                if cached_image is not None:
+                    self._resolution = (cached_image.shape[1], cached_image.shape[0])
+                    self.logger.debug(LogCategory.MAIN, "初始截图成功",
+                                     resolution=f"{self._resolution[0]}x{self._resolution[1]}")
+                else:
+                    self.logger.warning(LogCategory.MAIN, "初始截图返回空图像")
+            else:
+                self.logger.warning(LogCategory.MAIN, "初始截图失败，将使用默认分辨率")
             
             # 创建Tasker并绑定
             self._tasker = Tasker()

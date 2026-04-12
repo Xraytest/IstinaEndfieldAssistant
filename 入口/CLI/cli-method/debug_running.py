@@ -15,29 +15,34 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 
 # 添加项目路径
-current_dir = os.path.dirname(os.path.abspath(__file__))
-client_dir = os.path.dirname(current_dir)
-project_root = os.path.dirname(client_dir)
-if client_dir not in sys.path:
-    sys.path.insert(0, client_dir)
-if project_root not in sys.path:
-    sys.path.insert(0, project_root)
+current_dir = os.path.dirname(os.path.abspath(__file__))  # 入口/CLI/cli-method
+cli_dir = os.path.dirname(current_dir)  # 入口/CLI
+入口_dir = os.path.dirname(cli_dir)  # 入口
+project_root = os.path.dirname(入口_dir)  # IstinaEndfieldAssistant
+安卓相关_dir = os.path.join(project_root, "安卓相关")  # IstinaEndfieldAssistant/安卓相关
+
+# 添加必要的路径到sys.path
+if 安卓相关_dir not in sys.path:
+    sys.path.insert(0, 安卓相关_dir)
+if 入口_dir not in sys.path:
+    sys.path.insert(0, 入口_dir)
 
 # 导入核心组件
 from core.logger import init_logger, get_logger, LogCategory, LogLevel
-from core.adb_manager import ADBDeviceManager
-from core.screen_capture import ScreenCapture
-from core.touch import MaaFwTouchExecutor as TouchExecutor, MaaFwTouchConfig
-from cloud.task_manager import TaskManager
+from 控制.adb_manager import ADBDeviceManager
+from 图像传递.screen_capture import ScreenCapture
+from 控制.touch.touch_manager import TouchManager
+from 控制.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
+from core.cloud.task_manager import TaskManager
 from core.communication.communicator import ClientCommunicator
-from cloud.managers.auth_manager import AuthManager
-from cloud.managers.device_manager import DeviceManager
-from cloud.managers.execution_manager import ExecutionManager
-from cloud.managers.task_queue_manager import TaskQueueManager
+from core.cloud.managers.auth_manager import AuthManager
+from core.cloud.managers.device_manager import DeviceManager
+from core.cloud.managers.execution_manager import ExecutionManager
+from core.cloud.managers.task_queue_manager import TaskQueueManager
 
 # PC设备支持 - 使用MaaFramework库（pip install MaaFw，导入名 maa）
 try:
-    from core.touch import MaaFwWin32Executor, MaaFwWin32Config
+    from 控制.touch.maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
     from maa.define import MaaWin32ScreencapMethodEnum, MaaWin32InputMethodEnum
     PC_CONTROLLER_AVAILABLE = True
 except ImportError:
@@ -82,12 +87,12 @@ class CLIDebugRunner:
             self.output_dir = output_dir
         else:
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            self.output_dir = os.path.join(client_dir, "debug_output", f"run_{timestamp}")
+            self.output_dir = os.path.join(project_root, "debug_output", f"run_{timestamp}")
         
         os.makedirs(self.output_dir, exist_ok=True)
         
         # 初始化日志
-        log_config_path = os.path.join(client_dir, "config", "logging_config.json")
+        log_config_path = os.path.join(project_root, "config", "logging_config.json")
         if os.path.exists(log_config_path):
             init_logger(log_config_path)
         self.logger = get_logger()
@@ -131,8 +136,7 @@ class CLIDebugRunner:
             )
             
             # 初始化认证管理模块
-            cache_dir = os.path.join(client_dir, "cache")
-            self.auth_manager = AuthManager(self.communicator, config, cache_dir)
+            self.auth_manager = AuthManager(self.communicator, config)
             
             # 设置登录状态（使用提供的api_key）
             self.auth_manager.is_logged_in = True
@@ -146,19 +150,17 @@ class CLIDebugRunner:
                 return False
             
             # 初始化设备管理模块
-            self.device_manager = DeviceManager(self.adb_manager, config, cache_dir)
-            self.device_manager.set_pc_mode(True)  # CLI模式默认为PC设备
-            self.device_manager.set_pc_window_title(self.window_title)
-            self.device_manager.set_pc_control_scheme(self.control_scheme)
+            self.device_manager = DeviceManager(self.adb_manager, config)
+            # 注意: DeviceManager 没有 set_pc_mode 等方法，PC模式配置需要通过其他方式处理
             
             # 初始化任务管理模块
             self.task_manager = TaskManager(
-                config_dir=os.path.join(client_dir, "config"),
-                data_dir=os.path.join(client_dir, "data")
+                config_dir=os.path.join(project_root, "config"),
+                data_dir=os.path.join(project_root, "data")
             )
             
             # 初始化任务队列管理模块
-            self.task_queue_manager = TaskQueueManager(self.task_manager, cache_dir)
+            self.task_queue_manager = TaskQueueManager(self.task_manager)
             
             # 初始化屏幕捕获模块（PC模式不需要ADB）
             self.screen_capture = None  # PC模式使用Win32Controller捕获
@@ -167,6 +169,9 @@ class CLIDebugRunner:
             self.touch_executor = None
             
             # 初始化执行管理模块
+            # 注意：ExecutionManager通过config中的touch_method来识别PC模式
+            pc_config = config.copy()
+            pc_config['touch'] = {'touch_method': 'pc_foreground'}
             self.execution_manager = ExecutionManager(
                 self.device_manager,
                 self.screen_capture,
@@ -174,7 +179,7 @@ class CLIDebugRunner:
                 self.task_queue_manager,
                 self.communicator,
                 self.auth_manager,
-                get_device_type_callback=lambda: "PC"
+                config=pc_config
             )
             
             # 初始化PC控制器
@@ -191,7 +196,7 @@ class CLIDebugRunner:
     
     def _load_config(self) -> Dict[str, Any]:
         """加载配置文件"""
-        config_path = os.path.join(client_dir, "config", "client_config.json")
+        config_path = os.path.join(project_root, "config", "client_config.json")
         if os.path.exists(config_path):
             with open(config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
