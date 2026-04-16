@@ -31,6 +31,8 @@ class TaskManagerGUI:
         self.drag_start_index = None
         self.drag_data = None
         self._original_drag_index = None
+        self.drag_start_y = None  # 拖拽起始Y坐标
+        self.is_dragging = False  # 是否正在拖拽
         
         # 可用任务列表数据缓存
         self.available_tasks_cache = []
@@ -41,6 +43,9 @@ class TaskManagerGUI:
         
         # 可用任务面板展开状态
         self.available_panel_expanded = False
+        
+        # 拖拽阈值（像素）
+        self.DRAG_THRESHOLD = 5
         
         self.setup_ui()
         # 初始化后更新任务队列显示
@@ -627,14 +632,6 @@ class TaskManagerGUI:
         else:
             self.cross_drag_task_data = None
             
-    def on_queue_drag_start(self, event):
-        """从任务队列开始拖拽（内部排序）"""
-        self.cross_drag_source = 'queue'
-        self.drag_start_index = self.task_queue_listbox.nearest(event.y)
-        self._original_drag_index = self.drag_start_index
-        self.drag_data = self.task_queue_listbox.get(self.drag_start_index)
-        self.cross_drag_task_data = None
-        
     def on_cross_drag_motion(self, event):
         """跨列表拖拽移动事件处理"""
         if self.cross_drag_source == 'queue':
@@ -684,10 +681,29 @@ class TaskManagerGUI:
         self.drag_data = None
         self._original_drag_index = None
         
+    def on_queue_drag_start(self, event):
+        """任务队列拖拽开始事件处理"""
+        # 记录起始位置和Y坐标，但不立即开始拖拽
+        self.drag_start_index = self.task_queue_listbox.nearest(event.y)
+        self._original_drag_index = self.drag_start_index
+        self.drag_data = self.task_queue_listbox.get(self.drag_start_index)
+        self.drag_start_y = event.y
+        self.is_dragging = False
+        self.cross_drag_source = 'queue'
+        self.cross_drag_task_data = None
+        
     def on_drag_motion(self, event):
         """拖拽移动事件处理（任务队列内部排序）"""
-        if self.drag_start_index is None:
+        if self.drag_start_index is None or self.drag_start_y is None:
             return
+        
+        # 检查是否超过拖拽阈值
+        if not self.is_dragging:
+            if abs(event.y - self.drag_start_y) > self.DRAG_THRESHOLD:
+                self.is_dragging = True
+            else:
+                return  # 未超过阈值，不触发拖拽
+        
         # 获取当前鼠标位置对应的索引
         current_index = self.task_queue_listbox.nearest(event.y)
         if current_index != self.drag_start_index:
@@ -698,13 +714,19 @@ class TaskManagerGUI:
             
     def on_drag_release(self, event):
         """拖拽释放事件处理"""
-        if self.drag_start_index is None:
+        # 如果没有真正拖拽，就是普通点击，让Listbox正常处理选择
+        if not self.is_dragging:
+            # 重置状态，让默认选择行为生效
+            self.drag_start_index = None
+            self.drag_data = None
+            self._original_drag_index = None
+            self.drag_start_y = None
+            self.is_dragging = False
             return
-        # 获取最终位置（在拖拽过程中已经更新了显示，所以当前drag_start_index就是最终位置）
+            
+        # 获取最终位置
         final_index = self.drag_start_index
-        # 获取原始起始位置（需要从任务队列数据中获取）
-        # 由于拖拽过程中显示已经更新，我们需要使用保存的原始数据重新计算
-        # 先恢复原始显示状态，再计算实际移动
+        # 恢复原始显示状态
         self.update_queue_display()
         # 执行实际的任务队列重排序
         self.reorder_task_queue(self._original_drag_index, final_index)
@@ -712,6 +734,8 @@ class TaskManagerGUI:
         self.drag_start_index = None
         self.drag_data = None
         self._original_drag_index = None
+        self.drag_start_y = None
+        self.is_dragging = False
         
     def reorder_task_queue(self, from_index, to_index):
         """重新排序任务队列"""

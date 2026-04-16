@@ -441,6 +441,21 @@ class TouchManager:
             return self.run_pipeline_sequence(
                 params.get("tasks", [])
             )
+        elif tool_name == "open_app":
+            # 启动应用程序 - 使用executor的封装方法
+            app_name = params.get("app_name", "")
+            if not app_name:
+                self.logger.exception(LogCategory.MAIN, "open_app 缺少 app_name 参数")
+                return False
+            
+            # 根据设备类型选择对应的executor
+            if self._device_type == TouchDeviceType.ANDROID and self._android_executor:
+                return self._android_executor.start_app(app_name)
+            elif self._device_type == TouchDeviceType.PC and self._pc_executor:
+                return self._pc_executor.start_app(app_name)
+            else:
+                self.logger.exception(LogCategory.MAIN, "控制器未初始化")
+                return False
         else:
             self.logger.exception(LogCategory.MAIN, "未知工具名称", tool_name=tool_name)
             return False
