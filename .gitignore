@@ -22,6 +22,7 @@ debug_output/
 debug/
 **/debug_output/
 **/debug/
+.auto_debug/screenshots
 
 # Extracted UI images
 extracted_images/

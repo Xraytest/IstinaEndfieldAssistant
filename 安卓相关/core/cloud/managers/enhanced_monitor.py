@@ -230,30 +230,44 @@ class ScreenshotHashCalculator:
     """截图哈希计算器"""
     
     @staticmethod
-    def calculate_hash(screenshot: np.ndarray) -> str:
+    def calculate_hash(screenshot) -> str:
         """
         计算截图哈希值
         
         Args:
-            screenshot: 截图图像 (numpy 数组)
+            screenshot: 截图图像，可以是 numpy 数组或 bytes (Base64 编码的 PNG 数据)
             
         Returns:
             str: 哈希值
         """
-        if screenshot.size > 10000:
-            # 取中心区域计算哈希
-            h, w = screenshot.shape[:2]
-            center = screenshot[h//4:3*h//4, w//4:3*w//4]
-            # 转换为灰度并计算哈希
-            if len(center.shape) == 3:
-                center_gray = np.mean(center, axis=2).astype(np.uint8)
+        # 处理 bytes 类型（Base64 编码的 PNG 数据）
+        if isinstance(screenshot, bytes):
+            # 直接对 bytes 数据计算哈希
+            return hashlib.md5(screenshot).hexdigest()
+        
+        # 处理 numpy 数组类型
+        if isinstance(screenshot, np.ndarray):
+            if screenshot.size > 10000:
+                # 取中心区域计算哈希
+                h, w = screenshot.shape[:2]
+                center = screenshot[h//4:3*h//4, w//4:3*w//4]
+                # 转换为灰度并计算哈希
+                if len(center.shape) == 3:
+                    center_gray = np.mean(center, axis=2).astype(np.uint8)
+                else:
+                    center_gray = center
+                    
+                # 计算简单哈希
+                return hashlib.md5(center_gray.tobytes()).hexdigest()
             else:
-                center_gray = center
-                
-            # 计算简单哈希
-            return hashlib.md5(center_gray.tobytes()).hexdigest()
-        else:
-            return hashlib.md5(screenshot.tobytes()).hexdigest()
+                return hashlib.md5(screenshot.tobytes()).hexdigest()
+        
+        # 其他类型（如字符串），尝试转换为 bytes 后计算
+        if isinstance(screenshot, str):
+            return hashlib.md5(screenshot.encode('utf-8')).hexdigest()
+        
+        # 未知类型，返回空哈希
+        return hashlib.md5(b'').hexdigest()
     
     @staticmethod
     def calculate_change_rate(hash_history: List[str]) -> float:

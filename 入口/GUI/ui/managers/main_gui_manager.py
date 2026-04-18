@@ -146,8 +146,13 @@ class MainGUIManager:
         
     def setup_settings_page(self):
         """设置设置页面"""
+        # [AutoFix 2026-04-16 16:06] 修复设置页面内容加载问题
+        # 创建一个带padding的子框架来承载设置内容
+        frame = ttk.Frame(self.settings_page_frame, padding="15")
+        frame.pack(fill='both', expand=True)
+        
         self.settings_gui = SettingsManagerGUI(
-            self.settings_page_frame,
+            frame,
             self.config,
             self.log_callback,
             self.client_main_ref
