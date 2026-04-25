@@ -26,9 +26,25 @@ try:
     from ..widgets.base_widgets import PrimaryButton, SecondaryButton, CardWidget
     from ..widgets.status_indicator import ConnectionStatusIndicator, DualStatusIndicator
 except ImportError:
-    from theme.theme_manager import ThemeManager
-    from widgets.base_widgets import PrimaryButton, SecondaryButton, CardWidget
-    from widgets.status_indicator import ConnectionStatusIndicator, DualStatusIndicator
+    import sys
+    import os
+    # 计算项目根目录路径
+    current_file = os.path.abspath(__file__)
+    pages_dir = os.path.dirname(current_file)
+    pyqt_ui_dir = os.path.dirname(pages_dir)
+    gui_dir = os.path.dirname(pyqt_ui_dir)
+    entry_dir = os.path.dirname(gui_dir)
+    istina_dir = os.path.dirname(entry_dir)
+    project_root = os.path.dirname(istina_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if istina_dir not in sys.path:
+        sys.path.insert(0, istina_dir)
+    
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.base_widgets import PrimaryButton, SecondaryButton, CardWidget
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.status_indicator import ConnectionStatusIndicator, DualStatusIndicator
 
 
 class CloudPage(QWidget):
@@ -114,7 +130,8 @@ class CloudPage(QWidget):
         
         # === 用户信息区域 ===
         user_info_card = CardWidget()
-        user_info_layout = QVBoxLayout(user_info_card)
+        # 使用CardWidget的内部布局，而不是创建新布局覆盖它
+        user_info_layout = user_info_card.get_content_layout()
         user_info_layout.setContentsMargins(
             self._theme.get_spacing('padding_md'),
             self._theme.get_spacing('padding_md'),
@@ -186,7 +203,8 @@ class CloudPage(QWidget):
         
         # === 配额使用区域 ===
         quota_card = CardWidget()
-        quota_layout = QVBoxLayout(quota_card)
+        # 使用CardWidget的内部布局，而不是创建新布局覆盖它
+        quota_layout = quota_card.get_content_layout()
         quota_layout.setContentsMargins(
             self._theme.get_spacing('padding_md'),
             self._theme.get_spacing('padding_md'),
@@ -294,7 +312,8 @@ class CloudPage(QWidget):
         
         # === Token用量区域 ===
         token_card = CardWidget()
-        token_layout = QVBoxLayout(token_card)
+        # 使用CardWidget的内部布局，而不是创建新布局覆盖它
+        token_layout = token_card.get_content_layout()
         token_layout.setContentsMargins(
             self._theme.get_spacing('padding_md'),
             self._theme.get_spacing('padding_md'),

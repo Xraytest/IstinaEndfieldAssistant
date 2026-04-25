@@ -7,6 +7,14 @@ import logging
 import hashlib
 from typing import Dict, Any, Optional
 
+# 导入InferenceManager
+try:
+    from ...local_inference.inference_manager import InferenceManager, InferenceMode
+    HAS_INFERENCE_MANAGER = True
+except ImportError:
+    HAS_INFERENCE_MANAGER = False
+    InferenceMode = None
+
 # VLM 服务器处理图像的基准分辨率
 VLM_BASE_WIDTH = 1920
 VLM_BASE_HEIGHT = 1080
@@ -139,6 +147,114 @@ class ExecutionManager:
         self.task_context_cache = {}  # task_id -> TaskContext
         # 验证结果缓存
         self.validation_result_cache = {}  # task_id -> ValidationResult
+        
+        # ========== 新增：本地推理管理器 ==========
+        self.inference_manager = None
+        self._inference_mode = "cloud"  # 默认使用云端推理
+        self._pending_inference_tasks = {}  # task_id -> task_info
+        self._inference_lock = threading.Lock()
+        
+        # 初始化InferenceManager（如果可用）
+        self._initialize_inference_manager()
+        
+    def _initialize_inference_manager(self):
+        """初始化InferenceManager"""
+        if not HAS_INFERENCE_MANAGER:
+            self.logger.info("InferenceManager不可用，跳过初始化")
+            return
+        
+        try:
+            # 从配置中获取推理设置
+            inference_config = self.config.get("inference", {})
+            self._inference_mode = inference_config.get("mode", "cloud")
+            
+            # 创建InferenceManager实例
+            self.inference_manager = InferenceManager(
+                config=self.config,
+                communicator=self.communicator
+            )
+            
+            # 初始化InferenceManager
+            if self.inference_manager.initialize():
+                # 连接信号
+                self.inference_manager.inference_complete.connect(self._on_inference_complete)
+                self.inference_manager.inference_error.connect(self._on_inference_error)
+                self.inference_manager.inference_progress.connect(self._on_inference_progress)
+                
+                self.logger.info(
+                    "InferenceManager初始化成功",
+                    mode=self._inference_mode,
+                    local_available=self.inference_manager.is_local_available()
+                )
+            else:
+                self.logger.warning("InferenceManager初始化失败，将使用云端推理")
+                self.inference_manager = None
+                
+        except Exception as e:
+            self.logger.exception("初始化InferenceManager时发生异常", error=str(e))
+            self.inference_manager = None
+    
+    def _on_inference_complete(self, task_id: str, result: Dict[str, Any]):
+        """异步推理完成回调"""
+        self.logger.info(f"异步推理完成: {task_id}")
+        
+        with self._inference_lock:
+            if task_id in self._pending_inference_tasks:
+                self._pending_inference_tasks[task_id]["status"] = "completed"
+                self._pending_inference_tasks[task_id]["result"] = result
+                self._pending_inference_tasks[task_id]["completed_at"] = time.time()
+    
+    def _on_inference_error(self, task_id: str, error: str):
+        """异步推理错误回调"""
+        self.logger.error(f"异步推理出错: {task_id}, error={error}")
+        
+        with self._inference_lock:
+            if task_id in self._pending_inference_tasks:
+                self._pending_inference_tasks[task_id]["status"] = "error"
+                self._pending_inference_tasks[task_id]["error"] = error
+                self._pending_inference_tasks[task_id]["completed_at"] = time.time()
+    
+    def _on_inference_progress(self, task_id: str, progress: int):
+        """异步推理进度回调"""
+        with self._inference_lock:
+            if task_id in self._pending_inference_tasks:
+                self._pending_inference_tasks[task_id]["progress"] = progress
+    
+    def set_inference_mode(self, mode: str) -> bool:
+        """
+        设置推理模式
+        
+        Args:
+            mode: 推理模式 ("local", "cloud", "auto")
+            
+        Returns:
+            是否设置成功
+        """
+        if mode not in ["local", "cloud", "auto"]:
+            self.logger.error(f"无效的推理模式: {mode}")
+            return False
+        
+        # 检查本地推理是否可用
+        if mode == "local" and (not self.inference_manager or not self.inference_manager.is_local_available()):
+            self.logger.warning("本地推理不可用，无法切换到本地模式")
+            return False
+        
+        self._inference_mode = mode
+        
+        # 更新InferenceManager的模式
+        if self.inference_manager:
+            self.inference_manager.switch_mode(mode)
+        
+        self.logger.info(f"推理模式已切换为: {mode}")
+        return True
+    
+    def get_inference_mode(self) -> str:
+        """获取当前推理模式"""
+        return self._inference_mode
+    
+    def is_local_inference_available(self) -> bool:
+        """检查本地推理是否可用"""
+        return self.inference_manager is not None and self.inference_manager.is_local_available()
         
     def start_execution(self, log_callback, update_ui_callback, preview_update_callback=None):
         """开始执行"""
@@ -394,21 +510,23 @@ class ExecutionManager:
                     else:
                         device_info = {'resolution': [1080, 1920], 'model': 'Unknown', 'image_size': image_size}
                     
-                    # 构建请求数据
-                    request_data = {
-                        "user_id": self.auth_manager.get_user_id(),
-                        "session_id": self.auth_manager.get_session_id(),
-                        "device_image": screen_data.decode('utf-8') if screen_data else "",
-                        "current_task": task_id,
+                    # 构建任务上下文
+                    task_context = {
+                        "task_id": task_id,
                         "task_variables": task_variables,
-                        "device_info": device_info
+                        "device_info": device_info,
+                        "prompt": current_task.get("prompt", "")  # 如果任务有自定义prompt
                     }
                     
-                    # 发送请求到服务端
-                    if self.communicator:
-                        response = self.communicator.send_request("process_image", request_data)
-                    else:
-                        log_callback("通信模块未初始化", "execution", "ERROR")
+                    # 使用InferenceManager处理图像（优先本地推理）
+                    response = self._process_image_with_inference_manager(
+                        screen_data=screen_data,
+                        task_context=task_context,
+                        log_callback=log_callback
+                    )
+                    
+                    if not response:
+                        log_callback("图像处理失败：无法获取推理结果", "execution", "ERROR")
                         break
                     
                     if not response:
@@ -742,6 +860,128 @@ class ExecutionManager:
         finally:
             # 确保在任何情况下都正确重置执行状态
             self.client_running = False
+    
+    def _process_image_with_inference_manager(
+        self,
+        screen_data: bytes,
+        task_context: Dict[str, Any],
+        log_callback
+    ) -> Optional[Dict[str, Any]]:
+        """
+        使用InferenceManager处理图像，优先本地推理，支持回退到云端
+        
+        Args:
+            screen_data: 屏幕截图数据
+            task_context: 任务上下文
+            log_callback: 日志回调函数
+            
+        Returns:
+            推理结果字典，失败返回None
+        """
+        try:
+            # 检查是否使用本地推理
+            use_local = (
+                self.inference_manager and
+                self._inference_mode in ["local", "auto"] and
+                self.inference_manager.is_local_available()
+            )
+            
+            if use_local:
+                log_callback("使用本地推理处理图像...", "execution", "INFO")
+                
+                try:
+                    # 使用同步推理（简化实现）
+                    result = self.inference_manager.process_image(
+                        image_data=screen_data,
+                        task_context=task_context
+                    )
+                    
+                    if result and result.get("status") == "success":
+                        log_callback("本地推理成功", "execution", "INFO")
+                        # 转换本地推理结果为统一格式
+                        return self._convert_inference_result(result)
+                    
+                    # 本地推理失败，检查是否自动降级
+                    if self._inference_mode == "auto":
+                        log_callback("本地推理失败，自动降级到云端推理", "execution", "WARNING")
+                    else:
+                        log_callback(f"本地推理失败: {result.get('error', '未知错误')}", "execution", "ERROR")
+                        return None
+                        
+                except Exception as e:
+                    self.logger.exception("本地推理异常", error=str(e))
+                    if self._inference_mode == "auto":
+                        log_callback(f"本地推理异常，降级到云端: {str(e)}", "execution", "WARNING")
+                    else:
+                        return None
+            
+            # 使用云端推理
+            if not self.communicator:
+                log_callback("通信模块未初始化", "execution", "ERROR")
+                return None
+            
+            log_callback("使用云端推理处理图像...", "execution", "INFO")
+            
+            # 构建云端请求数据
+            request_data = {
+                "user_id": self.auth_manager.get_user_id(),
+                "session_id": self.auth_manager.get_session_id(),
+                "device_image": screen_data.decode('utf-8') if screen_data else "",
+                "current_task": task_context.get("task_id", ""),
+                "task_variables": task_context.get("task_variables", {}),
+                "device_info": task_context.get("device_info", {})
+            }
+            
+            response = self.communicator.send_request("process_image", request_data)
+            
+            if not response:
+                log_callback("网络连接失败：无法连接到服务端", "execution", "ERROR")
+                return None
+            
+            # 处理云端响应
+            if response.get('status') == 'success':
+                return response
+            elif response.get('status') == 'queued':
+                # 排队状态，返回特殊标记
+                return response
+            else:
+                error_message = response.get('message', '未知错误')
+                log_callback(f"云端推理失败: {error_message}", "execution", "ERROR")
+                return response
+                
+        except Exception as e:
+            self.logger.exception("图像处理异常", error=str(e))
+            log_callback(f"图像处理异常: {str(e)}", "execution", "ERROR")
+            return None
+    
+    def _convert_inference_result(self, result: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        将InferenceManager的结果转换为统一的响应格式
+        
+        Args:
+            result: InferenceManager返回的结果
+            
+        Returns:
+            统一格式的响应字典
+        """
+        # 本地推理结果已经是标准格式
+        # 确保包含必要的字段
+        if result.get("status") != "success":
+            return result
+        
+        # 确保result字段存在
+        if "result" not in result:
+            result["result"] = {}
+        
+        # 确保touch_actions在正确的位置
+        if "touch_actions" in result and "touch_actions" not in result["result"]:
+            result["result"]["touch_actions"] = result["touch_actions"]
+        
+        # 确保task_completed字段
+        if "task_completed" not in result:
+            result["task_completed"] = result.get("result", {}).get("task_completed", False)
+        
+        return result
         
     def _handle_authentication_failure(self, log_callback):
         """
@@ -1008,3 +1248,24 @@ class ExecutionManager:
         except Exception as e:
             log_callback(f"[登录超时处理] 处理异常：{str(e)}", "execution", "ERROR")
             return False
+    
+    # ========== InferenceManager资源清理 ==========
+    
+    def shutdown_inference_manager(self):
+        """
+        关闭InferenceManager，释放资源
+        
+        在应用退出或切换配置时调用
+        """
+        if self.inference_manager:
+            try:
+                self.logger.info("正在关闭InferenceManager...")
+                self.inference_manager.shutdown()
+                self.inference_manager = None
+                self.logger.info("InferenceManager已关闭")
+            except Exception as e:
+                self.logger.exception("关闭InferenceManager时发生异常", error=str(e))
+    
+    def __del__(self):
+        """析构函数，确保资源被清理"""
+        self.shutdown_inference_manager()

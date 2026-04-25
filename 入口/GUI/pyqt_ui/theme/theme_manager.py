@@ -3,7 +3,7 @@ Material Design 3 主题管理器
 基于原有 theme.py 的设计规范，使用 QSS 实现 PyQt6 主题系统
 """
 
-from typing import Dict, Optional
+from typing import Dict, Optional, Any
 from PyQt6.QtWidgets import QApplication
 
 
@@ -283,12 +283,30 @@ DURATION: Dict[str, int] = {
 }
 
 
+# ============================================================================
+# 动画配置
+# ============================================================================
+
+ANIMATION_CONFIG: Dict[str, Any] = {
+    'enabled': True,
+    'duration_fast': 150,
+    'duration_normal': 250,
+    'duration_slow': 400,
+    'easing_curve': 'OutCubic',
+    'fade_enabled': True,
+    'slide_enabled': True,
+    'scale_enabled': True,
+    'hover_enabled': True,
+}
+
+
 class ThemeManager:
     """
     Material Design 3 主题管理器
     
     提供颜色、字体、间距等设计规范常量，
     以及 QSS 样式表生成和应用功能。
+    新增动画配置支持。
     """
     
     _instance: Optional['ThemeManager'] = None
@@ -312,6 +330,7 @@ class ThemeManager:
         self._corner_radius = CORNER_RADIUS
         self._elevation = ELEVATION
         self._duration = DURATION
+        self._animation_config = ANIMATION_CONFIG.copy()
     
     # === 属性访问器 ===
     
@@ -355,6 +374,30 @@ class ThemeManager:
         """获取动画时长配置"""
         return self._duration
     
+    @property
+    def animation_config(self) -> Dict[str, Any]:
+        """获取动画配置"""
+        return self._animation_config
+    
+    # === 动画配置方法 ===
+    
+    def is_animation_enabled(self) -> bool:
+        """检查动画是否启用"""
+        return self._animation_config.get('enabled', True)
+    
+    def set_animation_enabled(self, enabled: bool) -> None:
+        """设置动画启用状态"""
+        self._animation_config['enabled'] = enabled
+    
+    def get_animation_duration(self, key: str = 'normal') -> int:
+        """获取动画时长"""
+        duration_key = f'duration_{key}'
+        return self._animation_config.get(duration_key, self._duration.get(key, 250))
+    
+    def set_animation_duration(self, key: str, duration: int) -> None:
+        """设置动画时长"""
+        self._animation_config[f'duration_{key}'] = duration
+    
     # === 便捷访问方法 ===
     
     def get_color(self, key: str) -> str:
@@ -390,7 +433,13 @@ class ThemeManager:
         Returns:
             str: Material Design 3 风格的 QSS 样式表
         """
-        return self._build_stylesheet()
+        try:
+            return self._build_stylesheet()
+        except Exception as e:
+            # 如果构建样式表失败，记录错误并返回空样式表
+            import logging
+            logging.getLogger(__name__).error(f"构建样式表失败: {e}")
+            return ""
     
     def _build_stylesheet(self) -> str:
         """构建完整的 QSS 样式表"""
@@ -933,6 +982,10 @@ QWidget[class="card"] {
     padding: %dpx;
 }
 
+QWidget[class="card"] > QWidget {
+    background-color: transparent;
+}
+
 QWidget[class="card"]:hover {
     border-color: %s;
 }
@@ -944,11 +997,24 @@ QWidget[class="cardElevated"] {
     padding: %dpx;
 }
 
+QWidget[class="cardElevated"] > QWidget {
+    background-color: transparent;
+}
+
 QWidget[class="cardOutlined"] {
     background-color: %s;
     border: 1px solid %s;
     border-radius: %dpx;
     padding: %dpx;
+}
+
+QWidget[class="cardOutlined"] > QWidget {
+    background-color: transparent;
+}
+
+/* === 内容区域样式 === */
+QWidget[class="contentArea"] {
+    background-color: %s;
 }
 
 /* === 导航栏样式 === */
@@ -987,6 +1053,15 @@ QStatusBar {
 
 QStatusBar::item {
     border: none;
+}
+
+/* === 堆叠控件样式 === */
+QStackedWidget {
+    background-color: %s;
+}
+
+QStackedWidget > QWidget {
+    background-color: %s;
 }
 
 /* === 滚动区域样式 === */
@@ -1157,6 +1232,9 @@ QFrame[frameShape="5"] { /* VLine */
             c['surface'], c['outline_variant'],
             r['card'], s['card_padding'],
             
+            # 内容区域样式
+            c['surface'],
+            
             # 导航栏样式
             c['surface_dim'], c['outline_variant'],
             c['text_secondary'],
@@ -1167,6 +1245,10 @@ QFrame[frameShape="5"] { /* VLine */
             # 状态栏样式
             c['surface_dim'], c['text_secondary'], c['outline_variant'],
             fs['label_medium'],
+            
+            # 堆叠控件样式
+            c['surface'],
+            c['surface'],
             
             # 滚动区域样式
             c['surface'],
@@ -1186,13 +1268,22 @@ QFrame[frameShape="5"] { /* VLine */
         Args:
             app: QApplication 实例
         """
-        stylesheet = self.get_stylesheet()
-        app.setStyleSheet(stylesheet)
+        try:
+            stylesheet = self.get_stylesheet()
+            app.setStyleSheet(stylesheet)
+        except Exception as e:
+            # 如果样式表应用失败，记录错误但不中断程序
+            import logging
+            logging.getLogger(__name__).error(f"应用主题失败: {e}")
+            # 使用空样式表作为回退
+            app.setStyleSheet("")
     
     @classmethod
     def get_instance(cls) -> 'ThemeManager':
         """获取主题管理器单例"""
-        return cls()
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
 
 
 # 便捷函数

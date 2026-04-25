@@ -1,7 +1,6 @@
 """
 PyQt6 主窗口
 Material Design 3 风格的主窗口框架，包含左侧导航栏和右侧内容区
-集成所有页面组件：DevicePage, TaskPage, AuthPage, SettingsPage, CloudPage
 """
 
 from typing import Optional, Dict, List, Any
@@ -28,12 +27,27 @@ try:
     from .theme.theme_manager import ThemeManager
     from .widgets.base_widgets import NavigationButton, HorizontalSeparator
     from .widgets.log_display import LogDisplayWidget
-    from .pages import DevicePage, TaskPage, AuthPage, SettingsPage, CloudPage
+    from .pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
 except ImportError:
-    from theme.theme_manager import ThemeManager
-    from widgets.base_widgets import NavigationButton, HorizontalSeparator
-    from widgets.log_display import LogDisplayWidget
-    from pages import DevicePage, TaskPage, AuthPage, SettingsPage, CloudPage
+    import sys
+    import os
+    # 计算项目根目录路径
+    current_file = os.path.abspath(__file__)
+    pyqt_ui_dir = os.path.dirname(current_file)
+    gui_dir = os.path.dirname(pyqt_ui_dir)
+    entry_dir = os.path.dirname(gui_dir)
+    istina_dir = os.path.dirname(entry_dir)
+    project_root = os.path.dirname(istina_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if istina_dir not in sys.path:
+        sys.path.insert(0, istina_dir)
+    
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.base_widgets import NavigationButton, HorizontalSeparator
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.log_display import LogDisplayWidget
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
 
 
 class NavigationBar(QWidget):
@@ -51,9 +65,39 @@ class NavigationBar(QWidget):
         self._theme = ThemeManager.get_instance()
         self._nav_buttons: Dict[str, NavigationButton] = {}
         self._current_page: Optional[str] = None
-        
+        self._login_required: bool = False
+        self._auth_page_id: Optional[str] = None
+        self._is_logged_in: bool = False
+
         self._setup_ui()
         self._setup_style()
+
+    def set_login_state(self, required: bool, is_logged_in: bool, auth_page_id: Optional[str] = None) -> None:
+        """设置登录状态"""
+        self._login_required = required
+        self._is_logged_in = is_logged_in
+        self._auth_page_id = auth_page_id
+        self._update_nav_buttons_state()
+
+    def _update_nav_buttons_state(self) -> None:
+        """更新导航按钮状态"""
+        if not self._login_required or self._is_logged_in:
+            for button in self._nav_buttons.values():
+                button.setEnabled(True)
+            return
+        for page_id, button in self._nav_buttons.items():
+            if self._auth_page_id and page_id == self._auth_page_id:
+                button.setEnabled(True)
+            else:
+                button.setEnabled(False)
+
+    def can_navigate_to(self, page_id: str) -> bool:
+        """检查是否可以导航到指定页面"""
+        if not self._login_required or self._is_logged_in:
+            return True
+        if self._auth_page_id and page_id == self._auth_page_id:
+            return True
+        return False
     
     def _setup_ui(self) -> None:
         """设置导航栏UI结构"""
@@ -160,6 +204,8 @@ class NavigationBar(QWidget):
         Args:
             page_id: 点击的页面标识
         """
+        if not self.can_navigate_to(page_id):
+            return
         self.set_current_page(page_id)
         self.page_changed.emit(page_id)
     
@@ -303,6 +349,7 @@ class MainWindow(QMainWindow):
     device_connect_requested = pyqtSignal(str)  # 设备连接请求
     device_disconnect_requested = pyqtSignal()  # 设备断开请求
     device_scan_requested = pyqtSignal()        # 设备扫描请求
+    screenshot_requested = pyqtSignal()         # [AutoFix 2026-04-18] 截图请求信号
     
     # 任务相关信号
     task_start_requested = pyqtSignal()         # 任务启动请求
@@ -347,12 +394,14 @@ class MainWindow(QMainWindow):
         self._config = config or {}
         
         # 页面组件引用
-        self._device_page: Optional[DevicePage] = None
-        self._task_page: Optional[TaskPage] = None
         self._auth_page: Optional[AuthPage] = None
         self._settings_page: Optional[SettingsPage] = None
         self._cloud_page: Optional[CloudPage] = None
+        self._iea_page: Optional[IEAPage] = None
+        self._model_manager_page: Optional[ModelManagerPage] = None
         self._log_display: Optional[LogDisplayWidget] = None
+        self._is_logged_in: bool = False
+        self._require_login: bool = True
         
         self._setup_window()
         self._setup_ui()
@@ -395,32 +444,45 @@ class MainWindow(QMainWindow):
     
     def _init_pages(self) -> None:
         """初始化所有页面组件"""
-        # 获取触控模式配置
+        # 获取触控模式配置并映射到IEAPage的连接模式
         touch_config = self._config.get('touch', {})
-        connection_mode = touch_config.get('touch_method', 'maatouch')
-        
-        # 设备管理页面
-        self._device_page = DevicePage(connection_mode=connection_mode)
-        self.add_page("device", "设备管理", self._device_page)
-        
-        # 任务管理页面
-        self._task_page = TaskPage()
-        self.add_page("task", "任务管理", self._task_page)
-        
+        touch_method = touch_config.get('touch_method', 'maatouch')
+
+        # 映射touch_method到连接模式
+        # touch_method: 'maatouch'/'adb' -> MODE_ANDROID
+        # touch_method: 'pc' -> MODE_PC
+        if touch_method == 'pc':
+            connection_mode = IEAPage.MODE_PC
+        else:
+            connection_mode = IEAPage.MODE_ANDROID
+
+        # IEA任务链推理页面（整合设备连接和任务链推理）
+        self._iea_page = IEAPage(connection_mode=connection_mode)
+        self.add_page("iea", "开始推理", self._iea_page)
+
         # 认证页面
         self._auth_page = AuthPage()
         self.add_page("auth", "认证", self._auth_page)
-        
+
         # 云服务页面
         self._cloud_page = CloudPage()
         self.add_page("cloud", "云服务", self._cloud_page)
-        
+
+        # 模型管理页面（仅在本地推理启用时显示）
+        local_inference_enabled = self._config.get('inference', {}).get('local_inference_enabled', False)
+        if local_inference_enabled:
+            self._model_manager_page = ModelManagerPage(config=self._config)
+            self.add_page("models", "模型管理", self._model_manager_page)
+        else:
+            self._model_manager_page = None
+
         # 设置页面（底部导航）
         self._settings_page = SettingsPage(config=self._config)
         self.add_page("settings", "设置", self._settings_page, position="bottom")
-        
-        # 默认显示设备管理页面
-        self.show_page("device")
+
+        # 默认显示认证页面（需要登录）
+        self.show_page("auth")
+        self._navigation_bar.set_login_state(True, False, "auth")
     
     def _setup_connections(self) -> None:
         """设置信号连接"""
@@ -432,19 +494,19 @@ class MainWindow(QMainWindow):
         
         # 页面切换 -> 状态栏更新
         self.page_changed.connect(self._on_page_changed)
-        
-        # 连接设备页面信号
-        if self._device_page:
-            self._device_page.connect_requested.connect(self.device_connect_requested.emit)
-            self._device_page.disconnect_requested.connect(self.device_disconnect_requested.emit)
-            self._device_page.scan_requested.connect(self.device_scan_requested.emit)
-        
-        # 连接任务页面信号
-        if self._task_page:
-            self._task_page.start_execution_requested.connect(self.task_start_requested.emit)
-            self._task_page.stop_execution_requested.connect(self.task_stop_requested.emit)
-            self._task_page.task_added.connect(self.task_added.emit)
-            self._task_page.task_deleted.connect(self.task_deleted.emit)
+
+        # 连接IEA页面信号（整合设备连接和任务链推理）
+        if self._iea_page:
+            # 设备相关信号
+            self._iea_page.connect_requested.connect(self.device_connect_requested.emit)
+            self._iea_page.disconnect_requested.connect(self.device_disconnect_requested.emit)
+            self._iea_page.scan_requested.connect(self.device_scan_requested.emit)
+            self._iea_page.screenshot_requested.connect(self._on_screenshot_requested)
+            # 任务链相关信号
+            self._iea_page.start_execution_requested.connect(self.task_start_requested.emit)
+            self._iea_page.stop_execution_requested.connect(self.task_stop_requested.emit)
+            self._iea_page.task_added.connect(self.task_added.emit)
+            self._iea_page.task_deleted.connect(self.task_deleted.emit)
         
         # 连接认证页面信号
         if self._auth_page:
@@ -456,6 +518,11 @@ class MainWindow(QMainWindow):
             self._settings_page.settings_changed.connect(self.settings_changed.emit)
             self._settings_page.check_update_requested.connect(self.check_update_requested.emit)
         
+        # 连接模型管理页面信号
+        if self._model_manager_page:
+            self._model_manager_page.model_changed.connect(self._on_model_changed)
+            self._model_manager_page.settings_changed.connect(self.settings_changed.emit)
+        
         # 连接云服务页面信号
         if self._cloud_page:
             self._cloud_page.refresh_requested.connect(self.refresh_user_info_requested.emit)
@@ -463,24 +530,40 @@ class MainWindow(QMainWindow):
     def _on_page_changed(self, page_id: str) -> None:
         """
         页面切换处理
-        
+
         Args:
             page_id: 页面标识
         """
         # 更新状态栏
         page_names = {
-            "device": "设备管理",
-            "task": "任务管理",
+            "iea": "开始推理",
             "auth": "认证",
             "cloud": "云服务",
-            "settings": "设置"
+            "settings": "设置",
+            "models": "模型管理"
         }
         page_name = page_names.get(page_id, page_id)
         self.set_status(f"当前页面: {page_name}")
-        
+
         # 切换到云服务页面时自动刷新用户信息
         if page_id == "cloud" and self._cloud_page:
             self._cloud_page.refresh_requested.emit()
+    
+    def _on_model_changed(self, model_name: str) -> None:
+        """
+        模型选择变更处理
+        
+        Args:
+            model_name: 模型名称
+        """
+        # 更新配置
+        if 'inference' not in self._config:
+            self._config['inference'] = {}
+        if 'local' not in self._config['inference']:
+            self._config['inference']['local'] = {}
+        
+        self._config['inference']['local']['model_name'] = model_name
+        self.append_log(f"已选择模型: {model_name}", "INFO")
     
     def add_page(
         self,
@@ -541,15 +624,7 @@ class MainWindow(QMainWindow):
             页面控件，如果不存在返回 None
         """
         return self._content_area.get_page(page_id)
-    
-    def get_device_page(self) -> Optional[DevicePage]:
-        """获取设备管理页面"""
-        return self._device_page
-    
-    def get_task_page(self) -> Optional[TaskPage]:
-        """获取任务管理页面"""
-        return self._task_page
-    
+
     def get_auth_page(self) -> Optional[AuthPage]:
         """获取认证页面"""
         return self._auth_page
@@ -561,6 +636,14 @@ class MainWindow(QMainWindow):
     def get_cloud_page(self) -> Optional[CloudPage]:
         """获取云服务页面"""
         return self._cloud_page
+
+    def get_iea_page(self) -> Optional[IEAPage]:
+        """获取开始推理页面"""
+        return self._iea_page
+    
+    def get_model_manager_page(self) -> Optional[ModelManagerPage]:
+        """获取模型管理页面"""
+        return self._model_manager_page
     
     def set_status(self, message: str) -> None:
         """
@@ -583,7 +666,7 @@ class MainWindow(QMainWindow):
     def append_log(self, message: str, level: str = "INFO") -> None:
         """
         添加日志消息
-        
+
         Args:
             message: 日志消息
             level: 日志级别
@@ -591,34 +674,36 @@ class MainWindow(QMainWindow):
         # 如果有日志显示组件，添加日志
         if self._log_display:
             self._log_display.append_log(message, level)
+        # 同时添加日志到IEA页面
+        if self._iea_page:
+            self._iea_page.append_log(message, level)
         else:
             # 在状态栏显示简要日志
             self.set_status(f"[{level}] {message[:50]}...")
     
-    def update_device_status(self, status: str, connected: bool = False) -> None:
+    def update_device_status(self, status: str, connected: bool = False, device_info: Optional[Dict[str, Any]] = None) -> None:
         """
         更新设备连接状态
-        
+
         Args:
             status: 状态消息
             connected: 是否已连接
+            device_info: 设备信息字典（可选）
         """
-        if self._device_page:
-            self._device_page.set_connected(connected)
+        if self._iea_page:
+            self._iea_page.set_connected(connected, device_info)
         self.set_status(status)
     
     def update_task_status(self, task_name: str, is_running: bool = False) -> None:
         """
         更新任务执行状态
-        
+
         Args:
             task_name: 当前任务名称
             is_running: 是否正在运行
         """
-        if self._task_page:
-            self._task_page.update_execution_status(
-                "running" if is_running else "idle"
-            )
+        if self._iea_page:
+            self._iea_page.set_execution_running(is_running)
         if is_running:
             self.set_status(f"正在执行: {task_name}")
         else:
@@ -636,50 +721,77 @@ class MainWindow(QMainWindow):
         if self._cloud_page:
             self._cloud_page.update_user_info(user_info)
     
-    def update_login_status(self, logged_in: bool, user_id: Optional[str] = None) -> None:
+    def update_login_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
         """
         更新登录状态
         
         Args:
             logged_in: 是否已登录
-            user_id: 用户ID
+            user_info: 用户信息字典
         """
+        self._is_logged_in = logged_in
+        
         if self._auth_page:
-            self._auth_page.set_login_status(logged_in, user_id)
+            self._auth_page.set_login_status(logged_in, user_info)
         if self._cloud_page:
             self._cloud_page.set_server_status(
                 "connected" if logged_in else "disconnected"
             )
+        
+        # 更新导航栏状态
+        self._navigation_bar.set_login_state(self._require_login, logged_in, "auth")
+
+        # 登录成功跳转到IEA页面
+        if logged_in:
+            self.show_page("iea")
+    
+    def update_auth_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
+        """更新认证状态（兼容方法）"""
+        self.update_login_status(logged_in, user_info)
     
     def update_device_list(self, devices: List[Dict[str, Any]]) -> None:
         """
         更新设备列表
-        
+
         Args:
             devices: 设备列表
         """
-        if self._device_page:
-            self._device_page.update_device_list(devices)
+        if self._iea_page:
+            self._iea_page.update_device_list(devices)
     
     def update_task_list(self, tasks: List[Dict[str, Any]]) -> None:
         """
-        更新任务列表
-        
+        更新任务列表（IEA页面使用add_task逐个添加，不使用此方法）
+
         Args:
             tasks: 任务列表
         """
-        if self._task_page:
-            self._task_page.update_task_list(tasks)
+        pass
     
     def update_screen_preview(self, image_data: bytes) -> None:
         """
         更新屏幕预览
-        
+
         Args:
             image_data: 图像数据
         """
-        if self._device_page:
-            self._device_page.update_preview(image_data)
+        if self._iea_page:
+            self._iea_page.update_preview(image_data)
+    
+    def start_preview_refresh(self) -> None:
+        """启动预览自动刷新"""
+        if self._iea_page:
+            self._iea_page.start_preview_refresh()
+    
+    def _on_screenshot_requested(self) -> None:
+        """截图请求处理 [AutoFix 2026-04-18]"""
+        # 转发截图请求信号到外部
+        self.screenshot_requested.emit()
+    
+    def stop_preview_refresh(self) -> None:
+        """停止预览自动刷新"""
+        if self._iea_page:
+            self._iea_page.stop_preview_refresh()
     
     def closeEvent(self, event) -> None:
         """
@@ -721,7 +833,22 @@ def create_demo_main_window() -> MainWindow:
     try:
         from .widgets.base_widgets import CardWidget, PrimaryButton, SecondaryButton
     except ImportError:
-        from widgets.base_widgets import CardWidget, PrimaryButton, SecondaryButton
+        import sys
+        import os
+        # 计算项目根目录路径
+        current_file = os.path.abspath(__file__)
+        pyqt_ui_dir = os.path.dirname(current_file)
+        gui_dir = os.path.dirname(pyqt_ui_dir)
+        entry_dir = os.path.dirname(gui_dir)
+        istina_dir = os.path.dirname(entry_dir)
+        project_root = os.path.dirname(istina_dir)
+        
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+        if istina_dir not in sys.path:
+            sys.path.insert(0, istina_dir)
+        
+        from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.base_widgets import CardWidget, PrimaryButton, SecondaryButton
     
     # 首页
     home_page = QWidget()

@@ -3,6 +3,8 @@
 显示设备屏幕截图，支持图像缩放和适应窗口
 """
 
+import base64
+import logging
 from typing import Optional
 from PyQt6.QtWidgets import (
     QWidget,
@@ -13,14 +15,34 @@ from PyQt6.QtWidgets import (
     QFrame,
     QSizePolicy,
 )
-from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QSize, QMetaObject, Qt as QtCore, QThread
 from PyQt6.QtGui import QImage, QPixmap, QPainter, QColor
 
 # 支持两种导入方式
 try:
     from ..theme.theme_manager import ThemeManager
 except ImportError:
-    from theme.theme_manager import ThemeManager
+    import sys
+    import os
+    # 计算项目根目录路径
+    current_file = os.path.abspath(__file__)
+    widgets_dir = os.path.dirname(current_file)
+    pyqt_ui_dir = os.path.dirname(widgets_dir)
+    gui_dir = os.path.dirname(pyqt_ui_dir)
+    entry_dir = os.path.dirname(gui_dir)
+    istina_dir = os.path.dirname(entry_dir)
+    project_root = os.path.dirname(istina_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if istina_dir not in sys.path:
+        sys.path.insert(0, istina_dir)
+    
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+
+
+# 创建logger
+logger = logging.getLogger(__name__)
 
 
 class DevicePreviewWidget(QWidget):
@@ -36,11 +58,15 @@ class DevicePreviewWidget(QWidget):
     信号：
     - image_updated(QImage): 图像更新信号
     - refresh_requested(): 刷新请求信号
+    - _internal_update_image(bytes): 内部信号，用于线程安全更新
+    - screenshot_requested(): 截图请求信号，用于从外部获取截图数据 [AutoFix 2026-04-18]
     """
     
     # 自定义信号
     image_updated = pyqtSignal(QImage)
     refresh_requested = pyqtSignal()
+    _internal_update_image = pyqtSignal(bytes)  # 内部信号，用于线程安全更新
+    screenshot_requested = pyqtSignal()  # [AutoFix 2026-04-18] 截图请求信号
     
     def __init__(
         self,
@@ -66,6 +92,9 @@ class DevicePreviewWidget(QWidget):
         # 自动刷新定时器
         self._refresh_timer = QTimer(self)
         self._refresh_timer.timeout.connect(self._on_auto_refresh)
+        
+        # 连接内部信号到实际处理方法
+        self._internal_update_image.connect(self._process_image_update)
         
         self._setup_ui()
         self._setup_style()
@@ -235,26 +264,119 @@ class DevicePreviewWidget(QWidget):
     
     def _on_auto_refresh(self) -> None:
         """自动刷新定时器处理"""
+        # [AutoFix 2026-04-18] 修复：自动刷新时发射截图请求信号
         if self._is_connected:
+            logger.debug("Auto refresh triggered, emitting screenshot_requested signal")
+            self.screenshot_requested.emit()
+            # 同时保留refresh_requested信号以兼容旧代码
             self.refresh_requested.emit()
     
     # === 公共方法 ===
     
     def update_image(self, image_data: bytes) -> None:
         """
-        更新预览图像
+        更新预览图像（线程安全版本）
+        
+        如果调用线程不是主线程，会通过信号槽机制将操作转发到主线程执行
         
         Args:
-            image_data: 图像数据（bytes格式，支持PNG/JPEG）
+            image_data: 图像数据（bytes格式，支持PNG/JPEG，可能是base64编码）
         """
-        image = QImage.fromData(image_data)
-        if not image.isNull():
-            self._current_image = image
-            self._update_display_image()
+        try:
+            # 检查当前线程是否是主线程
+            if self.thread() is not None and self.thread() != QThread.currentThread():
+                # 在非主线程中被调用，通过信号转发到主线程
+                logger.debug("update_image called from non-main thread, forwarding via signal")
+                self._internal_update_image.emit(image_data)
+                return
             
-            # 更新分辨率信息
-            self._device_resolution = f"{image.width()}x{image.height()}"
-            self._resolution_label.setText(self._device_resolution)
+            # 在主线程中，直接处理
+            self._process_image_update(image_data)
+        except Exception as e:
+            logger.exception(f"Error in update_image: {e}")
+    
+    def _process_image_update(self, image_data: bytes) -> None:
+        """
+        实际处理图像更新的方法（在主线程中执行）
+        
+        Args:
+            image_data: 图像数据（bytes格式，支持PNG/JPEG，可能是base64编码）
+        """
+        try:
+            logger.debug(f"_process_image_update called, data type: {type(image_data)}, length: {len(image_data) if image_data else 0}")
+            
+            if not image_data:
+                logger.warning("_process_image_update received empty image_data")
+                return
+            
+            # 处理base64编码的数据
+            raw_bytes = image_data
+            if isinstance(image_data, bytes):
+                # 检查是否是base64编码
+                # 1. 数据长度应该是4的倍数（base64编码特性）
+                # 2. 数据应该只包含base64字符集
+                # 3. 原始图像数据通常以PNG或JPEG头开始
+                is_likely_base64 = (
+                    len(image_data) % 4 == 0 and  # base64长度是4的倍数
+                    len(image_data) > 100 and     # base64编码通常较长
+                    image_data[:4] not in [b'\x89PNG', b'\xff\xd8\xff\xe0', b'\xff\xd8\xff\xe1', b'\xff\xd8\xff\xdb']  # 不是原始图像
+                )
+                
+                if is_likely_base64:
+                    try:
+                        # 尝试解码base64
+                        decoded = base64.b64decode(image_data, validate=True)
+                        if decoded and len(decoded) > 0:
+                            # 验证解码后的数据是否是有效的图像格式
+                            if decoded[:4] in [b'\x89PNG', b'\xff\xd8\xff\xe0', b'\xff\xd8\xff\xe1', b'\xff\xd8\xff\xdb']:
+                                raw_bytes = decoded
+                                logger.debug(f"Successfully decoded base64 data, original length: {len(image_data)}, decoded length: {len(decoded)}")
+                    except Exception as e:
+                        # 解码失败，使用原始数据
+                        logger.debug(f"Base64 decode failed (using raw data): {e}")
+                        pass
+            
+            image = QImage.fromData(raw_bytes)
+            if not image.isNull():
+                self._current_image = image
+                self._update_display_image()
+                
+                # 更新分辨率信息
+                self._device_resolution = f"{image.width()}x{image.height()}"
+                self._resolution_label.setText(self._device_resolution)
+                logger.debug(f"Image updated successfully: {self._device_resolution}")
+            else:
+                logger.error(f"Failed to create QImage from data, data length: {len(raw_bytes)}")
+                # 尝试显示错误信息在预览区域
+                self._show_error_placeholder("图像格式错误")
+        except Exception as e:
+            logger.exception(f"Error in _process_image_update: {e}")
+            self._show_error_placeholder(f"图像处理错误: {str(e)}")
+    
+    def _show_error_placeholder(self, error_text: str) -> None:
+        """显示错误占位图"""
+        c = self._theme.colors
+        
+        # 创建错误占位图像
+        placeholder = QImage(200, 150, QImage.Format.Format_RGB32)
+        placeholder.fill(QColor(c['canvas_bg']))
+        
+        painter = QPainter(placeholder)
+        painter.setPen(QColor(c['danger']))
+        font = painter.font()
+        font.setPointSize(self._theme.get_font_size('body_medium'))
+        painter.setFont(font)
+        
+        # 绘制错误文字
+        painter.drawText(
+            placeholder.rect(),
+            Qt.AlignmentFlag.AlignCenter,
+            error_text
+        )
+        painter.end()
+        
+        self._current_image = placeholder
+        self._update_display_image()
     
     def update_image_from_qimage(self, image: QImage) -> None:
         """
@@ -279,16 +401,25 @@ class DevicePreviewWidget(QWidget):
             status: 状态文本
             connected: 是否已连接
         """
+        # [AutoFix 2026-04-18] 修复：设备连接后自动启动预览刷新
+        previous_connected = self._is_connected
         self._device_status = status
         self._is_connected = connected
         
         self._status_label.setText(status)
         self._update_status_indicator()
         
-        # 如果断开连接，显示占位图
+        # 如果断开连接，显示占位图并停止自动刷新
         if not connected:
             self._show_placeholder()
             self._resolution_label.setText("")
+            self.stop_auto_refresh()
+            logger.info("设备已断开，停止预览自动刷新")
+        else:
+            # 设备刚连接（之前未连接），启动自动刷新
+            if not previous_connected:
+                self.start_auto_refresh()
+                logger.info("设备已连接，启动预览自动刷新")
     
     def start_auto_refresh(self) -> None:
         """启动自动刷新"""

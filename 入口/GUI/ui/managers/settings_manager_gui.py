@@ -8,13 +8,34 @@ import shutil
 import sys
 import threading
 from pathlib import Path
+from typing import Dict, Any, Optional, Callable
 
 # 导入communicator模块
 from core.communication.communicator import ClientCommunicator
 
+# 导入GPU检测模块
+try:
+    from IstinaEndfieldAssistant.安卓相关.core.local_inference.gpu_checker import GPUChecker
+    from IstinaEndfieldAssistant.安卓相关.core.local_inference.model_manager import ModelManager
+except ImportError:
+    import sys
+    sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "..", ".."))
+    from IstinaEndfieldAssistant.安卓相关.core.local_inference.gpu_checker import GPUChecker
+    from IstinaEndfieldAssistant.安卓相关.core.local_inference.model_manager import ModelManager
+
 
 class SettingsManagerGUI:
-    """设置管理GUI类"""
+    """设置管理GUI类
+    
+    功能：
+    - 版本信息和更新管理
+    - 本地推理设置管理
+    - 缓存设置管理
+    - GPU检测和设备要求检查
+    """
+    
+    # 硬件加速选项
+    HARDWARE_ACCEL_OPTIONS = ["auto", "enabled", "disabled"]
     
     def __init__(self, parent_frame, config, log_callback, client_main_ref=None):
         self.parent_frame = parent_frame
@@ -27,6 +48,11 @@ class SettingsManagerGUI:
         self.latest_version_label = None
         self.update_status_label = None
         self.update_btn = None
+        
+        # 本地推理相关
+        self._gpu_checker: Optional[GPUChecker] = None
+        self._model_manager: Optional[ModelManager] = None
+        self._gpu_info: Optional[Dict[str, Any]] = None
         
         self.setup_ui()
         
@@ -299,3 +325,280 @@ class SettingsManagerGUI:
         except Exception as e:
             self.log_callback(f"保存触控设置失败: {e}", "settings", "ERROR")
             messagebox.showerror("保存失败", f"保存触控设置时发生错误:\n{str(e)}")
+    
+    # === 本地推理设置管理 ===
+    
+    def get_local_inference_config(self) -> Dict[str, Any]:
+        """获取本地推理配置"""
+        return self.config.get('inference', {})
+    
+    def set_local_inference_enabled(self, enabled: bool) -> bool:
+        """设置本地推理启用状态"""
+        try:
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            
+            self.config['inference']['local_inference_enabled'] = enabled
+            # 同时更新local.enabled保持兼容
+            if 'local' not in self.config['inference']:
+                self.config['inference']['local'] = {}
+            self.config['inference']['local']['enabled'] = enabled
+            
+            self._save_config()
+            self.log_callback(f"本地推理已{'启用' if enabled else '禁用'}", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"设置本地推理失败: {e}", "settings", "ERROR")
+            return False
+    
+    def get_hardware_acceleration(self) -> str:
+        """获取硬件加速设置"""
+        return self.config.get('inference', {}).get('hardware_acceleration', 'auto')
+    
+    def set_hardware_acceleration(self, mode: str) -> bool:
+        """设置硬件加速模式"""
+        try:
+            if mode not in self.HARDWARE_ACCEL_OPTIONS:
+                raise ValueError(f"无效的硬件加速模式: {mode}")
+            
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            
+            self.config['inference']['hardware_acceleration'] = mode
+            self._save_config()
+            self.log_callback(f"硬件加速设置为: {mode}", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"设置硬件加速失败: {e}", "settings", "ERROR")
+            return False
+    
+    # === 缓存设置管理 ===
+    
+    def get_cache_config(self) -> Dict[str, Any]:
+        """获取缓存配置"""
+        return self.config.get('inference', {}).get('cache_settings', {
+            'enabled': True,
+            'max_size_mb': 2048,
+            'ttl_hours': 24
+        })
+    
+    def set_cache_enabled(self, enabled: bool) -> bool:
+        """设置缓存启用状态"""
+        try:
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            if 'cache_settings' not in self.config['inference']:
+                self.config['inference']['cache_settings'] = {}
+            
+            self.config['inference']['cache_settings']['enabled'] = enabled
+            self._save_config()
+            self.log_callback(f"缓存已{'启用' if enabled else '禁用'}", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"设置缓存状态失败: {e}", "settings", "ERROR")
+            return False
+    
+    def set_cache_max_size(self, max_size_mb: int) -> bool:
+        """设置缓存最大大小（MB）"""
+        try:
+            if max_size_mb < 100:
+                raise ValueError("缓存大小不能小于100MB")
+            
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            if 'cache_settings' not in self.config['inference']:
+                self.config['inference']['cache_settings'] = {}
+            
+            self.config['inference']['cache_settings']['max_size_mb'] = max_size_mb
+            self._save_config()
+            self.log_callback(f"缓存最大大小设置为: {max_size_mb}MB", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"设置缓存大小失败: {e}", "settings", "ERROR")
+            return False
+    
+    def set_cache_ttl(self, ttl_hours: int) -> bool:
+        """设置缓存过期时间（小时）"""
+        try:
+            if ttl_hours < 1:
+                raise ValueError("缓存过期时间不能小于1小时")
+            
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            if 'cache_settings' not in self.config['inference']:
+                self.config['inference']['cache_settings'] = {}
+            
+            self.config['inference']['cache_settings']['ttl_hours'] = ttl_hours
+            self._save_config()
+            self.log_callback(f"缓存过期时间设置为: {ttl_hours}小时", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"设置缓存过期时间失败: {e}", "settings", "ERROR")
+            return False
+    
+    def save_cache_settings(self, enabled: bool, max_size_mb: int, ttl_hours: int) -> bool:
+        """保存所有缓存设置"""
+        try:
+            if 'inference' not in self.config:
+                self.config['inference'] = {}
+            
+            self.config['inference']['cache_settings'] = {
+                'enabled': enabled,
+                'max_size_mb': max_size_mb,
+                'ttl_hours': ttl_hours
+            }
+            
+            self._save_config()
+            self.log_callback("缓存设置已保存", "settings", "INFO")
+            return True
+        except Exception as e:
+            self.log_callback(f"保存缓存设置失败: {e}", "settings", "ERROR")
+            return False
+    
+    # === GPU检测和设备要求检查 ===
+    
+    def check_gpu_requirements(self) -> Dict[str, Any]:
+        """检查GPU是否满足本地推理要求"""
+        try:
+            if self._gpu_checker is None:
+                self._gpu_checker = GPUChecker()
+            
+            result = self._gpu_checker.check_gpu_availability()
+            self._gpu_info = result
+            
+            # 更新配置中的GPU信息
+            if 'gpu' not in self.config:
+                self.config['gpu'] = {}
+            
+            self.config['gpu'].update({
+                'checked': True,
+                'cuda_available': result.get('cuda_available', False),
+                'cuda_version': result.get('cuda_version', ''),
+                'driver_version': result.get('driver_version', ''),
+                'gpu_count': result.get('gpu_count', 0),
+                'gpus': result.get('gpus', []),
+                'meets_requirements': result.get('meets_requirements', False),
+                'recommended_model': result.get('recommended_model')
+            })
+            
+            self._save_config()
+            
+            self.log_callback(
+                f"GPU检测完成: {result.get('gpu_count', 0)}个GPU, "
+                f"满足要求: {result.get('meets_requirements', False)}",
+                "settings", "INFO"
+            )
+            
+            return result
+        except Exception as e:
+            self.log_callback(f"GPU检测失败: {e}", "settings", "ERROR")
+            return {
+                'available': False,
+                'meets_requirements': False,
+                'error': str(e)
+            }
+    
+    def get_gpu_info(self) -> Optional[Dict[str, Any]]:
+        """获取GPU信息"""
+        if self._gpu_info is None:
+            # 尝试从配置中读取
+            gpu_config = self.config.get('gpu', {})
+            if gpu_config.get('checked'):
+                self._gpu_info = gpu_config
+        return self._gpu_info
+    
+    def meets_gpu_requirements(self) -> bool:
+        """检查是否满足GPU要求"""
+        gpu_info = self.get_gpu_info()
+        if gpu_info is None:
+            gpu_info = self.check_gpu_requirements()
+        return gpu_info.get('meets_requirements', False)
+    
+    def get_recommended_model(self) -> Optional[str]:
+        """获取推荐的模型"""
+        gpu_info = self.get_gpu_info()
+        if gpu_info is None:
+            gpu_info = self.check_gpu_requirements()
+        return gpu_info.get('recommended_model')
+    
+    # === 模型管理 ===
+    
+    def get_model_manager(self) -> ModelManager:
+        """获取模型管理器实例"""
+        if self._model_manager is None:
+            models_dir = self.config.get('model', {}).get('models_dir', 'models')
+            self._model_manager = ModelManager(models_dir=models_dir)
+        return self._model_manager
+    
+    def get_available_models(self) -> list:
+        """获取所有可用模型列表"""
+        try:
+            manager = self.get_model_manager()
+            models = manager.get_all_models()
+            return [model.to_dict() for model in models]
+        except Exception as e:
+            self.log_callback(f"获取模型列表失败: {e}", "settings", "ERROR")
+            return []
+    
+    def get_downloaded_models(self) -> list:
+        """获取已下载的模型列表"""
+        try:
+            manager = self.get_model_manager()
+            models = manager.get_available_models()
+            return [model.to_dict() for model in models]
+        except Exception as e:
+            self.log_callback(f"获取已下载模型列表失败: {e}", "settings", "ERROR")
+            return []
+    
+    def download_model(self, model_name: str, progress_callback: Optional[Callable] = None) -> bool:
+        """下载指定模型"""
+        try:
+            manager = self.get_model_manager()
+            result = manager.download_model(model_name, progress_callback)
+            if result:
+                self.log_callback(f"模型 {model_name} 下载成功", "settings", "INFO")
+                return True
+            else:
+                self.log_callback(f"模型 {model_name} 下载失败", "settings", "ERROR")
+                return False
+        except Exception as e:
+            self.log_callback(f"下载模型失败: {e}", "settings", "ERROR")
+            return False
+    
+    def delete_model(self, model_name: str) -> bool:
+        """删除指定模型"""
+        try:
+            manager = self.get_model_manager()
+            result = manager.delete_model(model_name)
+            if result:
+                self.log_callback(f"模型 {model_name} 已删除", "settings", "INFO")
+                return True
+            else:
+                self.log_callback(f"删除模型 {model_name} 失败", "settings", "ERROR")
+                return False
+        except Exception as e:
+            self.log_callback(f"删除模型失败: {e}", "settings", "ERROR")
+            return False
+    
+    def get_model_disk_usage(self) -> Dict[str, Any]:
+        """获取模型磁盘使用情况"""
+        try:
+            manager = self.get_model_manager()
+            return manager.get_disk_usage()
+        except Exception as e:
+            self.log_callback(f"获取磁盘使用情况失败: {e}", "settings", "ERROR")
+            return {'total_size_gb': 0, 'model_count': 0, 'models': {}}
+    
+    # === 配置保存辅助方法 ===
+    
+    def _save_config(self) -> bool:
+        """保存配置到文件"""
+        try:
+            config_path = os.path.join(os.path.dirname(__file__), "..", "..", "config", "client_config.json")
+            os.makedirs(os.path.dirname(config_path), exist_ok=True)
+            with open(config_path, 'w', encoding='utf-8') as f:
+                json.dump(self.config, f, indent=2, ensure_ascii=False)
+            return True
+        except Exception as e:
+            self.log_callback(f"保存配置失败: {e}", "settings", "ERROR")
+            return False

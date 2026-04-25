@@ -618,6 +618,7 @@ def init_logger(config_path: Optional[str] = None) -> ClientLogger:
     global _global_logger
     
     with _logger_lock:
-        _global_logger = ClientLogger(config_path)
+        if _global_logger is None:
+            _global_logger = ClientLogger(config_path)
     
     return _global_logger

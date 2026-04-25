@@ -7,7 +7,7 @@ PyQt6 UI 模块
 - ThemeManager: 主题管理器
 - PyQt6Application: 应用管理类
 - run_application(): 应用入口函数
-- 页面组件: DevicePage, TaskPage, AuthPage, SettingsPage, CloudPage
+- 页面组件: IEAPage, AuthPage, SettingsPage, CloudPage
 - 对话框组件: MessageBox, ConfirmDialog, ProgressDialog
 - 工具组件: 各种自定义控件
 """
@@ -21,11 +21,9 @@ try:
         QtLogHandler,
         WorkerThread,
         run_application,
-        run_demo_application,
     )
     from .pages import (
-        DevicePage,
-        TaskPage,
+        IEAPage,
         AuthPage,
         SettingsPage,
         CloudPage,
@@ -56,24 +54,37 @@ try:
         ConnectionStatusIndicator,
         StatusIndicatorWidget,
     )
-except ImportError:
-    from theme.theme_manager import ThemeManager
-    from main_window import MainWindow
-    from app_main import (
+except ImportError as e:
+    import sys
+    import os
+    # 添加项目根目录到路径
+    current_file = os.path.abspath(__file__)
+    pyqt_ui_dir = os.path.dirname(current_file)
+    gui_dir = os.path.dirname(pyqt_ui_dir)
+    entry_dir = os.path.dirname(gui_dir)
+    istina_dir = os.path.dirname(entry_dir)
+    project_root = os.path.dirname(istina_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if istina_dir not in sys.path:
+        sys.path.insert(0, istina_dir)
+    
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.main_window import MainWindow
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.app_main import (
         PyQt6Application,
         QtLogHandler,
         WorkerThread,
         run_application,
-        run_demo_application,
     )
-    from pages import (
-        DevicePage,
-        TaskPage,
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.pages import (
+        IEAPage,
         AuthPage,
         SettingsPage,
         CloudPage,
     )
-    from dialogs import (
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.dialogs import (
         MessageBox,
         ConfirmDialog,
         ProgressDialog,
@@ -86,7 +97,7 @@ except ImportError:
         confirm_delete,
         confirm_exit,
     )
-    from widgets import (
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets import (
         NavigationButton,
         PrimaryButton,
         SecondaryButton,
@@ -113,11 +124,9 @@ __all__ = [
     
     # 入口函数
     'run_application',
-    'run_demo_application',
     
     # 页面组件
-    'DevicePage',
-    'TaskPage',
+    'IEAPage',
     'AuthPage',
     'SettingsPage',
     'CloudPage',

@@ -193,8 +193,8 @@ class ClientCommunicator:
         start_time = time.time()
         self.logger.debug(LogCategory.COMMUNICATION, "准备发送请求", endpoint=endpoint)
         
-        # 登录请求不使用重连机制
-        is_login_request = endpoint == "login" or endpoint == "register"
+        # 登录请求和客户端注册请求不使用重连机制
+        is_login_request = endpoint == "login" or endpoint == "register" or endpoint == "client_register"
         
         # 重连计数器
         retry_count = 0
@@ -289,3 +289,59 @@ class ClientCommunicator:
                            endpoint=endpoint,
                            duration_ms=round(duration_ms, 3))
         return None
+    
+    def get_available_models(self, session_id: str) -> Optional[Dict]:
+        """获取可用模型列表
+        
+        Args:
+            session_id: 会话ID
+            
+        Returns:
+            包含模型列表的响应字典，或None如果请求失败
+        """
+        self.logger.info(LogCategory.COMMUNICATION, "获取可用模型列表")
+        response = self.send_request("get_available_models", {
+            "session_id": session_id
+        })
+        
+        if response and response.get("status") == "success":
+            self.logger.info(LogCategory.COMMUNICATION, "获取模型列表成功",
+                           model_count=len(response.get("models", [])))
+        else:
+            self.logger.warning(LogCategory.COMMUNICATION, "获取模型列表失败",
+                               error=response.get("message") if response else "无响应")
+        return response
+    
+    def register_client(self, client_name: str, preferred_model: str = None) -> Optional[Dict]:
+        """注册客户端到服务器
+        
+        Args:
+            client_name: 客户端名称
+            preferred_model: 首选模型名称（可选）
+            
+        Returns:
+            包含注册结果的响应字典，或None如果请求失败
+        """
+        self.logger.info(LogCategory.COMMUNICATION, "注册客户端到服务器",
+                        client_name=client_name)
+        
+        import uuid
+        client_id = str(uuid.uuid4())
+        
+        data = {
+            "client_id": client_id,
+            "client_name": client_name
+        }
+        if preferred_model:
+            data["preferred_model"] = preferred_model
+            
+        response = self.send_request("client_register", data)
+        
+        if response and response.get("status") == "success":
+            self.logger.info(LogCategory.COMMUNICATION, "客户端注册成功",
+                           client_id=client_id,
+                           assigned_model=response.get("assigned_model"))
+        else:
+            self.logger.warning(LogCategory.COMMUNICATION, "客户端注册失败",
+                               error=response.get("message") if response else "无响应")
+        return response

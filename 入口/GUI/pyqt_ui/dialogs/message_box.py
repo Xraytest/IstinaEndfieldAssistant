@@ -11,7 +11,23 @@ from PyQt6.QtCore import Qt
 try:
     from ..theme.theme_manager import ThemeManager
 except ImportError:
-    from theme.theme_manager import ThemeManager
+    import sys
+    import os
+    # 计算项目根目录路径
+    current_file = os.path.abspath(__file__)
+    dialogs_dir = os.path.dirname(current_file)
+    pyqt_ui_dir = os.path.dirname(dialogs_dir)
+    gui_dir = os.path.dirname(pyqt_ui_dir)
+    entry_dir = os.path.dirname(gui_dir)
+    istina_dir = os.path.dirname(entry_dir)
+    project_root = os.path.dirname(istina_dir)
+    
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+    if istina_dir not in sys.path:
+        sys.path.insert(0, istina_dir)
+    
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
 
 
 class MessageBox(QMessageBox):
