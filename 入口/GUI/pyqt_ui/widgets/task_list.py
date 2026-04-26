@@ -592,15 +592,11 @@ class TaskListWidget(QWidget):
         
         title_label = QLabel(self._title)
         title_label.setProperty("variant", "title")
-        title_label.style().unpolish(title_label)
-        title_label.style().polish(title_label)
         header_layout.addWidget(title_label)
         
         # 任务计数
         self._count_label = QLabel("(0)")
         self._count_label.setProperty("variant", "muted")
-        self._count_label.style().unpolish(self._count_label)
-        self._count_label.style().polish(self._count_label)
         header_layout.addWidget(self._count_label)
         
         header_layout.addStretch()

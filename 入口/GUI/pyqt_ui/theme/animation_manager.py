@@ -46,22 +46,25 @@ class AnimationManager(QObject):
     
     def __new__(cls) -> 'AnimationManager':
         if cls._instance is None:
-            cls._instance = super().__new__(cls)
+            # 创建实例并立即初始化
+            instance = super().__new__(cls)
+            # 直接调用 QObject.__init__，避免递归
+            QObject.__init__(instance)
+            instance._config = AnimationConfig()
+            instance._active_animations: list = []
+            cls._instance = instance
         return cls._instance
     
     def __init__(self):
-        super().__init__()
-        if hasattr(self, '_initialized') and self._initialized:
-            return
-        self._initialized = True
-        self._config = AnimationConfig()
-        self._active_animations: list = []
+        # __init__ 在 __new__ 之后调用，但初始化已经在 __new__ 中完成
+        # 这里什么都不做，避免重复初始化
+        pass
     
     @classmethod
     def get_instance(cls) -> 'AnimationManager':
         """获取动画管理器单例"""
         if cls._instance is None:
-            cls._instance = cls()
+            cls._instance = cls.__new__(cls)
         return cls._instance
     
     # === 配置管理 ===

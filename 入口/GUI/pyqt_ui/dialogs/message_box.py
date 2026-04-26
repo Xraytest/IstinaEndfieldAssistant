@@ -99,8 +99,6 @@ class MessageBox(QMessageBox):
             self.setStandardButtons(QMessageBox.StandardButton.Ok)
             # 设置成功样式
             self.setProperty("messageType", "success")
-            self.style().unpolish(self)
-            self.style().polish(self)
             
         elif self._message_type == self.TYPE_QUESTION:
             self.setIcon(QMessageBox.Icon.Question)
@@ -113,8 +111,6 @@ class MessageBox(QMessageBox):
         """设置样式"""
         # 应用Material Design 3风格
         self.setProperty("class", "messageBox")
-        self.style().unpolish(self)
-        self.style().polish(self)
         
         # 设置最小宽度
         self.setMinimumWidth(300)

@@ -219,9 +219,9 @@ class GPUChecker:
                        gpu_count, max_memory)
             
         except ImportError:
-            logger.debug("pynvml未安装，跳过NVML检测")
+            logger.debug(LogCategory.MAIN, "pynvml未安装，跳过NVML检测")
         except Exception as e:
-            logger.debug("NVML检测失败: %s", str(e))
+            logger.debug(LogCategory.MAIN, f"NVML检测失败: {str(e)}")
         
         return result
     
@@ -242,7 +242,7 @@ class GPUChecker:
             import torch
             
             if not torch.cuda.is_available():
-                logger.debug("PyTorch CUDA不可用")
+                logger.debug(LogCategory.MAIN, "PyTorch CUDA不可用")
                 return result
             
             result["cuda_available"] = True
@@ -292,9 +292,9 @@ class GPUChecker:
                        gpu_count, max_memory)
             
         except ImportError:
-            logger.debug("PyTorch未安装，跳过PyTorch检测")
+            logger.debug(LogCategory.MAIN, "PyTorch未安装，跳过PyTorch检测")
         except Exception as e:
-            logger.debug("PyTorch检测失败: %s", str(e))
+            logger.debug(LogCategory.MAIN, f"PyTorch检测失败: {str(e)}")
         
         return result
     
@@ -378,9 +378,9 @@ class GPUChecker:
                        len(gpus), max_memory)
             
         except FileNotFoundError:
-            logger.debug("nvidia-smi命令未找到")
+            logger.debug(LogCategory.MAIN, "nvidia-smi命令未找到")
         except Exception as e:
-            logger.debug("nvidia-smi检测失败: %s", str(e))
+            logger.debug(LogCategory.MAIN, f"nvidia-smi检测失败: {str(e)}")
         
         return result
     

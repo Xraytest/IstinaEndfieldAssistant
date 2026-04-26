@@ -66,7 +66,7 @@ class LogRecord:
         return {
             "timestamp": self.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             "level": self.level.name,
-            "category": self.category.value,
+            "category": self.category.value if hasattr(self.category, 'value') else str(self.category),
             "module": self.module,
             "function": self.function,
             "line": self.line,
@@ -89,10 +89,11 @@ class LogFormatter:
     
     def format(self, record: LogRecord) -> str:
         """格式化日志记录"""
+        category_str = record.category.value if hasattr(record.category, 'value') else str(record.category)
         formatted = self.format_string.format(
             timestamp=record.timestamp.strftime("%Y-%m-%d %H:%M:%S.%f")[:-3],
             level=record.level.name,
-            category=record.category.value,
+            category=category_str,
             module=record.module,
             function=record.function,
             line=record.line,

@@ -917,27 +917,23 @@ class PyQt6Application(QObject):
                 self._main_window.append_log(f"自动连接设备异常: {str(e)}", "ERROR")
     
     def _try_register_client_and_select_model(self) -> None:
-        """尝试注册客户端并获取/选择模型"""
+        """尝试注册客户端并获取可用模型列表（不在此处选择模型）"""
         try:
             if self._communicator and self._main_window:
                 # 获取客户端配置
                 client_config = self._config.get('client', {})
-                model_config = self._config.get('model', {})
                 
                 client_name = client_config.get('client_name', 'IEA_Client')
-                preferred_model = model_config.get('selected_model', '')
-                auto_select = model_config.get('auto_select', True)
                 
                 # 1. 注册客户端
                 self._main_window.append_log("正在注册客户端到服务器...", "INFO")
                 register_response = self._communicator.register_client(
                     client_name=client_name,
-                    preferred_model=preferred_model if not auto_select else None
+                    preferred_model=None  # 不指定首选模型，由用户在模型管理页面选择
                 )
                 
                 if register_response and register_response.get('status') == 'success':
                     client_id = register_response.get('client_id')
-                    assigned_model = register_response.get('assigned_model', '')
                     
                     # 更新配置
                     self._config['client']['client_id'] = client_id
@@ -962,74 +958,19 @@ class PyQt6Application(QObject):
                         if settings_page:
                             settings_page.update_available_models(models, default_model)
                         
-                        # 3. 选择模型
-                        selected_model = ""
-                        if auto_select:
-                            # 自动选择：优先使用服务器分配的模型，其次是服务器默认模型
-                            if assigned_model:
-                                selected_model = assigned_model
-                                self._main_window.append_log(
-                                    f"自动选择服务器分配的模型: {selected_model}", "INFO"
-                                )
-                            elif default_model:
-                                selected_model = default_model
-                                self._main_window.append_log(
-                                    f"自动选择服务器默认模型: {selected_model}", "INFO"
-                                )
-                            elif models:
-                                # 选择第一个可用模型
-                                selected_model = models[0].get('name', '')
-                                self._main_window.append_log(
-                                    f"自动选择第一个可用模型: {selected_model}", "INFO"
-                                )
-                        else:
-                            # 手动选择：使用用户配置的模型
-                            if preferred_model:
-                                # 检查配置的模型是否在可用列表中
-                                available_model_names = [m.get('name') for m in models]
-                                if preferred_model in available_model_names:
-                                    selected_model = preferred_model
-                                    self._main_window.append_log(
-                                        f"使用配置的模型: {selected_model}", "INFO"
-                                    )
-                                else:
-                                    self._main_window.append_log(
-                                        f"配置的模型 {preferred_model} 不可用，将自动选择", "WARNING"
-                                    )
-                                    if default_model:
-                                        selected_model = default_model
-                                    elif models:
-                                        selected_model = models[0].get('name', '')
-                            else:
-                                # 没有配置模型，使用默认
-                                if default_model:
-                                    selected_model = default_model
-                                elif models:
-                                    selected_model = models[0].get('name', '')
+                        # 更新模型管理页面的模型列表
+                        model_manager_page = self._main_window.get_model_manager_page()
+                        if model_manager_page:
+                            model_manager_page.update_config(self._config)
                         
-                        # 更新配置
-                        if selected_model:
-                            self._config['model']['selected_model'] = selected_model
-                            self._config['model']['available_models'] = models
-                            self._config['model']['last_updated'] = int(time.time())
-                            
-                            # 更新设置页面显示
-                            if settings_page:
-                                settings_page.set_auto_select(auto_select)
-                                if not auto_select:
-                                    settings_page._current_model_display.setText(selected_model)
-                                else:
-                                    settings_page._current_model_display.setText(
-                                        f"自动选择 ({selected_model})"
-                                    )
-                            
-                            self._main_window.append_log(
-                                f"模型选择完成: {selected_model}", "INFO"
-                            )
-                        else:
-                            self._main_window.append_log(
-                                "没有可用的模型，请检查服务器配置", "WARNING"
-                            )
+                        # 保存可用模型列表到配置
+                        self._config['model']['available_models'] = models
+                        self._config['model']['default_model'] = default_model
+                        self._config['model']['last_updated'] = int(time.time())
+                        
+                        self._main_window.append_log(
+                            f"获取到 {len(models)} 个可用模型，请在模型管理页面选择", "INFO"
+                        )
                     else:
                         error_msg = models_response.get('message', '未知错误') if models_response else '无响应'
                         self._main_window.append_log(
@@ -1046,15 +987,46 @@ class PyQt6Application(QObject):
                 )
         except Exception as e:
             if self._main_window:
-                self._main_window.append_log(f"客户端注册/模型选择异常: {str(e)}", "ERROR")
+                self._main_window.append_log(f"客户端注册/模型获取异常: {str(e)}", "ERROR")
     
     def _try_initialize_local_inference(self) -> None:
-            """尝试初始化本地推理"""
+            """尝试初始化本地推理 - 仅在首次登录后询问"""
             try:
                 if not self._main_window:
                     return
                 
-                self._main_window.append_log("正在检查本地推理支持...", "INFO")
+                # 检查是否是首次登录
+                first_run_config = self._config.get("first_run", {})
+                prompt_shown = first_run_config.get("local_inference_prompt_shown", False)
+                
+                # 如果已经询问过，直接初始化推理管理器
+                if prompt_shown:
+                    self._main_window.append_log("正在初始化推理管理器...", "INFO")
+                    
+                    # 创建推理管理器
+                    self._inference_manager = InferenceManager(
+                        config=self._config,
+                        communicator=self._communicator
+                    )
+                    
+                    # 初始化推理管理器
+                    if self._inference_manager.initialize():
+                        stats = self._inference_manager.get_stats()
+                        mode = stats.get("effective_mode", "unknown")
+                        
+                        if mode == "local":
+                            self._main_window.append_log(
+                                f"本地推理已启用，模型: {stats.get('config', {}).get('model_name', 'unknown')}",
+                                "INFO"
+                            )
+                        else:
+                            self._main_window.append_log("使用云端推理模式", "INFO")
+                    else:
+                        self._main_window.append_log("本地推理初始化失败，将使用云端推理", "WARNING")
+                    return
+                
+                # 首次登录，显示询问对话框
+                self._main_window.append_log("首次登录，正在检查本地推理支持...", "INFO")
                 
                 # 创建推理管理器
                 self._inference_manager = InferenceManager(
@@ -1063,66 +1035,65 @@ class PyQt6Application(QObject):
                 )
                 
                 # 检查是否需要显示首次询问对话框
-                first_run_config = self._config.get("first_run", {})
-                prompt_shown = first_run_config.get("local_inference_prompt_shown", False)
-                
-                if not prompt_shown:
-                    # 首次运行，显示询问对话框
-                    if self._inference_manager.should_prompt_for_local_inference():
-                        self._main_window.append_log("显示本地推理配置对话框...", "INFO")
+                if self._inference_manager.should_prompt_for_local_inference():
+                    self._main_window.append_log("显示本地推理配置对话框...", "INFO")
+                    
+                    try:
+                        user_choice, gpu_info, selected_model = show_local_inference_dialog(
+                            parent=self._main_window,
+                            config=self._config
+                        )
+                    except Exception as dialog_error:
+                        self._main_window.append_log(f"本地推理对话框异常: {str(dialog_error)}", "ERROR")
+                        user_choice = None
+                        gpu_info = None
+                        selected_model = None
+                    
+                    if user_choice == "cancel":
+                        self._main_window.append_log("用户取消了本地推理配置，继续使用云端推理", "INFO")
+                        # 标记首次运行完成，避免重复提示
+                        self._config["first_run"]["local_inference_prompt_shown"] = True
+                        self._save_config()
+                        # 继续执行，不返回
+                    elif user_choice and gpu_info:
+                        # 保存GPU信息
+                        self._config["gpu"] = {
+                            "checked": True,
+                            "cuda_available": gpu_info.get("cuda_available", False),
+                            "cuda_version": gpu_info.get("cuda_version", ""),
+                            "driver_version": gpu_info.get("driver_version", ""),
+                            "gpu_count": gpu_info.get("gpu_count", 0),
+                            "gpus": gpu_info.get("gpus", []),
+                            "meets_requirements": gpu_info.get("meets_requirements", False),
+                            "recommended_model": gpu_info.get("recommended_model")
+                        }
                         
-                        try:
-                            user_choice, gpu_info, selected_model = show_local_inference_dialog(
-                                parent=self._main_window,
-                                config=self._config
-                            )
-                        except Exception as dialog_error:
-                            self._main_window.append_log(f"本地推理对话框异常: {str(dialog_error)}", "ERROR")
-                            user_choice = None
-                            gpu_info = None
-                            selected_model = None
+                        # 标记首次运行完成
+                        self._config["first_run"]["local_inference_prompt_shown"] = True
+                        self._config["first_run"]["user_choice"] = user_choice
                         
-                        if user_choice == "cancel":
-                            self._main_window.append_log("用户取消了本地推理配置，继续使用云端推理", "INFO")
-                            # 标记首次运行完成，避免重复提示
-                            self._config["first_run"]["local_inference_prompt_shown"] = True
-                            self._save_config()
-                            # 继续执行，不返回
-                        elif user_choice and gpu_info:
-                            # 保存GPU信息
-                            self._config["gpu"] = {
-                                "checked": True,
-                                "cuda_available": gpu_info.get("cuda_available", False),
-                                "cuda_version": gpu_info.get("cuda_version", ""),
-                                "driver_version": gpu_info.get("driver_version", ""),
-                                "gpu_count": gpu_info.get("gpu_count", 0),
-                                "gpus": gpu_info.get("gpus", []),
-                                "meets_requirements": gpu_info.get("meets_requirements", False),
-                                "recommended_model": gpu_info.get("recommended_model")
-                            }
-                            
-                            # 标记首次运行完成
-                            self._config["first_run"]["local_inference_prompt_shown"] = True
-                            self._config["first_run"]["user_choice"] = user_choice
-                            
-                            # 保存配置到文件
-                            self._save_config()
-                            
-                            if user_choice == "local" and selected_model:
-                                self._config["inference"]["local"]["enabled"] = True
-                                self._config["inference"]["local"]["model_name"] = selected_model
-                                self._main_window.append_log(
-                                    f"用户选择本地推理，模型: {selected_model}", "INFO"
-                                )
-                            else:
-                                self._config["inference"]["local"]["enabled"] = False
-                                self._main_window.append_log("用户选择云端推理", "INFO")
-                            
-                            # 重新加载配置到推理管理器
-                            self._inference_manager = InferenceManager(
-                                config=self._config,
-                                communicator=self._communicator
+                        # 保存配置到文件
+                        self._save_config()
+                        
+                        if user_choice == "local" and selected_model:
+                            self._config["inference"]["local"]["enabled"] = True
+                            self._config["inference"]["local"]["model_name"] = selected_model
+                            self._main_window.append_log(
+                                f"用户选择本地推理，模型: {selected_model}", "INFO"
                             )
+                        else:
+                            self._config["inference"]["local"]["enabled"] = False
+                            self._main_window.append_log("用户选择云端推理", "INFO")
+                        
+                        # 重新加载配置到推理管理器
+                        self._inference_manager = InferenceManager(
+                            config=self._config,
+                            communicator=self._communicator
+                        )
+                else:
+                    # 不满足本地推理条件，直接标记为已询问
+                    self._config["first_run"]["local_inference_prompt_shown"] = True
+                    self._save_config()
                 
                 # 初始化推理管理器
                 if self._inference_manager.initialize():

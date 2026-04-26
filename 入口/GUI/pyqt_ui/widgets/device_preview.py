@@ -125,15 +125,11 @@ class DevicePreviewWidget(QWidget):
         # 状态文本
         self._status_label = QLabel(self._device_status)
         self._status_label.setProperty("variant", "secondary")
-        self._status_label.style().unpolish(self._status_label)
-        self._status_label.style().polish(self._status_label)
         status_layout.addWidget(self._status_label)
         
         # 分辨率信息
         self._resolution_label = QLabel("")
         self._resolution_label.setProperty("variant", "muted")
-        self._resolution_label.style().unpolish(self._resolution_label)
-        self._resolution_label.style().polish(self._resolution_label)
         status_layout.addWidget(self._resolution_label)
         
         status_layout.addStretch()

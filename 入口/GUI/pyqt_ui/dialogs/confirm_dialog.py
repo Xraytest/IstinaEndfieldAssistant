@@ -137,8 +137,6 @@ class ConfirmDialog(QDialog):
     def _setup_style(self) -> None:
         """设置样式"""
         self.setProperty("class", "confirmDialog")
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     @property
     def _message_text(self) -> str:
@@ -361,8 +359,6 @@ class ProgressDialog(QDialog):
     def _setup_style(self) -> None:
         """设置样式"""
         self.setProperty("class", "progressDialog")
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     @property
     def _message_text(self) -> str:

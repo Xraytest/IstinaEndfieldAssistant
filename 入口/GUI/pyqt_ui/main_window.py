@@ -113,15 +113,11 @@ class NavigationBar(QWidget):
         # 标题区域
         self._title_label = QLabel("Istina Endfield")
         self._title_label.setProperty("variant", "title")
-        self._title_label.style().unpolish(self._title_label)
-        self._title_label.style().polish(self._title_label)
         self._main_layout.addWidget(self._title_label)
         
         # 版本标签
         self._version_label = QLabel("v1.0.0")
         self._version_label.setProperty("variant", "muted")
-        self._version_label.style().unpolish(self._version_label)
-        self._version_label.style().polish(self._version_label)
         self._main_layout.addWidget(self._version_label)
         
         # 分割线
@@ -150,8 +146,6 @@ class NavigationBar(QWidget):
     def _setup_style(self) -> None:
         """设置导航栏样式"""
         self.setProperty("class", "navigationBar")
-        self.style().unpolish(self)
-        self.style().polish(self)
         
         # 设置固定宽度
         self.setFixedWidth(200)
@@ -265,8 +259,6 @@ class ContentArea(QWidget):
     def _setup_style(self) -> None:
         """设置内容区域样式"""
         self.setProperty("class", "contentArea")
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     def add_page(self, page_id: str, page_widget: QWidget) -> None:
         """
@@ -483,6 +475,9 @@ class MainWindow(QMainWindow):
         # 默认显示认证页面（需要登录）
         self.show_page("auth")
         self._navigation_bar.set_login_state(True, False, "auth")
+        
+        # 标记认证页面为登录入口页面，登录成功后自动隐藏
+        self._auth_page_id = "auth"
     
     def _setup_connections(self) -> None:
         """设置信号连接"""
@@ -738,11 +733,18 @@ class MainWindow(QMainWindow):
                 "connected" if logged_in else "disconnected"
             )
         
-        # 更新导航栏状态
-        self._navigation_bar.set_login_state(self._require_login, logged_in, "auth")
-
-        # 登录成功跳转到IEA页面
+        # 更新导航栏状态 - 登录成功后移除认证页面限制
         if logged_in:
+            self._navigation_bar.set_login_state(False, True, None)
+        else:
+            self._navigation_bar.set_login_state(True, False, "auth")
+
+        # 登录成功跳转到IEA页面并移除认证页面
+        if logged_in:
+            # 移除认证页面导航按钮
+            if "auth" in self._navigation_bar._nav_buttons:
+                self._navigation_bar.remove_page("auth")
+            # 显示IEA页面
             self.show_page("iea")
     
     def update_auth_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:

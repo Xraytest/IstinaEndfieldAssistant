@@ -84,7 +84,7 @@ def main():
         adb_path = os.path.join(istina_root, config['adb']['path'])
         
         if not os.path.exists(adb_path):
-            logger.exception(LogCategory.MAIN, "ADB可执行文件不存在", adb_path=adb_path)
+            logger.error(LogCategory.MAIN, f"ADB可执行文件不存在: {adb_path}")
             print(f"[错误] ADB可执行文件不存在: {adb_path}")
             return 1
         

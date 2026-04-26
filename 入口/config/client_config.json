@@ -1,0 +1,100 @@
+{
+  "server": {
+    "host": "127.0.0.1",
+    "port": 9999
+  },
+  "adb": {
+    "path": "3rd-part/ADB/adb.exe",
+    "timeout": 10
+  },
+  "git": {
+    "path": "3rd-part/Git/bin/git.exe"
+  },
+  "screen": {
+    "use_original_resolution": true
+  },
+  "touch": {
+    "maa_style": {
+      "enabled": true,
+      "press_duration_ms": 50,
+      "press_jitter_px": 2,
+      "swipe_delay_min_ms": 100,
+      "swipe_delay_max_ms": 300,
+      "use_normalized_coords": true
+    },
+    "fail_on_error": true
+  },
+  "security": {
+    "enable_safe_press": true,
+    "enable_jitter": true
+  },
+  "communication": {
+    "password": "default_password"
+  },
+  "model": {
+    "selected_model": "",
+    "auto_select": true,
+    "available_models": [],
+    "last_updated": 0
+  },
+  "client": {
+    "client_id": "",
+    "client_name": "IEA_Client",
+    "registered": false
+  },
+  "inference": {
+    "mode": "auto",
+    "local_inference_enabled": false,
+    "hardware_acceleration": "auto",
+    "cache_settings": {
+      "enabled": true,
+      "max_size_mb": 2048,
+      "ttl_hours": 24
+    },
+    "local": {
+      "enabled": false,
+      "model_name": "qwen3.5-9b-fp16",
+      "model_path": "",
+      "gpu_layers": -1,
+      "use_cache": true,
+      "temperature": 0.7,
+      "top_p": 0.9,
+      "top_k": 40,
+      "max_tokens": 4096,
+      "auto_fallback": true
+    },
+    "cloud": {
+      "preferred_model": "",
+      "auto_select": true
+    }
+  },
+  "gpu": {
+    "checked": true,
+    "cuda_available": true,
+    "cuda_version": "",
+    "driver_version": "",
+    "gpu_count": 1,
+    "gpus": [
+      {
+        "name": "Tesla P100-PCIE-16GB",
+        "total_memory_gb": 16.0,
+        "free_memory_gb": 13.77,
+        "compute_capability": "6.0",
+        "driver_version": "551.78",
+        "cuda_version": ""
+      }
+    ],
+    "meets_requirements": true,
+    "recommended_model": null
+  },
+  "rendering": {
+    "hardware_acceleration": true,
+    "opengl": "auto",
+    "vsync": true,
+    "animation_enabled": true
+  },
+  "first_run": {
+    "local_inference_prompt_shown": true,
+    "user_choice": null
+  }
+}

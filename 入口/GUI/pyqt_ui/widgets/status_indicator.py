@@ -114,8 +114,6 @@ class StatusIndicatorWidget(QWidget):
         if self._show_text:
             self._status_text = QLabel(self._get_status_text())
             self._status_text.setProperty("variant", "secondary")
-            self._status_text.style().unpolish(self._status_text)
-            self._status_text.style().polish(self._status_text)
             layout.addWidget(self._status_text)
         
         layout.addStretch()
@@ -370,24 +368,18 @@ class DualStatusIndicator(QWidget):
         self._indicator1 = StatusIndicatorWidget(show_text=True)
         label1 = QLabel(self._labels[0])
         label1.setProperty("variant", "muted")
-        label1.style().unpolish(label1)
-        label1.style().polish(label1)
         layout.addWidget(label1)
         layout.addWidget(self._indicator1)
         
         # 分隔符
         separator = QLabel("|")
         separator.setProperty("variant", "muted")
-        separator.style().unpolish(separator)
-        separator.style().polish(separator)
         layout.addWidget(separator)
         
         # 第二个状态指示器
         self._indicator2 = StatusIndicatorWidget(show_text=True)
         label2 = QLabel(self._labels[1])
         label2.setProperty("variant", "muted")
-        label2.style().unpolish(label2)
-        label2.style().polish(label2)
         layout.addWidget(label2)
         layout.addWidget(self._indicator2)
         

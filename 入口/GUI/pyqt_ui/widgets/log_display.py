@@ -117,8 +117,6 @@ class LogDisplayWidget(QWidget):
             # 日志级别过滤
             filter_label = QLabel("级别:")
             filter_label.setProperty("variant", "secondary")
-            filter_label.style().unpolish(filter_label)
-            filter_label.style().polish(filter_label)
             toolbar_layout.addWidget(filter_label)
             
             self._level_combo = QComboBox()
@@ -137,8 +135,6 @@ class LogDisplayWidget(QWidget):
             # 搜索框
             search_label = QLabel("搜索:")
             search_label.setProperty("variant", "secondary")
-            search_label.style().unpolish(search_label)
-            search_label.style().polish(search_label)
             toolbar_layout.addWidget(search_label)
             
             self._search_input = QLineEdit()
@@ -171,8 +167,6 @@ class LogDisplayWidget(QWidget):
         
         self._count_label = QLabel("日志: 0 行")
         self._count_label.setProperty("variant", "muted")
-        self._count_label.style().unpolish(self._count_label)
-        self._count_label.style().polish(self._count_label)
         count_layout.addWidget(self._count_label)
         
         count_layout.addStretch()

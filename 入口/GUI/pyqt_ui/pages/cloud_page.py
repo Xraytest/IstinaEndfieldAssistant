@@ -1,8 +1,11 @@
 """
 云服务页面
 显示服务器连接状态、用户信息和配额使用情况
+整合ArkPass认证功能
 """
 
+import os
+import glob
 from typing import Optional, Dict, Any
 from PyQt6.QtWidgets import (
     QWidget,
@@ -15,6 +18,7 @@ from PyQt6.QtWidgets import (
     QGridLayout,
     QSizePolicy,
     QMessageBox,
+    QFileDialog,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor
@@ -57,21 +61,29 @@ class CloudPage(QWidget):
     - 配额使用情况（每日、每周、每月）
     - Token用量统计
     - 高级权限到期时间
+    - ArkPass认证登录
     - 同步操作按钮
     
     信号：
     - refresh_requested(): 刷新信息请求信号
     - sync_requested(): 同步请求信号
+    - arkpass_selected(str): ArkPass文件选择信号
     """
     
     # 自定义信号
     refresh_requested = pyqtSignal()    # 刷新信息请求信号
     sync_requested = pyqtSignal()       # 同步请求信号
+    arkpass_selected = pyqtSignal(str)  # ArkPass文件选择信号
     
     # 服务状态常量
     STATUS_DISCONNECTED = "disconnected"
     STATUS_CONNECTED = "connected"
     STATUS_CONNECTING = "connecting"
+    
+    # 登录状态常量
+    STATUS_LOGGED_OUT = "logged_out"
+    STATUS_LOGGED_IN = "logged_in"
+    STATUS_LOGGING_IN = "logging_in"
     
     def __init__(
         self,
@@ -87,11 +99,63 @@ class CloudPage(QWidget):
         self._theme = ThemeManager.get_instance()
         self._service_status: str = self.STATUS_DISCONNECTED
         self._user_info: Dict[str, Any] = {}
+        self._login_status: str = self.STATUS_LOGGED_OUT
+        self._arkpass_path: str = ""
         
         self._setup_ui()
         self._setup_style()
         self._setup_connections()
+        
+        # 尝试自动登录
+        self._try_auto_login()
     
+    def _get_cache_dir(self) -> str:
+        """获取缓存目录路径"""
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+        cache_dir = os.path.join(istina_root, "cache")
+        return cache_dir
+
+    def _get_cached_arkpass(self) -> Optional[str]:
+        """获取缓存的ArkPass文件路径"""
+        cache_dir = self._get_cache_dir()
+
+        if not os.path.exists(cache_dir):
+            return None
+
+        # 查找所有 .arkpass 文件
+        arkpass_files = glob.glob(os.path.join(cache_dir, "*.arkpass"))
+
+        if not arkpass_files:
+            return None
+
+        # 返回最新修改的文件
+        return max(arkpass_files, key=os.path.getmtime)
+
+    def _try_auto_login(self) -> bool:
+        """
+        尝试自动登录
+        
+        Returns:
+            是否找到缓存文件并发起自动登录请求
+        """
+        cached_arkpass = self._get_cached_arkpass()
+
+        if cached_arkpass and os.path.exists(cached_arkpass):
+            # 更新UI显示缓存的文件路径
+            self._arkpass_path_display.setText(cached_arkpass)
+            self._arkpass_path_display.setProperty("variant", "primary")
+            self._arkpass_path = cached_arkpass
+
+            # 设置正在登录状态
+            self.set_logging_in()
+
+            # 发送自动登录请求信号
+            self.arkpass_selected.emit(cached_arkpass)
+            return True
+
+        return False
+
     def _setup_ui(self) -> None:
         """设置UI结构"""
         main_layout = QVBoxLayout(self)
@@ -103,30 +167,95 @@ class CloudPage(QWidget):
         )
         main_layout.setSpacing(self._theme.get_spacing('md'))
         
-        # === 服务器状态区域 ===
-        status_frame = QFrame()
-        status_layout = QHBoxLayout(status_frame)
-        status_layout.setContentsMargins(0, 0, 0, 0)
+        # === 认证区域（未登录时显示） ===
+        self._auth_card = CardWidget()
+        auth_layout = self._auth_card.get_content_layout()
+        auth_layout.setContentsMargins(
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md')
+        )
+        auth_layout.setSpacing(self._theme.get_spacing('md'))
+        
+        # 认证标题
+        auth_title = QLabel("🔐 账户认证")
+        auth_title.setProperty("variant", "header")
+        auth_layout.addWidget(auth_title)
+        
+        # ArkPass文件选择区域
+        arkpass_frame = QFrame()
+        arkpass_layout = QHBoxLayout(arkpass_frame)
+        arkpass_layout.setContentsMargins(0, 0, 0, 0)
+        arkpass_layout.setSpacing(self._theme.get_spacing('sm'))
+        
+        arkpass_label = QLabel("ArkPass:")
+        arkpass_label.setProperty("variant", "secondary")
+        arkpass_label.setFixedWidth(80)
+        arkpass_layout.addWidget(arkpass_label)
+        
+        self._arkpass_path_display = QLabel("未选择文件")
+        self._arkpass_path_display.setProperty("variant", "muted")
+        self._arkpass_path_display.setFixedWidth(250)
+        arkpass_layout.addWidget(self._arkpass_path_display)
+        
+        self._select_arkpass_btn = SecondaryButton("选择文件")
+        self._select_arkpass_btn.setFixedWidth(100)
+        arkpass_layout.addWidget(self._select_arkpass_btn)
+        
+        arkpass_layout.addStretch()
+        auth_layout.addWidget(arkpass_frame)
+        
+        # 登录按钮
+        self._login_btn = PrimaryButton("登录")
+        auth_layout.addWidget(self._login_btn)
+        
+        # 提示信息
+        tip_label = QLabel("提示：请选择ArkPass认证文件进行登录")
+        tip_label.setProperty("variant", "muted")
+        tip_label.setWordWrap(True)
+        auth_layout.addWidget(tip_label)
+        
+        main_layout.addWidget(self._auth_card)
+        
+        # === 服务器状态区域（登录后显示） ===
+        self._status_card = CardWidget()
+        status_layout = self._status_card.get_content_layout()
+        status_layout.setContentsMargins(
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md'),
+            self._theme.get_spacing('padding_md')
+        )
         status_layout.setSpacing(self._theme.get_spacing('md'))
+        
+        status_header = QFrame()
+        status_header_layout = QHBoxLayout(status_header)
+        status_header_layout.setContentsMargins(0, 0, 0, 0)
+        status_header_layout.setSpacing(self._theme.get_spacing('md'))
         
         # 服务器连接状态指示器
         self._server_status_indicator = ConnectionStatusIndicator(
             connection_type="server"
         )
-        status_layout.addWidget(self._server_status_indicator)
+        status_header_layout.addWidget(self._server_status_indicator)
         
         # 服务器地址显示
         server_label = QLabel("服务器地址:")
         server_label.setProperty("variant", "secondary")
-        status_layout.addWidget(server_label)
+        status_header_layout.addWidget(server_label)
         
         self._server_address_display = QLabel("-")
         self._server_address_display.setProperty("variant", "muted")
-        status_layout.addWidget(self._server_address_display)
+        status_header_layout.addWidget(self._server_address_display)
         
-        status_layout.addStretch()
+        status_header_layout.addStretch()
+        status_layout.addWidget(status_header)
         
-        main_layout.addWidget(status_frame)
+        # 默认隐藏状态卡片（未登录）
+        self._status_card.setVisible(False)
+        
+        main_layout.addWidget(self._status_card)
         
         # === 用户信息区域 ===
         user_info_card = CardWidget()
@@ -388,9 +517,73 @@ class CloudPage(QWidget):
     
     def _setup_connections(self) -> None:
         """设置信号连接"""
-        # 按钮点击信号
+        # 认证按钮
+        self._login_btn.clicked.connect(self._on_login_clicked)
+        self._select_arkpass_btn.clicked.connect(self._on_select_arkpass_clicked)
+        
+        # 云服务按钮
         self._refresh_btn.clicked.connect(self._on_refresh_clicked)
         self._sync_btn.clicked.connect(self._on_sync_clicked)
+    
+    def _on_login_clicked(self) -> None:
+        """登录按钮点击"""
+        arkpass_path = self._arkpass_path_display.text()
+        if arkpass_path == "未选择文件" or not arkpass_path:
+            QMessageBox.warning(self, "警告", "请先选择ArkPass认证文件")
+            return
+        
+        self._arkpass_path = arkpass_path
+        self.arkpass_selected.emit(arkpass_path)
+    
+    def _on_select_arkpass_clicked(self) -> None:
+        """选择ArkPass文件按钮点击"""
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择ArkPass文件",
+            "",
+            "ArkPass Files (*.arkpass);;All Files (*.*)"
+        )
+        
+        if file_path:
+            self._arkpass_path_display.setText(file_path)
+            self._arkpass_path_display.setProperty("variant", "primary")
+            self._arkpass_path = file_path
+    
+    def set_login_status(self, is_logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
+        """
+        设置登录状态
+        
+        Args:
+            is_logged_in: 是否已登录
+            user_info: 用户信息字典
+        """
+        self._login_status = self.STATUS_LOGGED_IN if is_logged_in else self.STATUS_LOGGED_OUT
+        self._user_info = user_info or {}
+        
+        if is_logged_in:
+            # 隐藏认证卡片，显示状态卡片
+            self._auth_card.setVisible(False)
+            self._status_card.setVisible(True)
+            
+            # 更新服务器状态
+            self.set_server_status(self.STATUS_CONNECTED)
+            
+            # 更新用户信息
+            self.update_user_info(self._user_info)
+        else:
+            # 显示认证卡片，隐藏状态卡片
+            self._auth_card.setVisible(True)
+            self._status_card.setVisible(False)
+            
+            # 更新服务器状态
+            self.set_server_status(self.STATUS_DISCONNECTED)
+    
+    def set_logging_in(self) -> None:
+        """设置为正在登录状态"""
+        self._login_status = self.STATUS_LOGGING_IN
+        self._server_status_indicator.set_connecting()
+        self._login_btn.setEnabled(False)
+        self._select_arkpass_btn.setEnabled(False)
     
     # === 信号处理方法 ===
     

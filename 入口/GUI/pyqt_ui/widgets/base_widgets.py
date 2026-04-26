@@ -69,9 +69,6 @@ class BaseButton(QPushButton):
         # 使用setProperty设置variant属性，QSS会根据属性选择样式
         self.setProperty("variant", self._variant)
         self.setCursor(Qt.CursorShape.PointingHandCursor)
-        # 强制刷新样式
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     @pyqtProperty(str)
     def variant(self) -> str:
@@ -87,8 +84,6 @@ class BaseButton(QPushButton):
         """
         self._variant = variant
         self.setProperty("variant", variant)
-        self.style().unpolish(self)
-        self.style().polish(self)
 
 
 class PrimaryButton(BaseButton):
@@ -182,8 +177,6 @@ class CardWidget(QWidget):
         if self._title:
             self._title_label = QLabel(self._title)
             self._title_label.setProperty("variant", "title")
-            self._title_label.style().unpolish(self._title_label)
-            self._title_label.style().polish(self._title_label)
             self._main_layout.addWidget(self._title_label)
         
         # 内容区域
@@ -201,9 +194,6 @@ class CardWidget(QWidget):
             self.setProperty("class", "cardOutlined")
         else:
             self.setProperty("class", "card")
-        
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     def get_content_layout(self) -> QVBoxLayout:
         """获取内容区域布局，用于添加子控件"""
@@ -241,8 +231,6 @@ class CardWidget(QWidget):
             # 如果之前没有标题，现在创建
             self._title_label = QLabel(title)
             self._title_label.setProperty("variant", "title")
-            self._title_label.style().unpolish(self._title_label)
-            self._title_label.style().polish(self._title_label)
             self._main_layout.insertWidget(0, self._title_label)
 
 
@@ -297,8 +285,6 @@ class NavigationButton(BaseButton):
     def _setup_nav_style(self) -> None:
         """设置导航按钮样式"""
         self.setProperty("class", "navButton")
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     @pyqtProperty(bool)
     def selected(self) -> bool:
@@ -314,8 +300,6 @@ class NavigationButton(BaseButton):
         """
         self._selected = selected
         self.setProperty("selected", "true" if selected else "false")
-        self.style().unpolish(self)
-        self.style().polish(self)
     
     def toggle_selected(self) -> None:
         """切换选中状态"""
