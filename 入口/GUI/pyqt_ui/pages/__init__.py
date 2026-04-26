@@ -6,6 +6,7 @@
 from .auth_page import AuthPage
 from .settings_page import SettingsPage
 from .cloud_page import CloudPage
+from .auth_cloud_page import AuthCloudPage
 from .iea_page import IEAPage
 from .model_manager_page import ModelManagerPage
 
@@ -15,6 +16,7 @@ __all__ = [
     'AuthPage',
     'SettingsPage',
     'CloudPage',
+    'AuthCloudPage',
     'IEAPage',
     'ModelManagerPage',
 ]

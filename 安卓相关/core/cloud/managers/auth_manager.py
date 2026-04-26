@@ -1,8 +1,6 @@
 """用户认证管理业务逻辑组件"""
 import os
 import json
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
 
 class AuthManager:
     """用户认证管理业务逻辑类"""

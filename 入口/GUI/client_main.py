@@ -14,8 +14,6 @@ import io
 import sys
 
 # 添加安卓相关目录到Python路径
-import sys
-import os
 istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 安卓相关_dir = os.path.join(istina_root, "安卓相关")
 入口_dir = os.path.join(istina_root, "入口")

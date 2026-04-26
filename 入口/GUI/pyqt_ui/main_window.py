@@ -25,6 +25,7 @@ from PyQt6.QtGui import QIcon
 # 支持两种导入方式：相对导入（包内使用）和绝对导入（测试使用）
 try:
     from .theme.theme_manager import ThemeManager
+    from .theme.animation_manager import AnimationManager, fade_in_widget
     from .widgets.base_widgets import NavigationButton, HorizontalSeparator
     from .widgets.log_display import LogDisplayWidget
     from .pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
@@ -45,6 +46,7 @@ except ImportError:
         sys.path.insert(0, istina_dir)
     
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.animation_manager import AnimationManager, fade_in_widget
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.base_widgets import NavigationButton, HorizontalSeparator
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.log_display import LogDisplayWidget
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
@@ -542,7 +544,9 @@ class MainWindow(QMainWindow):
 
         # 切换到云服务页面时自动刷新用户信息
         if page_id == "cloud" and self._cloud_page:
+            print(f"[DEBUG] _on_page_changed: 切换到云服务页面，准备刷新用户信息")
             self._cloud_page.refresh_requested.emit()
+            print(f"[DEBUG] _on_page_changed: 云服务页面刷新信号已发送")
     
     def _on_model_changed(self, model_name: str) -> None:
         """
@@ -571,6 +575,8 @@ class MainWindow(QMainWindow):
         """
         添加页面
         
+        [修复3-1] 添加调试日志，跟踪页面生命周期
+        
         Args:
             page_id: 页面唯一标识
             title: 页面标题
@@ -578,31 +584,90 @@ class MainWindow(QMainWindow):
             icon: 图标名称（可选）
             position: 导航位置 ("top" 或 "bottom")
         """
+        # 添加调试日志，跟踪页面生命周期
+        print(f"[DEBUG] add_page: 添加页面 {page_id} ({title}), position={position}")
+        
         # 添加到导航栏
         self._navigation_bar.add_page(page_id, title, icon, position)
         
         # 添加到内容区域
         self._content_area.add_page(page_id, page_widget)
+        
+        print(f"[DEBUG] add_page: 页面 {page_id} 添加完成")
     
     def remove_page(self, page_id: str) -> None:
         """
         移除页面
         
+        [修复3-2] 添加检查，确保不会意外移除设置页面
+        
         Args:
             page_id: 页面唯一标识
         """
+        # [修复3-2] 添加保护检查，确保不会意外移除设置页面
+        if page_id == "settings":
+            print(f"[WARNING] remove_page: 尝试移除设置页面被阻止！设置页面不应被移除。")
+            return
+        
+        print(f"[DEBUG] remove_page: 移除页面 {page_id}")
+        
         self._navigation_bar.remove_page(page_id)
         self._content_area.remove_page(page_id)
+        
+        print(f"[DEBUG] remove_page: 页面 {page_id} 移除完成")
+    
+    def has_page(self, page_id: str) -> bool:
+        """
+        [修复3-4] 添加页面存在性检查方法
+        
+        检查指定页面是否存在
+        
+        Args:
+            page_id: 页面唯一标识
+            
+        Returns:
+            页面是否存在
+        """
+        return page_id in self._navigation_bar._nav_buttons and page_id in self._content_area._pages
     
     def show_page(self, page_id: str) -> None:
         """
         显示指定页面
         
+        [修复4-1] 添加页面切换过渡动画
+        [修复5-1] 添加调试日志，跟踪页面切换
+        
         Args:
             page_id: 页面唯一标识
         """
+        print(f"[DEBUG] show_page: 请求显示页面 {page_id}")
+        
+        # 检查页面是否存在
+        if not self.has_page(page_id):
+            print(f"[ERROR] show_page: 页面 {page_id} 不存在！")
+            return
+        
+        # 获取当前页面ID
+        current_page_id = self._content_area.get_current_page_id()
+        print(f"[DEBUG] show_page: 当前页面 {current_page_id} -> 目标页面 {page_id}")
+        
+        # 如果已经在目标页面，无需切换
+        if current_page_id == page_id:
+            print(f"[DEBUG] show_page: 已经在页面 {page_id}，跳过切换")
+            return
+        
+        # 更新导航栏
         self._navigation_bar.set_current_page(page_id)
+        
+        # [修复5-3] 简化页面切换逻辑，确保同步执行
+        # 直接显示页面，避免异步动画导致的问题
         self._content_area.show_page(page_id)
+        print(f"[DEBUG] show_page: 页面已切换到 {page_id}")
+        
+        # [修复4-2] 页面进入动画 - 淡入效果（可选）
+        page_widget = self._content_area.get_page(page_id)
+        if page_widget:
+            fade_in_widget(page_widget, duration=250)
     
     def get_current_page_id(self) -> Optional[str]:
         """获取当前显示的页面标识"""
@@ -736,15 +801,29 @@ class MainWindow(QMainWindow):
         # 更新导航栏状态 - 登录成功后移除认证页面限制
         if logged_in:
             self._navigation_bar.set_login_state(False, True, None)
+            
+            # [修复1] 确保所有页面按钮都启用
+            # 登录成功后，所有主要页面（iea、cloud、settings）都应该可用
+            for page_id in ["iea", "cloud", "settings"]:
+                if page_id in self._navigation_bar._nav_buttons:
+                    self._navigation_bar._nav_buttons[page_id].setEnabled(True)
+                    # 添加调试日志
+                    print(f"[DEBUG] 启用导航按钮: {page_id}")
         else:
             self._navigation_bar.set_login_state(True, False, "auth")
 
         # 登录成功跳转到IEA页面并移除认证页面
         if logged_in:
+            # 添加调试日志，确认页面切换事件被触发
+            print("[DEBUG] 登录成功，准备切换页面")
+            
             # 移除认证页面导航按钮
             if "auth" in self._navigation_bar._nav_buttons:
                 self._navigation_bar.remove_page("auth")
+                print("[DEBUG] 已移除认证页面导航按钮")
+            
             # 显示IEA页面
+            print("[DEBUG] 切换到IEA页面")
             self.show_page("iea")
     
     def update_auth_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:

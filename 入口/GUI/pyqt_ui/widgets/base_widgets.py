@@ -18,6 +18,7 @@ from PyQt6.QtGui import QPainter
 # 支持两种导入方式：相对导入（包内使用）和绝对导入（测试使用）
 try:
     from ..theme.theme_manager import ThemeManager
+    from ..theme.animation_manager import AnimationManager
 except ImportError:
     import sys
     import os
@@ -36,6 +37,7 @@ except ImportError:
         sys.path.insert(0, istina_dir)
     
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.theme_manager import ThemeManager
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.animation_manager import AnimationManager
 
 
 class BaseButton(QPushButton):
@@ -261,7 +263,15 @@ class NavigationButton(BaseButton):
     Material Design 3 导航按钮
     
     用于侧边导航栏，支持选中状态
+    
+    [修复4-3] 添加悬停和点击动画效果
+    [修复5-2] 统一按钮尺寸，确保点击效果长度一致
+    [修复6-1] 修复动画导致位置偏移问题 - 使用样式表动画替代geometry动画
     """
+    
+    # [修复5-2] 类级别的统一按钮宽度
+    NAV_BUTTON_WIDTH = 180  # 固定宽度，确保所有按钮一致
+    NAV_BUTTON_HEIGHT = 40  # 固定高度
     
     def __init__(
         self,
@@ -281,6 +291,25 @@ class NavigationButton(BaseButton):
         self._selected = False
         self._icon = icon
         self._setup_nav_style()
+        
+        # [修复6-1] 初始化动画相关属性 - 使用样式表动画，不修改geometry
+        self._anim_manager = AnimationManager.get_instance()
+        self._hover_animation = None
+        self._click_animation = None
+        
+        # [修复6-1] 样式表动画属性
+        self._base_bg_color = "transparent"
+        self._hover_bg_color = "rgba(255, 255, 255, 0.1)"
+        self._pressed_bg_color = "rgba(255, 255, 255, 0.2)"
+        self._selected_bg_color = "rgba(255, 255, 255, 0.15)"
+        self._is_hovered = False
+        self._is_pressed = False
+        
+        # [修复5-2] 设置固定尺寸，确保所有按钮一致
+        self.setFixedSize(self.NAV_BUTTON_WIDTH, self.NAV_BUTTON_HEIGHT)
+        
+        # 启用悬停事件
+        self.setAttribute(Qt.WidgetAttribute.WA_Hover, True)
     
     def _setup_nav_style(self) -> None:
         """设置导航按钮样式"""
@@ -300,10 +329,143 @@ class NavigationButton(BaseButton):
         """
         self._selected = selected
         self.setProperty("selected", "true" if selected else "false")
+        
+        # [修复6-1] 更新样式表以反映选中状态
+        if selected:
+            self._update_style_with_bg(self._selected_bg_color)
+        else:
+            self._update_style_with_bg(self._base_bg_color)
+        
+        # [修复6-1] 脉冲动画改为样式表闪烁效果
+        if selected and self._anim_manager.is_enabled():
+            self._pulse_animation()
     
     def toggle_selected(self) -> None:
         """切换选中状态"""
         self.set_selected(not self._selected)
+    
+    # [修复6-1] 使用样式表动画替代geometry动画，避免位置偏移
+    def enterEvent(self, event):
+        """鼠标进入事件 - 悬停效果"""
+        super().enterEvent(event)
+        self._is_hovered = True
+        if self._anim_manager.is_enabled() and self._anim_manager._config.hover_enabled:
+            self._start_hover_animation(True)
+    
+    def leaveEvent(self, event):
+        """鼠标离开事件 - 恢复效果"""
+        super().leaveEvent(event)
+        self._is_hovered = False
+        if self._anim_manager.is_enabled() and self._anim_manager._config.hover_enabled:
+            self._start_hover_animation(False)
+    
+    def _start_hover_animation(self, entering: bool) -> None:
+        """
+        启动悬停动画
+        
+        [修复6-1] 使用样式表动画替代geometry动画，避免位置偏移
+        
+        Args:
+            entering: 是否进入悬停状态
+        """
+        # 停止之前的动画
+        if self._hover_animation:
+            self._hover_animation.stop()
+        
+        # [修复6-1] 使用样式表实现悬停效果，不修改geometry
+        if entering:
+            # 进入悬停状态 - 添加背景色
+            bg_color = self._selected_bg_color if self._selected else self._hover_bg_color
+        else:
+            # 离开悬停状态 - 恢复背景色
+            bg_color = self._selected_bg_color if self._selected else self._base_bg_color
+        
+        self._update_style_with_bg(bg_color)
+    
+    def _update_style_with_bg(self, bg_color: str) -> None:
+        """
+        更新按钮样式（带背景色）
+        
+        [修复6-1] 使用样式表实现视觉效果，不修改geometry
+        """
+        # 构建样式表
+        selected_class = "navButtonSelected" if self._selected else "navButton"
+        self.setStyleSheet(f"""
+            QPushButton#{selected_class} {{
+                background-color: {bg_color};
+                border: none;
+                border-radius: 8px;
+                padding: 8px 16px;
+                text-align: left;
+                color: white;
+                font-size: 14px;
+            }}
+            QPushButton#{selected_class}:hover {{
+                background-color: {self._hover_bg_color if not self._selected else self._selected_bg_color};
+            }}
+            QPushButton#{selected_class}:pressed {{
+                background-color: {self._pressed_bg_color};
+            }}
+        """)
+    
+    def mousePressEvent(self, event):
+        """鼠标按下事件 - 点击效果"""
+        super().mousePressEvent(event)
+        self._is_pressed = True
+        if self._anim_manager.is_enabled():
+            self._start_click_animation()
+    
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件"""
+        super().mouseReleaseEvent(event)
+        self._is_pressed = False
+        # 恢复悬停或正常状态
+        if self._anim_manager.is_enabled():
+            self._restore_from_click()
+    
+    def _start_click_animation(self) -> None:
+        """
+        启动点击动画效果
+        
+        [修复6-1] 使用样式表动画替代geometry动画，避免位置偏移
+        """
+        # [修复6-1] 使用样式表实现按压效果，不修改geometry
+        self._update_style_with_bg(self._pressed_bg_color)
+    
+    def _restore_from_click(self) -> None:
+        """
+        从点击状态恢复
+        
+        [修复6-1] 使用样式表恢复，避免位置偏移
+        """
+        # [修复6-1] 根据当前状态恢复背景色
+        if self._selected:
+            bg_color = self._selected_bg_color
+        elif self._is_hovered:
+            bg_color = self._hover_bg_color
+        else:
+            bg_color = self._base_bg_color
+        
+        self._update_style_with_bg(bg_color)
+    
+    def _pulse_animation(self) -> None:
+        """
+        脉冲动画效果（用于选中状态）
+        
+        [修复6-1] 使用样式表背景色闪烁替代geometry动画，避免位置偏移
+        """
+        # [修复6-1] 使用QTimer实现背景色脉冲效果，不修改geometry
+        from PyQt6.QtCore import QTimer
+        
+        # 定义脉冲颜色
+        pulse_color = "rgba(255, 255, 255, 0.25)"
+        
+        # 先设置为脉冲颜色
+        self._update_style_with_bg(pulse_color)
+        
+        # 使用单次定时器恢复选中状态颜色
+        QTimer.singleShot(self._anim_manager._config.duration_fast,
+                         lambda: self._update_style_with_bg(self._selected_bg_color))
 
 
 class HorizontalSeparator(QFrame):

@@ -990,110 +990,36 @@ class PyQt6Application(QObject):
                 self._main_window.append_log(f"客户端注册/模型获取异常: {str(e)}", "ERROR")
     
     def _try_initialize_local_inference(self) -> None:
-            """尝试初始化本地推理 - 仅在首次登录后询问"""
-            try:
-                if not self._main_window:
-                    return
-                
-                # 检查是否是首次登录
-                first_run_config = self._config.get("first_run", {})
-                prompt_shown = first_run_config.get("local_inference_prompt_shown", False)
-                
-                # 如果已经询问过，直接初始化推理管理器
-                if prompt_shown:
-                    self._main_window.append_log("正在初始化推理管理器...", "INFO")
-                    
-                    # 创建推理管理器
-                    self._inference_manager = InferenceManager(
-                        config=self._config,
-                        communicator=self._communicator
-                    )
-                    
-                    # 初始化推理管理器
-                    if self._inference_manager.initialize():
-                        stats = self._inference_manager.get_stats()
-                        mode = stats.get("effective_mode", "unknown")
-                        
-                        if mode == "local":
-                            self._main_window.append_log(
-                                f"本地推理已启用，模型: {stats.get('config', {}).get('model_name', 'unknown')}",
-                                "INFO"
-                            )
-                        else:
-                            self._main_window.append_log("使用云端推理模式", "INFO")
-                    else:
-                        self._main_window.append_log("本地推理初始化失败，将使用云端推理", "WARNING")
-                    return
-                
-                # 首次登录，显示询问对话框
-                self._main_window.append_log("首次登录，正在检查本地推理支持...", "INFO")
+        """
+        尝试初始化本地推理 - 仅在首次登录后询问
+        
+        [修复2] 修复要点:
+        1. 统一配置键名 local_inference_prompt_shown
+        2. 添加调试日志跟踪 should_prompt_for_local_inference() 调用
+        3. 修复配置保存时机，确保用户取消时也能正确保存
+        4. 增强异常处理，在对话框显示异常时提供用户反馈
+        """
+        try:
+            if not self._main_window:
+                print("[DEBUG] _try_initialize_local_inference: 主窗口未初始化，跳过")
+                return
+            
+            # 检查是否是首次登录 - 使用统一的配置键名
+            first_run_config = self._config.get("first_run", {})
+            # [修复2-1] 统一配置键名，确保使用 local_inference_prompt_shown
+            prompt_shown = first_run_config.get("local_inference_prompt_shown", False)
+            print(f"[DEBUG] 本地推理提示状态: prompt_shown={prompt_shown}")
+            
+            # 如果已经询问过，直接初始化推理管理器
+            if prompt_shown:
+                self._main_window.append_log("正在初始化推理管理器...", "INFO")
+                print("[DEBUG] 已询问过本地推理，直接初始化推理管理器")
                 
                 # 创建推理管理器
                 self._inference_manager = InferenceManager(
                     config=self._config,
                     communicator=self._communicator
                 )
-                
-                # 检查是否需要显示首次询问对话框
-                if self._inference_manager.should_prompt_for_local_inference():
-                    self._main_window.append_log("显示本地推理配置对话框...", "INFO")
-                    
-                    try:
-                        user_choice, gpu_info, selected_model = show_local_inference_dialog(
-                            parent=self._main_window,
-                            config=self._config
-                        )
-                    except Exception as dialog_error:
-                        self._main_window.append_log(f"本地推理对话框异常: {str(dialog_error)}", "ERROR")
-                        user_choice = None
-                        gpu_info = None
-                        selected_model = None
-                    
-                    if user_choice == "cancel":
-                        self._main_window.append_log("用户取消了本地推理配置，继续使用云端推理", "INFO")
-                        # 标记首次运行完成，避免重复提示
-                        self._config["first_run"]["local_inference_prompt_shown"] = True
-                        self._save_config()
-                        # 继续执行，不返回
-                    elif user_choice and gpu_info:
-                        # 保存GPU信息
-                        self._config["gpu"] = {
-                            "checked": True,
-                            "cuda_available": gpu_info.get("cuda_available", False),
-                            "cuda_version": gpu_info.get("cuda_version", ""),
-                            "driver_version": gpu_info.get("driver_version", ""),
-                            "gpu_count": gpu_info.get("gpu_count", 0),
-                            "gpus": gpu_info.get("gpus", []),
-                            "meets_requirements": gpu_info.get("meets_requirements", False),
-                            "recommended_model": gpu_info.get("recommended_model")
-                        }
-                        
-                        # 标记首次运行完成
-                        self._config["first_run"]["local_inference_prompt_shown"] = True
-                        self._config["first_run"]["user_choice"] = user_choice
-                        
-                        # 保存配置到文件
-                        self._save_config()
-                        
-                        if user_choice == "local" and selected_model:
-                            self._config["inference"]["local"]["enabled"] = True
-                            self._config["inference"]["local"]["model_name"] = selected_model
-                            self._main_window.append_log(
-                                f"用户选择本地推理，模型: {selected_model}", "INFO"
-                            )
-                        else:
-                            self._config["inference"]["local"]["enabled"] = False
-                            self._main_window.append_log("用户选择云端推理", "INFO")
-                        
-                        # 重新加载配置到推理管理器
-                        self._inference_manager = InferenceManager(
-                            config=self._config,
-                            communicator=self._communicator
-                        )
-                else:
-                    # 不满足本地推理条件，直接标记为已询问
-                    self._config["first_run"]["local_inference_prompt_shown"] = True
-                    self._save_config()
                 
                 # 初始化推理管理器
                 if self._inference_manager.initialize():
@@ -1109,13 +1035,165 @@ class PyQt6Application(QObject):
                         self._main_window.append_log("使用云端推理模式", "INFO")
                 else:
                     self._main_window.append_log("本地推理初始化失败，将使用云端推理", "WARNING")
-                    
-            except Exception as e:
-                error_msg = f"本地推理初始化异常: {str(e)}"
-                if self._main_window:
+                return
+            
+            # 首次登录，显示询问对话框
+            self._main_window.append_log("首次登录，正在检查本地推理支持...", "INFO")
+            print("[DEBUG] 首次登录，准备检查本地推理支持")
+            
+            # 创建推理管理器
+            self._inference_manager = InferenceManager(
+                config=self._config,
+                communicator=self._communicator
+            )
+            
+            # [修复2-2] 在 should_prompt_for_local_inference() 调用前后添加调试日志
+            print("[DEBUG] 调用 should_prompt_for_local_inference() 前")
+            should_prompt = False
+            try:
+                should_prompt = self._inference_manager.should_prompt_for_local_inference()
+                print(f"[DEBUG] should_prompt_for_local_inference() 返回: {should_prompt}")
+            except Exception as check_error:
+                print(f"[DEBUG] should_prompt_for_local_inference() 异常: {str(check_error)}")
+                # [修复2-4] 增强异常处理，出现异常时默认不显示对话框但标记为已询问
+                should_prompt = False
+            
+            if should_prompt:
+                self._main_window.append_log("显示本地推理配置对话框...", "INFO")
+                print("[DEBUG] 准备显示本地推理配置对话框")
+                
+                user_choice = None
+                gpu_info = None
+                selected_model = None
+                
+                try:
+                    user_choice, gpu_info, selected_model = show_local_inference_dialog(
+                        parent=self._main_window,
+                        config=self._config
+                    )
+                    print(f"[DEBUG] 对话框返回: user_choice={user_choice}")
+                except Exception as dialog_error:
+                    # [修复2-4] 增强异常处理，在对话框显示异常时提供用户反馈
+                    error_msg = f"本地推理对话框异常: {str(dialog_error)}"
+                    print(f"[ERROR] {error_msg}")
                     self._main_window.append_log(error_msg, "ERROR")
+                    
+                    # 显示错误提示给用户
+                    try:
+                        from PyQt6.QtWidgets import QMessageBox
+                        QMessageBox.critical(
+                            self._main_window,
+                            "本地推理配置错误",
+                            f"显示本地推理配置对话框时发生错误:\n{str(dialog_error)}\n\n将使用云端推理模式。"
+                        )
+                    except Exception:
+                        pass  # 如果消息框也失败，忽略错误
+                    
+                    user_choice = None
+                    gpu_info = None
+                    selected_model = None
+                
+                if user_choice == "cancel":
+                    self._main_window.append_log("用户取消了本地推理配置，继续使用云端推理", "INFO")
+                    print("[DEBUG] 用户取消本地推理配置")
+                    
+                    # [修复2-3] 修复配置保存时机，确保在用户取消时也能正确保存配置
+                    # 确保 first_run 配置存在
+                    if "first_run" not in self._config:
+                        self._config["first_run"] = {}
+                    # 标记首次运行完成，避免重复提示
+                    self._config["first_run"]["local_inference_prompt_shown"] = True
+                    self._config["first_run"]["user_choice"] = "cancel"
+                    self._save_config()
+                    print("[DEBUG] 已保存配置（用户取消）")
+                    # 继续执行，不返回
+                    
+                elif user_choice and gpu_info:
+                    # 保存GPU信息
+                    self._config["gpu"] = {
+                        "checked": True,
+                        "cuda_available": gpu_info.get("cuda_available", False),
+                        "cuda_version": gpu_info.get("cuda_version", ""),
+                        "driver_version": gpu_info.get("driver_version", ""),
+                        "gpu_count": gpu_info.get("gpu_count", 0),
+                        "gpus": gpu_info.get("gpus", []),
+                        "meets_requirements": gpu_info.get("meets_requirements", False),
+                        "recommended_model": gpu_info.get("recommended_model")
+                    }
+                    
+                    # 标记首次运行完成
+                    if "first_run" not in self._config:
+                        self._config["first_run"] = {}
+                    self._config["first_run"]["local_inference_prompt_shown"] = True
+                    self._config["first_run"]["user_choice"] = user_choice
+                    
+                    # 保存配置到文件
+                    self._save_config()
+                    print(f"[DEBUG] 已保存配置（用户选择: {user_choice}）")
+                    
+                    if user_choice == "local" and selected_model:
+                        self._config["inference"]["local"]["enabled"] = True
+                        self._config["inference"]["local"]["model_name"] = selected_model
+                        self._main_window.append_log(
+                            f"用户选择本地推理，模型: {selected_model}", "INFO"
+                        )
+                    else:
+                        self._config["inference"]["local"]["enabled"] = False
+                        self._main_window.append_log("用户选择云端推理", "INFO")
+                    
+                    # 重新加载配置到推理管理器
+                    self._inference_manager = InferenceManager(
+                        config=self._config,
+                        communicator=self._communicator
+                    )
                 else:
-                    print(error_msg)
+                    # 对话框返回异常结果，标记为已询问
+                    print("[DEBUG] 对话框返回异常结果，标记为已询问")
+                    if "first_run" not in self._config:
+                        self._config["first_run"] = {}
+                    self._config["first_run"]["local_inference_prompt_shown"] = True
+                    self._save_config()
+            else:
+                # 不满足本地推理条件，直接标记为已询问
+                print("[DEBUG] 不满足本地推理条件，标记为已询问")
+                if "first_run" not in self._config:
+                    self._config["first_run"] = {}
+                self._config["first_run"]["local_inference_prompt_shown"] = True
+                self._save_config()
+            
+            # 初始化推理管理器
+            if self._inference_manager:
+                if self._inference_manager.initialize():
+                    stats = self._inference_manager.get_stats()
+                    mode = stats.get("effective_mode", "unknown")
+                    
+                    if mode == "local":
+                        self._main_window.append_log(
+                            f"本地推理已启用，模型: {stats.get('config', {}).get('model_name', 'unknown')}",
+                            "INFO"
+                        )
+                    else:
+                        self._main_window.append_log("使用云端推理模式", "INFO")
+                else:
+                    self._main_window.append_log("本地推理初始化失败，将使用云端推理", "WARNING")
+                    
+        except Exception as e:
+            error_msg = f"本地推理初始化异常: {str(e)}"
+            print(f"[ERROR] {error_msg}")
+            if self._main_window:
+                self._main_window.append_log(error_msg, "ERROR")
+            else:
+                print(error_msg)
+            
+            # [修复2-4] 出现异常时尝试标记为已询问，避免重复提示
+            try:
+                if "first_run" not in self._config:
+                    self._config["first_run"] = {}
+                self._config["first_run"]["local_inference_prompt_shown"] = True
+                self._save_config()
+                print("[DEBUG] 异常处理后已标记为已询问")
+            except Exception as save_error:
+                print(f"[ERROR] 保存配置失败: {str(save_error)}")
     
     def _save_config(self) -> None:
             """保存配置到文件"""

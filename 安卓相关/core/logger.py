@@ -543,29 +543,22 @@ class ClientLogger:
         """WARNING级别日志"""
         self.log(LogLevel.WARNING, category, message, extra if extra else None)
     
+    def _log_with_exception(self, level: LogLevel, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
+        """带异常信息的日志记录辅助方法"""
+        exception_text = traceback.format_exc() if exc_info else None
+        self.log(level, category, message, extra if extra else None, exception_text)
+    
     def error(self, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
         """ERROR级别日志"""
-        exception_text = None
-        if exc_info:
-            exception_text = traceback.format_exc()
-        
-        self.log(LogLevel.EXCEPTION, category, message, extra if extra else None, exception_text)
+        self._log_with_exception(LogLevel.EXCEPTION, category, message, exc_info, **extra)
     
     def exception(self, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
         """EXCEPTION级别日志"""
-        exception_text = None
-        if exc_info:
-            exception_text = traceback.format_exc()
-        
-        self.log(LogLevel.EXCEPTION, category, message, extra if extra else None, exception_text)
+        self._log_with_exception(LogLevel.EXCEPTION, category, message, exc_info, **extra)
     
     def critical(self, category: LogCategory, message: str, exc_info: bool = False, **extra) -> None:
         """CRITICAL级别日志"""
-        exception_text = None
-        if exc_info:
-            exception_text = traceback.format_exc()
-        
-        self.log(LogLevel.CRITICAL, category, message, extra if extra else None, exception_text)
+        self._log_with_exception(LogLevel.CRITICAL, category, message, exc_info, **extra)
     
     def log_performance(self, operation_name: str, duration_ms: float, **extra) -> None:
         """记录性能数据"""

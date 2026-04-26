@@ -2,8 +2,6 @@
 import os
 import json
 import re
-import tkinter as tk
-from tkinter import ttk, messagebox
 
 class DeviceManager:
     """设备管理业务逻辑类"""
