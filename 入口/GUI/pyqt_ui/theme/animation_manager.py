@@ -102,18 +102,27 @@ class AnimationManager(QObject):
             widget: 目标控件
             duration: 动画时长（毫秒）
             callback: 动画完成回调
-        """
-        if not self._config.enabled or not self._config.fade_enabled:
-            widget.setVisible(True)
-            if callback:
-                callback()
-            return None
         
-        # 创建透明度效果
-        opacity_effect = QGraphicsOpacityEffect(widget)
-        widget.setGraphicsEffect(opacity_effect)
-        opacity_effect.setOpacity(0.0)
+        [修复] 禁用所有淡入动画，避免栈损坏问题
+        """
+        # 直接显示控件，不执行动画
         widget.setVisible(True)
+        if callback:
+            callback()
+        return None
+        
+        # # 原动画代码已禁用
+        # if not self._config.enabled or not self._config.fade_enabled:
+        #     widget.setVisible(True)
+        #     if callback:
+        #         callback()
+        #     return None
+        #
+        # # 创建透明度效果
+        # opacity_effect = QGraphicsOpacityEffect(widget)
+        # widget.setGraphicsEffect(opacity_effect)
+        # opacity_effect.setOpacity(0.0)
+        # widget.setVisible(True)
         
         # 创建动画
         anim = QPropertyAnimation(opacity_effect, b"opacity")
@@ -547,16 +556,23 @@ class AnimatedProgressBar:
         Args:
             value: 目标值
             duration: 动画时长（毫秒）
+        
+        [修复] 禁用进度条动画，避免栈损坏问题
         """
-        if not self._anim_manager.is_enabled():
-            self._progress_bar.setValue(value)
-            return None
+        # 直接设置值，不使用动画
+        self._progress_bar.setValue(value)
+        return None
         
-        # 停止当前动画
-        if self._current_animation:
-            self._current_animation.stop()
-        
-        anim = QPropertyAnimation(self._progress_bar, b"value")
+        # # 原动画代码已禁用
+        # if not self._anim_manager.is_enabled():
+        #     self._progress_bar.setValue(value)
+        #     return None
+        #
+        # # 停止当前动画
+        # if self._current_animation:
+        #     self._current_animation.stop()
+        #
+        # anim = QPropertyAnimation(self._progress_bar, b"value")
         anim.setDuration(duration or self._anim_manager._config.duration_normal)
         anim.setStartValue(self._progress_bar.value())
         anim.setEndValue(value)
@@ -641,8 +657,14 @@ def get_animation_manager() -> AnimationManager:
 
 
 def fade_in_widget(widget: QWidget, duration: int = 250) -> Optional[QPropertyAnimation]:
-    """便捷函数：控件淡入"""
-    return AnimationManager.get_instance().fade_in(widget, duration)
+    """便捷函数：控件淡入
+    
+    [修复] 暂时禁用所有淡入动画，避免在 exec() 事件循环中导致栈损坏。
+    此问题与 NVML 初始化无关，而是 PyQt6 动画系统在某些情况下的兼容性问题。
+    """
+    # 返回 None 而不执行动画
+    return None
+    # return AnimationManager.get_instance().fade_in(widget, duration)
 
 
 def fade_out_widget(widget: QWidget, duration: int = 250, hide_after: bool = True) -> Optional[QPropertyAnimation]:

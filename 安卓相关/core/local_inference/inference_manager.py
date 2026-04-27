@@ -144,7 +144,9 @@ class InferenceManager(QObject):
         self._communicator = communicator
         
         # 初始化组件
-        self._gpu_checker = GPUChecker()
+        # [修复] 不在主线程创建 GPUChecker，避免 NVML 初始化导致栈损坏
+        # GPUChecker 将在需要时由 LocalInferenceDialog 的 GPUCheckWorker 在工作线程中创建
+        self._gpu_checker: Optional[GPUChecker] = None
         self._model_manager = ModelManager(models_dir=models_dir)
         self._local_engine: Optional[LocalInferenceEngine] = None
         self._prompt_cache = PromptCache(max_size=100)
@@ -343,7 +345,29 @@ class InferenceManager(QObject):
             self._async_tasks[task_id]["completed_at"] = time.time()
     
     def _check_gpu(self) -> Dict[str, Any]:
-        """检查GPU可用性"""
+        """检查GPU可用性
+        
+        [修复] 延迟创建 GPUChecker，避免主线程 NVML 初始化导致栈损坏。
+        如果 GPUChecker 尚未创建，返回默认的 GPU 信息，不进行实际检测。
+        实际的 GPU 检测应该通过 GPUCheckWorker 在工作线程中完成。
+        """
+        # 如果 GPUChecker 尚未创建，返回默认信息，不进行实际检测
+        if self._gpu_checker is None:
+            logger.warning(LogCategory.MAIN,
+                          "GPUChecker 未初始化，返回默认 GPU 信息")
+            self._gpu_info = {
+                "available": False,
+                "cuda_available": False,
+                "gpu_count": 0,
+                "gpus": [],
+                "meets_requirements": False,
+                "error": "GPUChecker 未初始化 - 请通过 GPUCheckWorker 进行检测"
+            }
+            self._gpu_checked = True
+            return self._gpu_info
+        
+        # GPUChecker 已创建（通常由 GPUCheckWorker 在工作线程中创建）
+        # 此时可以进行检测
         self._gpu_info = self._gpu_checker.check_gpu_availability()
         self._gpu_checked = True
         
@@ -406,15 +430,15 @@ class InferenceManager(QObject):
         return success
     
     def should_prompt_for_local_inference(self) -> bool:
-        """是否应该显示首次询问对话框"""
-        if not self._first_run:
-            return False
+        """是否应该显示首次询问对话框
         
-        # 检查GPU是否满足要求
-        if not self._gpu_checked:
-            self._check_gpu()
-        
-        return self._gpu_info.get("meets_requirements", False)
+        [修复] 不在此处进行 GPU 检查，避免主线程 NVML 初始化导致栈损坏。
+        实际的 GPU 检查由 LocalInferenceDialog 的 GPUCheckWorker 在工作线程中完成。
+        此方法仅返回是否是首次运行状态，让对话框显示后由工作线程检测 GPU。
+        """
+        # 仅返回首次运行状态，不在此处检查 GPU
+        # GPU 检查将在 LocalInferenceDialog._start_gpu_check() 中通过 GPUCheckWorker 完成
+        return self._first_run
     
     def process_image(
         self,

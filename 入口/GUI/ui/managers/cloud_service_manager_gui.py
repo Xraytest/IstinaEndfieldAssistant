@@ -58,7 +58,7 @@ class CloudServiceManagerGUI:
         self.expiry_label.pack(anchor=tk.W, pady=(0, 5))
         
         # 刷新按钮
-        refresh_btn = ttk.Button(user_info_frame, text="🔄 刷新信息", command=self.refresh_user_info, style='Outline.TButton')
+        refresh_btn = ttk.Button(user_info_frame, text="[刷新] 刷新信息", command=self.refresh_user_info, style='Outline.TButton')
         refresh_btn.pack(anchor=tk.W, pady=(10, 0))
         
         # 初始化用户信息显示

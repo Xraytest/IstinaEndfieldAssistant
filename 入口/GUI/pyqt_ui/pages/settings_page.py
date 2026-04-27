@@ -261,7 +261,7 @@ class SettingsPage(QWidget):
         self._check_worker = None
         
         if self._local_inference_card:
-            self._local_inference_card._gpu_status_icon.setText("❌")
+            self._local_inference_card._gpu_status_icon.setText("[失败]")
             self._local_inference_card._gpu_status_text.setText("检测失败")
             self._local_inference_card._gpu_details_label.setText(f"错误详情:\n{error}")
             self._local_inference_card._gpu_details_frame.setVisible(True)

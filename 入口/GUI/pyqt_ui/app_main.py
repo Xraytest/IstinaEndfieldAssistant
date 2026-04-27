@@ -1062,37 +1062,33 @@ class PyQt6Application(QObject):
                 self._main_window.append_log("显示本地推理配置对话框...", "INFO")
                 print("[DEBUG] 准备显示本地推理配置对话框")
                 
+                # [临时修复] 跳过对话框显示，直接标记为已询问，避免崩溃
+                # 用户可以在设置页面手动配置本地推理
+                print("[DEBUG] 跳过对话框显示（临时修复）")
+                self._config["first_run"]["local_inference_prompt_shown"] = True
+                self._save_config()
+                self._main_window.append_log("已跳过本地推理配置对话框，可在设置页面手动配置", "INFO")
+                
                 user_choice = None
                 gpu_info = None
                 selected_model = None
                 
-                try:
-                    user_choice, gpu_info, selected_model = show_local_inference_dialog(
-                        parent=self._main_window,
-                        config=self._config
-                    )
-                    print(f"[DEBUG] 对话框返回: user_choice={user_choice}")
-                except Exception as dialog_error:
-                    # [修复2-4] 增强异常处理，在对话框显示异常时提供用户反馈
-                    error_msg = f"本地推理对话框异常: {str(dialog_error)}"
-                    print(f"[ERROR] {error_msg}")
-                    self._main_window.append_log(error_msg, "ERROR")
-                    
-                    # 显示错误提示给用户
-                    try:
-                        from PyQt6.QtWidgets import QMessageBox
-                        QMessageBox.critical(
-                            self._main_window,
-                            "本地推理配置错误",
-                            f"显示本地推理配置对话框时发生错误:\n{str(dialog_error)}\n\n将使用云端推理模式。"
-                        )
-                    except Exception:
-                        pass  # 如果消息框也失败，忽略错误
-                    
-                    user_choice = None
-                    gpu_info = None
-                    selected_model = None
+                # 原对话框代码已禁用，避免崩溃
+                # try:
+                #     user_choice, gpu_info, selected_model = show_local_inference_dialog(
+                #         parent=self._main_window,
+                #         config=self._config
+                #     )
+                #     print(f"[DEBUG] 对话框返回: user_choice={user_choice}")
+                # except Exception as dialog_error:
+                #     error_msg = f"本地推理对话框异常: {str(dialog_error)}"
+                #     print(f"[ERROR] {error_msg}")
+                #     self._main_window.append_log(error_msg, "ERROR")
+                #     user_choice = None
+                #     gpu_info = None
+                #     selected_model = None
                 
+                # 由于跳过了对话框，user_choice 为 None，直接跳过后续处理
                 if user_choice == "cancel":
                     self._main_window.append_log("用户取消了本地推理配置，继续使用云端推理", "INFO")
                     print("[DEBUG] 用户取消本地推理配置")

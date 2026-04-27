@@ -85,7 +85,7 @@
     "animation_enabled": true
   },
   "first_run": {
-    "local_inference_prompt_shown": false,
+    "local_inference_prompt_shown": true,
     "user_choice": "cloud"
   }
 }

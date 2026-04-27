@@ -125,7 +125,7 @@ class ModelCard(OutlinedCardWidget):
         
         # 推荐标签
         if self._is_recommended:
-            rec_label = QLabel("★")
+            rec_label = QLabel("[星]")
             rec_label.setStyleSheet(f"color: {self._theme.get_color('primary')}; font-size: 14px;")
             header_layout.addWidget(rec_label)
         
@@ -148,22 +148,22 @@ class ModelCard(OutlinedCardWidget):
         specs_layout = QHBoxLayout()
         specs_layout.setSpacing(self._theme.get_spacing('lg'))
         
-        size_label = QLabel(f"📦 {self._model_info.size_gb} GB")
+        size_label = QLabel(f"[包裹] {self._model_info.size_gb} GB")
         size_label.setProperty("variant", "muted")
         size_label.setStyleSheet("font-size: 11px;")
         specs_layout.addWidget(size_label)
         
-        quant_label = QLabel(f"🔧 {self._model_info.quantization}")
+        quant_label = QLabel(f"[扳手] {self._model_info.quantization}")
         quant_label.setProperty("variant", "muted")
         quant_label.setStyleSheet("font-size: 11px;")
         specs_layout.addWidget(quant_label)
         
-        param_label = QLabel(f"🧠 {self._model_info.parameters}")
+        param_label = QLabel(f"[大脑] {self._model_info.parameters}")
         param_label.setProperty("variant", "muted")
         param_label.setStyleSheet("font-size: 11px;")
         specs_layout.addWidget(param_label)
         
-        gpu_label = QLabel(f"💾 {self._model_info.recommended_gpu_memory_gb} GB")
+        gpu_label = QLabel(f"[磁盘] {self._model_info.recommended_gpu_memory_gb} GB")
         gpu_label.setProperty("variant", "muted")
         gpu_label.setStyleSheet("font-size: 11px;")
         specs_layout.addWidget(gpu_label)
@@ -244,7 +244,7 @@ class ModelCard(OutlinedCardWidget):
                 f"color: {self._theme.get_color('info')}; font-size: 12px;"
             )
         elif self._model_info.is_downloaded:
-            self._status_label.setText("✓ 已下载")
+            self._status_label.setText("[对勾] 已下载")
             self._status_label.setStyleSheet(
                 f"color: {self._theme.get_color('success')}; font-size: 12px;"
             )

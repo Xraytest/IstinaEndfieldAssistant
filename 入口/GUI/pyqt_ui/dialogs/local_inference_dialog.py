@@ -79,8 +79,10 @@ class LocalInferenceDialog(QDialog):
         self._auto_check = auto_check
         self._show_only_once = show_only_once
         
-        self._gpu_checker = GPUChecker()
-        self._model_manager = ModelManager()
+        # 不在主线程直接创建 GPUChecker/ModelManager，避免 NVML 初始化导致栈损坏
+        # GPUChecker 会在 Worker 线程中延迟创建
+        self._gpu_checker = None  # 延迟初始化，由 Worker 线程提供结果
+        self._model_manager = None  # 延迟初始化，需要时再创建
         self._check_worker: Optional[GPUCheckWorker] = None
         self._download_worker: Optional[ModelDownloadWorker] = None
         
@@ -91,11 +93,13 @@ class LocalInferenceDialog(QDialog):
         self._setup_ui()
         self._apply_theme_styles()
         
-        # 淡入动画
+        # 淡入动画（已禁用，避免崩溃）
         self._setup_animation()
         
+        # [修复] 使用 QTimer 延迟启动 GPU 检查，确保对话框完全显示后再启动工作线程
         if auto_check:
-            self._start_gpu_check()
+            from PyQt6.QtCore import QTimer
+            QTimer.singleShot(200, self._start_gpu_check)
     
     def _setup_ui(self) -> None:
         """设置UI"""
@@ -114,7 +118,7 @@ class LocalInferenceDialog(QDialog):
         )
         
         # 标题
-        title_label = QLabel("🚀 本地推理功能")
+        title_label = QLabel("[火箭] 本地推理功能")
         title_label.setObjectName("titleLabel")
         title_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         title_font = QFont(self._theme.get_font_family())
@@ -205,10 +209,10 @@ class LocalInferenceDialog(QDialog):
         choice_layout.addWidget(self._local_radio)
         
         local_desc = QLabel(
-            "✓ 无需网络连接\n"
-            "✓ 响应速度更快\n"
-            "✓ 数据隐私更好\n"
-            "⚠ 需要下载模型文件（约1-70GB）"
+            "[对勾] 无需网络连接\n"
+            "[对勾] 响应速度更快\n"
+            "[对勾] 数据隐私更好\n"
+            "[警告] 需要下载模型文件（约1-70GB）"
         )
         local_desc.setIndent(self._theme.get_spacing('lg'))
         local_desc_font = QFont(self._theme.get_font_family())
@@ -221,10 +225,10 @@ class LocalInferenceDialog(QDialog):
         choice_layout.addWidget(self._cloud_radio)
         
         cloud_desc = QLabel(
-            "✓ 无需下载模型\n"
-            "✓ 自动使用最新模型\n"
-            "⚠ 需要网络连接\n"
-            "⚠ 受服务器配额限制"
+            "[对勾] 无需下载模型\n"
+            "[对勾] 自动使用最新模型\n"
+            "[警告] 需要网络连接\n"
+            "[警告] 受服务器配额限制"
         )
         cloud_desc.setIndent(self._theme.get_spacing('lg'))
         cloud_desc_font = QFont(self._theme.get_font_family())
@@ -344,12 +348,9 @@ class LocalInferenceDialog(QDialog):
     
     def _setup_animation(self) -> None:
         """设置入场动画"""
-        if self._anim_manager.is_enabled():
-            # 初始透明度为0
-            self.setWindowOpacity(0.0)
-            # 使用QTimer延迟启动淡入动画，确保窗口已显示
-            from PyQt6.QtCore import QTimer
-            QTimer.singleShot(50, self._play_fade_in)
+        # [修复] 暂时完全禁用动画功能，避免在 exec() 事件循环中导致栈损坏
+        # 动画功能将在后续版本中重新实现
+        pass
     
     def _play_fade_in(self) -> None:
         """播放淡入动画"""
@@ -379,20 +380,20 @@ class LocalInferenceDialog(QDialog):
         self._gpu_progress.setValue(100)
         
         if result.get("available"):
-            self._gpu_status_label.setText("✅ 检测到NVIDIA显卡")
+            self._gpu_status_label.setText("[成功] 检测到NVIDIA显卡")
             self._show_gpu_details(result)
             
             if result.get("meets_requirements"):
                 self._show_model_selection(result)
                 self._choice_group.setVisible(True)
-                # 淡入动画
-                if self._anim_manager.is_enabled():
-                    fade_in_widget(self._choice_group, self._anim_manager.get_animation_duration('fast'))
+                # [修复] 禁用淡入动画，避免在 exec() 事件循环中导致栈损坏
+                # if self._anim_manager.is_enabled():
+                #     fade_in_widget(self._choice_group, self._anim_manager.get_animation_duration('fast'))
                 self._confirm_button.setEnabled(True)
             else:
                 self._show_insufficient_gpu(result)
         else:
-            self._gpu_status_label.setText("❌ 未检测到NVIDIA显卡")
+            self._gpu_status_label.setText("[失败] 未检测到NVIDIA显卡")
             self._show_no_gpu_message(result)
         
         self._refresh_button.setVisible(True)
@@ -402,7 +403,7 @@ class LocalInferenceDialog(QDialog):
         self._check_worker = None
         self._gpu_progress.setRange(0, 100)
         self._gpu_progress.setValue(0)
-        self._gpu_status_label.setText(f"❌ 检测失败: {error}")
+        self._gpu_status_label.setText(f"[失败] 检测失败: {error}")
         self._gpu_details.setText(f"错误详情:\n{error}")
         self._gpu_details.setVisible(True)
         self._refresh_button.setVisible(True)
@@ -491,9 +492,9 @@ class LocalInferenceDialog(QDialog):
             self._model_layout.addWidget(radio)
         
         self._model_group.setVisible(True)
-        # 淡入动画
-        if self._anim_manager.is_enabled():
-            fade_in_widget(self._model_group, self._anim_manager.get_animation_duration('fast'))
+        # [修复] 禁用淡入动画，避免在 exec() 事件循环中导致栈损坏
+        # if self._anim_manager.is_enabled():
+        #     fade_in_widget(self._model_group, self._anim_manager.get_animation_duration('fast'))
     
     def _show_insufficient_gpu(self, result: Dict[str, Any]) -> None:
         """显示GPU不满足要求的消息"""
@@ -503,7 +504,7 @@ class LocalInferenceDialog(QDialog):
         ) if result.get("gpus") else 0
         
         message = (
-            f"⚠️ 显卡配置不足\n\n"
+            f"[警告] 显卡配置不足\n\n"
             f"检测到显存: {max_memory:.2f} GB\n"
             f"最低要求: {self._gpu_checker.MIN_MEMORY_GB} GB\n\n"
             f"您仍然可以使用云端推理模式。"
@@ -523,7 +524,7 @@ class LocalInferenceDialog(QDialog):
         error = result.get("error", "未知错误")
         
         message = (
-            f"❌ 未检测到NVIDIA显卡\n\n"
+            f"[失败] 未检测到NVIDIA显卡\n\n"
             f"原因: {error}\n\n"
             f"本地推理需要NVIDIA显卡和CUDA环境。\n"
             f"您可以使用云端推理模式。"
@@ -591,11 +592,11 @@ class LocalInferenceDialog(QDialog):
         self._download_worker = None
         
         if success:
-            self._download_status.setText("✅ " + message)
+            self._download_status.setText("[成功] " + message)
             self._user_choice = self.CHOICE_LOCAL
             self.accept()
         else:
-            self._download_status.setText("❌ " + message)
+            self._download_status.setText("[失败] " + message)
             self._confirm_button.setEnabled(True)
             self._cancel_button.setEnabled(True)
             
@@ -626,15 +627,26 @@ class LocalInferenceDialog(QDialog):
     
     def closeEvent(self, event) -> None:
         """关闭事件处理"""
-        # 取消正在进行的任务
-        if self._check_worker and self._check_worker.isRunning():
-            self._check_worker.terminate()
-            self._check_worker.wait()
-        
-        if self._download_worker and self._download_worker.isRunning():
-            self._download_worker.cancel()
-            self._download_worker.terminate()
-            self._download_worker.wait()
+        # 优雅取消正在进行的任务（不使用危险的terminate()）
+        try:
+            if self._check_worker and self._check_worker.isRunning():
+                # 使用cancel()方法请求线程优雅退出
+                self._check_worker.cancel()
+                # 等待线程结束，设置超时防止无限等待
+                if not self._check_worker.wait(3000):  # 3秒超时
+                    # 超时后线程会自行清理，不强制terminate
+                    pass
+            
+            if self._download_worker and self._download_worker.isRunning():
+                # 使用cancel()方法请求线程优雅退出
+                self._download_worker.cancel()
+                # 等待线程结束，设置超时防止无限等待
+                if not self._download_worker.wait(3000):  # 3秒超时
+                    # 超时后线程会自行清理，不强制terminate
+                    pass
+        except Exception:
+            # 异常情况下直接接受关闭事件，避免阻塞
+            pass
         
         event.accept()
 

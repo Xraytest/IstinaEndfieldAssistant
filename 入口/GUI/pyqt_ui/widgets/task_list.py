@@ -106,9 +106,9 @@ class TaskListItem(QListWidgetItem):
         icons = {
             self.STATUS_PENDING: "○",
             self.STATUS_RUNNING: "◐",
-            self.STATUS_COMPLETED: "●",
-            self.STATUS_FAILED: "✗",
-            self.STATUS_PAUSED: "◇",
+            self.STATUS_COMPLETED: "[完成]",
+            self.STATUS_FAILED: "[失败]",
+            self.STATUS_PAUSED: "[暂停]",
         }
         return icons.get(self._status, "○")
     
@@ -307,11 +307,11 @@ class DragDropTaskList(QListWidget):
         
         menu.addSeparator()
         
-        edit_action = QAction("✎ 编辑任务", menu)
+        edit_action = QAction("[编辑] 编辑任务", menu)
         edit_action.triggered.connect(lambda: self.task_action_requested.emit(task_id, "edit"))
         menu.addAction(edit_action)
         
-        delete_action = QAction("✗ 删除任务", menu)
+        delete_action = QAction("[删除] 删除任务", menu)
         delete_action.triggered.connect(lambda: self.task_action_requested.emit(task_id, "delete"))
         menu.addAction(delete_action)
         

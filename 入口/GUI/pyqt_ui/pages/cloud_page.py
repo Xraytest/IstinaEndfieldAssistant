@@ -179,7 +179,7 @@ class CloudPage(QWidget):
         auth_layout.setSpacing(self._theme.get_spacing('md'))
         
         # 认证标题
-        auth_title = QLabel("🔐 账户认证")
+        auth_title = QLabel("[锁] 账户认证")
         auth_title.setProperty("variant", "header")
         auth_layout.addWidget(auth_title)
         

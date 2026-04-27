@@ -28,7 +28,7 @@ try:
     from .theme.animation_manager import AnimationManager, fade_in_widget
     from .widgets.base_widgets import NavigationButton, HorizontalSeparator
     from .widgets.log_display import LogDisplayWidget
-    from .pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
+    from .pages import AuthPage, SettingsPage, CloudPage, AuthCloudPage, IEAPage, ModelManagerPage
 except ImportError:
     import sys
     import os
@@ -49,7 +49,7 @@ except ImportError:
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.theme.animation_manager import AnimationManager, fade_in_widget
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.base_widgets import NavigationButton, HorizontalSeparator
     from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.widgets.log_display import LogDisplayWidget
-    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.pages import AuthPage, SettingsPage, CloudPage, IEAPage, ModelManagerPage
+    from IstinaEndfieldAssistant.入口.GUI.pyqt_ui.pages import AuthPage, SettingsPage, CloudPage, AuthCloudPage, IEAPage, ModelManagerPage
 
 
 class NavigationBar(QWidget):
@@ -391,6 +391,7 @@ class MainWindow(QMainWindow):
         self._auth_page: Optional[AuthPage] = None
         self._settings_page: Optional[SettingsPage] = None
         self._cloud_page: Optional[CloudPage] = None
+        self._auth_cloud_page: Optional[AuthCloudPage] = None
         self._iea_page: Optional[IEAPage] = None
         self._model_manager_page: Optional[ModelManagerPage] = None
         self._log_display: Optional[LogDisplayWidget] = None
@@ -454,13 +455,9 @@ class MainWindow(QMainWindow):
         self._iea_page = IEAPage(connection_mode=connection_mode)
         self.add_page("iea", "开始推理", self._iea_page)
 
-        # 认证页面
-        self._auth_page = AuthPage()
-        self.add_page("auth", "认证", self._auth_page)
-
-        # 云服务页面
-        self._cloud_page = CloudPage()
-        self.add_page("cloud", "云服务", self._cloud_page)
+        # 认证与云服务合并页面
+        self._auth_cloud_page = AuthCloudPage()
+        self.add_page("auth_cloud", "账户与云服务", self._auth_cloud_page)
 
         # 模型管理页面（仅在本地推理启用时显示）
         local_inference_enabled = self._config.get('inference', {}).get('local_inference_enabled', False)
@@ -474,12 +471,12 @@ class MainWindow(QMainWindow):
         self._settings_page = SettingsPage(config=self._config)
         self.add_page("settings", "设置", self._settings_page, position="bottom")
 
-        # 默认显示认证页面（需要登录）
-        self.show_page("auth")
-        self._navigation_bar.set_login_state(True, False, "auth")
+        # 默认显示认证与云服务页面（需要登录）
+        self.show_page("auth_cloud")
+        self._navigation_bar.set_login_state(True, False, "auth_cloud")
         
-        # 标记认证页面为登录入口页面，登录成功后自动隐藏
-        self._auth_page_id = "auth"
+        # 标记认证与云服务页面为登录入口页面，登录成功后自动隐藏
+        self._auth_page_id = "auth_cloud"
     
     def _setup_connections(self) -> None:
         """设置信号连接"""
@@ -505,10 +502,12 @@ class MainWindow(QMainWindow):
             self._iea_page.task_added.connect(self.task_added.emit)
             self._iea_page.task_deleted.connect(self.task_deleted.emit)
         
-        # 连接认证页面信号
-        if self._auth_page:
-            self._auth_page.login_requested.connect(self.login_requested.emit)
-            self._auth_page.logout_requested.connect(self.logout_requested.emit)
+        # 连接认证与云服务页面信号
+        if self._auth_cloud_page:
+            self._auth_cloud_page.arkpass_selected.connect(self.login_requested.emit)
+            self._auth_cloud_page.logout_requested.connect(self.logout_requested.emit)
+            self._auth_cloud_page.refresh_requested.connect(self.refresh_user_info_requested.emit)
+            self._auth_cloud_page.sync_requested.connect(self._on_cloud_sync_requested)
         
         # 连接设置页面信号
         if self._settings_page:
@@ -519,10 +518,6 @@ class MainWindow(QMainWindow):
         if self._model_manager_page:
             self._model_manager_page.model_changed.connect(self._on_model_changed)
             self._model_manager_page.settings_changed.connect(self.settings_changed.emit)
-        
-        # 连接云服务页面信号
-        if self._cloud_page:
-            self._cloud_page.refresh_requested.connect(self.refresh_user_info_requested.emit)
     
     def _on_page_changed(self, page_id: str) -> None:
         """
@@ -536,17 +531,18 @@ class MainWindow(QMainWindow):
             "iea": "开始推理",
             "auth": "认证",
             "cloud": "云服务",
+            "auth_cloud": "账户与云服务",
             "settings": "设置",
             "models": "模型管理"
         }
         page_name = page_names.get(page_id, page_id)
         self.set_status(f"当前页面: {page_name}")
 
-        # 切换到云服务页面时自动刷新用户信息
-        if page_id == "cloud" and self._cloud_page:
-            print(f"[DEBUG] _on_page_changed: 切换到云服务页面，准备刷新用户信息")
-            self._cloud_page.refresh_requested.emit()
-            print(f"[DEBUG] _on_page_changed: 云服务页面刷新信号已发送")
+        # 切换到账户与云服务页面时自动刷新用户信息
+        if page_id == "auth_cloud" and self._auth_cloud_page:
+            print(f"[DEBUG] _on_page_changed: 切换到账户与云服务页面，准备刷新用户信息")
+            self._auth_cloud_page.refresh_requested.emit()
+            print(f"[DEBUG] _on_page_changed: 账户与云服务页面刷新信号已发送")
     
     def _on_model_changed(self, model_name: str) -> None:
         """
@@ -664,10 +660,10 @@ class MainWindow(QMainWindow):
         self._content_area.show_page(page_id)
         print(f"[DEBUG] show_page: 页面已切换到 {page_id}")
         
-        # [修复4-2] 页面进入动画 - 淡入效果（可选）
-        page_widget = self._content_area.get_page(page_id)
-        if page_widget:
-            fade_in_widget(page_widget, duration=250)
+        # [修复4-2] 页面进入动画 - 淡入效果（已禁用，避免栈损坏）
+        # page_widget = self._content_area.get_page(page_id)
+        # if page_widget:
+        #     fade_in_widget(page_widget, duration=250)
     
     def get_current_page_id(self) -> Optional[str]:
         """获取当前显示的页面标识"""
@@ -686,7 +682,7 @@ class MainWindow(QMainWindow):
         return self._content_area.get_page(page_id)
 
     def get_auth_page(self) -> Optional[AuthPage]:
-        """获取认证页面"""
+        """获取认证页面（兼容方法）"""
         return self._auth_page
     
     def get_settings_page(self) -> Optional[SettingsPage]:
@@ -694,8 +690,12 @@ class MainWindow(QMainWindow):
         return self._settings_page
     
     def get_cloud_page(self) -> Optional[CloudPage]:
-        """获取云服务页面"""
+        """获取云服务页面（兼容方法）"""
         return self._cloud_page
+    
+    def get_auth_cloud_page(self) -> Optional[AuthCloudPage]:
+        """获取认证与云服务合并页面"""
+        return self._auth_cloud_page
 
     def get_iea_page(self) -> Optional[IEAPage]:
         """获取开始推理页面"""
@@ -776,10 +776,8 @@ class MainWindow(QMainWindow):
         Args:
             user_info: 用户信息字典
         """
-        if self._auth_page:
-            self._auth_page.update_user_info(user_info)
-        if self._cloud_page:
-            self._cloud_page.update_user_info(user_info)
+        if self._auth_cloud_page:
+            self._auth_cloud_page.update_user_info(user_info)
     
     def update_login_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
         """
@@ -791,36 +789,27 @@ class MainWindow(QMainWindow):
         """
         self._is_logged_in = logged_in
         
-        if self._auth_page:
-            self._auth_page.set_login_status(logged_in, user_info)
-        if self._cloud_page:
-            self._cloud_page.set_server_status(
-                "connected" if logged_in else "disconnected"
-            )
+        if self._auth_cloud_page:
+            self._auth_cloud_page.set_login_status(logged_in, user_info)
         
         # 更新导航栏状态 - 登录成功后移除认证页面限制
         if logged_in:
             self._navigation_bar.set_login_state(False, True, None)
             
             # [修复1] 确保所有页面按钮都启用
-            # 登录成功后，所有主要页面（iea、cloud、settings）都应该可用
-            for page_id in ["iea", "cloud", "settings"]:
+            # 登录成功后，所有主要页面（iea、auth_cloud、settings）都应该可用
+            for page_id in ["iea", "auth_cloud", "settings"]:
                 if page_id in self._navigation_bar._nav_buttons:
                     self._navigation_bar._nav_buttons[page_id].setEnabled(True)
                     # 添加调试日志
                     print(f"[DEBUG] 启用导航按钮: {page_id}")
         else:
-            self._navigation_bar.set_login_state(True, False, "auth")
+            self._navigation_bar.set_login_state(True, False, "auth_cloud")
 
-        # 登录成功跳转到IEA页面并移除认证页面
+        # 登录成功跳转到IEA页面
         if logged_in:
             # 添加调试日志，确认页面切换事件被触发
             print("[DEBUG] 登录成功，准备切换页面")
-            
-            # 移除认证页面导航按钮
-            if "auth" in self._navigation_bar._nav_buttons:
-                self._navigation_bar.remove_page("auth")
-                print("[DEBUG] 已移除认证页面导航按钮")
             
             # 显示IEA页面
             print("[DEBUG] 切换到IEA页面")
@@ -829,6 +818,11 @@ class MainWindow(QMainWindow):
     def update_auth_status(self, logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
         """更新认证状态（兼容方法）"""
         self.update_login_status(logged_in, user_info)
+    
+    def _on_cloud_sync_requested(self) -> None:
+        """云服务同步请求处理"""
+        # 可以在这里添加同步逻辑或转发信号
+        print("[DEBUG] 云服务同步请求")
     
     def update_device_list(self, devices: List[Dict[str, Any]]) -> None:
         """

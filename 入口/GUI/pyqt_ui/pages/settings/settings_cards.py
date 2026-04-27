@@ -112,7 +112,7 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
         self._gpu_meets_requirements = False
         self._model_manager: Optional[ModelManager] = None
         
-        super().__init__(title="🧠 本地推理设置", parent=parent)
+        super().__init__(title="[大脑] 本地推理设置", parent=parent)
         
         self._theme = ThemeManager.get_instance()
         self._setup_content()
@@ -230,7 +230,7 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
         self._gpu_info = gpu_info
         
         if gpu_info.get("available"):
-            self._gpu_status_icon.setText("✅")
+            self._gpu_status_icon.setText("[成功]")
             self._gpu_status_text.setText("检测到NVIDIA显卡")
             self._update_gpu_details(gpu_info)
             self._gpu_details_frame.setVisible(True)
@@ -238,13 +238,14 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
             if gpu_info.get("meets_requirements"):
                 self._gpu_meets_requirements = True
                 self._local_inference_frame.setVisible(True)
-                fade_in_widget(self._local_inference_frame)
+                # [修复] 禁用淡入动画，避免栈损坏
+                # fade_in_widget(self._local_inference_frame)
             else:
                 self._gpu_meets_requirements = False
-                self._gpu_status_icon.setText("⚠️")
+                self._gpu_status_icon.setText("[警告]")
                 self._gpu_status_text.setText("显卡配置不足（需要16GB+显存）")
         else:
-            self._gpu_status_icon.setText("❌")
+            self._gpu_status_icon.setText("[失败]")
             self._gpu_status_text.setText("未检测到NVIDIA显卡")
             self._gpu_meets_requirements = False
             error = gpu_info.get("error", "未知错误")
@@ -332,12 +333,12 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
         # 状态标签
         status_layout = QHBoxLayout()
         if is_downloaded:
-            status_label = QLabel("✓ 已下载")
+            status_label = QLabel("[对勾] 已下载")
             status_label.setStyleSheet("color: #2ecc71; font-size: 11px;")
             status_layout.addWidget(status_label)
         
         if is_recommended:
-            rec_label = QLabel("★ 推荐")
+            rec_label = QLabel("[星] 推荐")
             rec_label.setStyleSheet("color: #4361ee; font-size: 11px;")
             status_layout.addWidget(rec_label)
         
@@ -365,7 +366,8 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
         
         if enabled and self._gpu_meets_requirements:
             self._local_model_frame.setVisible(True)
-            fade_in_widget(self._local_model_frame)
+            # [修复] 禁用淡入动画，避免栈损坏
+            # fade_in_widget(self._local_model_frame)
             if self._gpu_info:
                 self.update_model_selection(self._gpu_info)
         else:
@@ -391,12 +393,12 @@ class LocalInferenceSettingsCard(ElevatedCardWidget):
     def on_download_finished(self, success: bool, message: str) -> None:
         """下载完成处理"""
         if success:
-            self._download_status_label.setText("✅ " + message)
+            self._download_status_label.setText("[成功] " + message)
             QMessageBox.information(self, "成功", "模型下载完成！")
             if self._gpu_info:
                 self.update_model_selection(self._gpu_info)
         else:
-            self._download_status_label.setText("❌ " + message)
+            self._download_status_label.setText("[失败] " + message)
             QMessageBox.warning(self, "下载失败", message)
     
     def _on_save_clicked(self) -> None:
@@ -440,7 +442,7 @@ class HardwareSettingsCard(CardWidget):
         parent: Optional[QWidget] = None
     ) -> None:
         self._config = config or {}
-        super().__init__(title="⚡ 硬件加速设置", parent=parent)
+        super().__init__(title="[闪电] 硬件加速设置", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     
@@ -604,7 +606,7 @@ class CacheSettingsCard(CardWidget):
         parent: Optional[QWidget] = None
     ) -> None:
         self._config = config or {}
-        super().__init__(title="💾 缓存设置", parent=parent)
+        super().__init__(title="[磁盘] 缓存设置", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     
@@ -737,7 +739,7 @@ class TouchSettingsCard(CardWidget):
         parent: Optional[QWidget] = None
     ) -> None:
         self._config = config or {}
-        super().__init__(title="🖱️ 触控设置", parent=parent)
+        super().__init__(title="[鼠标] 触控设置", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     
@@ -843,7 +845,7 @@ class CloudModelSettingsCard(CardWidget):
     ) -> None:
         self._config = config or {}
         self._available_models: List[Dict[str, Any]] = []
-        super().__init__(title="🤖 云端模型设置", parent=parent)
+        super().__init__(title="[机器人] 云端模型设置", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     
@@ -1023,7 +1025,7 @@ class LogSettingsCard(CardWidget):
         parent: Optional[QWidget] = None
     ) -> None:
         self._config = config or {}
-        super().__init__(title="📝 日志设置", parent=parent)
+        super().__init__(title="[笔记] 日志设置", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     
@@ -1109,7 +1111,7 @@ class VersionSettingsCard(CardWidget):
         self._latest_version = "未知"
         self._has_update = False
         
-        super().__init__(title="📦 版本信息", parent=parent)
+        super().__init__(title="[包裹] 版本信息", parent=parent)
         self._theme = ThemeManager.get_instance()
         self._setup_content()
     

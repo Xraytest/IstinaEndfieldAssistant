@@ -41,23 +41,38 @@ class GPUCheckWorker(QThread):
     
     def __init__(self, parent: Optional[Any] = None) -> None:
         super().__init__(parent)
+        # 不在主线程创建 GPUChecker，避免 NVML 初始化导致栈损坏
+        # GPUChecker 会在 run() 方法中（工作线程）延迟创建
         self._checker: Optional[GPUChecker] = None
-        try:
-            self._checker = GPUChecker()
-        except Exception:
-            self._checker = None
+        self._cancelled = False
     
     def run(self) -> None:
         """执行GPU检测"""
-        if self._checker is None:
-            self.error_signal.emit("GPUChecker初始化失败")
+        # 检查是否已被取消
+        if self._cancelled or self.isInterruptionRequested():
+            self.error_signal.emit("检测已取消")
+            return
+        
+        # 在工作线程中创建 GPUChecker，避免主线程栈损坏
+        try:
+            self._checker = GPUChecker()
+        except Exception as e:
+            self.error_signal.emit(f"GPUChecker初始化失败: {str(e)}")
             return
             
         try:
             result = self._checker.check_gpu_availability()
-            self.finished_signal.emit(result)
+            # 发送结果前再次检查是否被取消
+            if not self._cancelled and not self.isInterruptionRequested():
+                self.finished_signal.emit(result)
         except Exception as e:
-            self.error_signal.emit(str(e))
+            if not self._cancelled and not self.isInterruptionRequested():
+                self.error_signal.emit(str(e))
+    
+    def cancel(self) -> None:
+        """取消检测"""
+        self._cancelled = True
+        self.requestInterruption()
 
 
 class ModelDownloadWorker(QThread):

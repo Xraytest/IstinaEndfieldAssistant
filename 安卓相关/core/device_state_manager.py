@@ -11,48 +11,224 @@ class DeviceStateManager:
         self.communicator = communicator
         self.auth_manager = auth_manager
         self.logger = get_logger()
-        self.state_templates = {'game_main': ['Resell/inGame1.png', 'Resell/inGame2.png'], 'friend_list': ['VisitFriends/OnFriendList.png'], 'login_confirm': ['SceneManager/LoginConfirm.png'], 'terminal': ['SceneManager/Terminal.png'], 'home_screen': ['SceneManager/HomeScreen.png'], 'error_dialog': ['SceneManager/ErrorDialog.png'], 'loading_screen': ['SceneManager/LoadingIcon.png']}
+        # 状态模板缓存，将从服务端获取
+        self._state_templates_cache: Dict[str, List[Dict[str, Any]]] = {}
+        self._cache_timestamp: float = 0
+        self._cache_ttl: float = 300  # 缓存有效期5分钟
         self.recovery_strategies = {'unknown': self._recover_from_unknown_state, 'error_dialog': self._recover_from_error_dialog, 'loading_screen': self._recover_from_loading_screen, 'login_confirm': self._recover_from_login_confirm}
 
     def detect_current_state(self, device_serial: str) -> str:
-        self.logger.debug(LogCategory.DEVICE, '设备状态检测：跳过模板匹配，默认返回game_main')
-        return 'game_main'
+        """检测当前设备状态，使用模板匹配
+        
+        Args:
+            device_serial: 设备序列号
+            
+        Returns:
+            检测到的状态名称
+        """
+        try:
+            # 获取屏幕截图
+            screenshot_data = self.screen_capture.capture_screen_base64(device_serial)
+            if not screenshot_data:
+                self.logger.warning(LogCategory.DEVICE, '无法获取屏幕截图，返回unknown状态')
+                return 'unknown'
+            
+            # 使用模板匹配检测状态
+            detected_state = self._detect_state_with_templates(screenshot_data, device_serial)
+            self.logger.info(LogCategory.DEVICE, f'设备状态检测结果: {detected_state}')
+            return detected_state
+            
+        except Exception as e:
+            self.logger.exception(LogCategory.DEVICE, f'状态检测异常: {e}')
+            return 'unknown'
+
+    def _get_state_templates_from_server(self) -> Dict[str, List[Dict[str, Any]]]:
+        """从服务端获取状态模板配置
+        
+        Returns:
+            状态模板配置字典
+        """
+        try:
+            if not self.communicator:
+                self.logger.warning(LogCategory.DEVICE, '通信器未初始化，无法获取状态模板')
+                return {}
+            
+            # 检查缓存是否有效
+            current_time = time.time()
+            if self._state_templates_cache and (current_time - self._cache_timestamp) < self._cache_ttl:
+                self.logger.debug(LogCategory.DEVICE, '使用缓存的状态模板')
+                return self._state_templates_cache
+            
+            # 从服务端获取状态模板
+            response = self.communicator.send_request(
+                "get_state_templates",
+                {}
+            )
+            
+            if response and response.get('status') == 'success':
+                templates = response.get('templates', {})
+                self._state_templates_cache = templates
+                self._cache_timestamp = current_time
+                self.logger.info(LogCategory.DEVICE, f'从服务端获取状态模板成功: {len(templates)}个状态')
+                return templates
+            else:
+                error_msg = response.get('message', '未知错误') if response else '无响应'
+                self.logger.warning(LogCategory.DEVICE, f'从服务端获取状态模板失败: {error_msg}')
+                return self._state_templates_cache  # 返回缓存（即使可能过期）
+                
+        except Exception as e:
+            self.logger.exception(LogCategory.DEVICE, f'获取状态模板异常: {e}')
+            return self._state_templates_cache  # 返回缓存（即使可能过期）
 
     def _detect_state_with_templates(self, screen_data: str, device_serial: str) -> str:
+        """使用模板匹配检测状态
+        
+        Args:
+            screen_data: base64编码的屏幕截图
+            device_serial: 设备序列号
+            
+        Returns:
+            匹配到的状态名称
+        """
         try:
             from PIL import Image
             import io
             import cv2
             import numpy as np
             import base64
+            
+            # 解码屏幕截图
             png_data = base64.b64decode(screen_data)
             image_stream = io.BytesIO(png_data)
             pil_image = Image.open(image_stream)
             opencv_image = cv2.cvtColor(np.array(pil_image), cv2.COLOR_RGB2BGR)
+            
+            # 从服务端获取状态模板
+            state_templates = self._get_state_templates_from_server()
+            
+            # 如果没有获取到模板，尝试使用本地默认模板
+            if not state_templates:
+                self.logger.warning(LogCategory.DEVICE, '未获取到状态模板，使用默认配置')
+                state_templates = self._get_default_state_templates()
+            
             best_match = 'unknown'
             best_score = 0.0
-            for state_name, template_paths in self.state_templates.items():
-                for template_path in template_paths:
+            
+            # 遍历所有状态模板进行匹配
+            for state_name, template_configs in state_templates.items():
+                for template_config in template_configs:
                     try:
-                        template_full_path = f'server/server/data/reference_images/{template_path}'
-                        if not os.path.exists(template_full_path):
+                        # 支持两种格式：字符串路径或字典配置
+                        if isinstance(template_config, str):
+                            template_path = template_config
+                            threshold = 0.7
+                        elif isinstance(template_config, dict):
+                            template_path = template_config.get('path', '')
+                            threshold = template_config.get('threshold', 0.7)
+                        else:
                             continue
-                        template = cv2.imread(template_full_path, cv2.IMREAD_COLOR)
-                        if template is None:
+                        
+                        if not template_path:
                             continue
-                        result = cv2.matchTemplate(opencv_image, template, cv2.TM_CCOEFF_NORMED)
+                        
+                        # 从服务端获取模板图像数据
+                        template_image = self._get_template_image_from_server(template_path)
+                        if template_image is None:
+                            continue
+                        
+                        # 执行模板匹配
+                        result = cv2.matchTemplate(opencv_image, template_image, cv2.TM_CCOEFF_NORMED)
                         min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
-                        if max_val > best_score and max_val > 0.7:
+                        
+                        if max_val > best_score and max_val > threshold:
                             best_score = max_val
                             best_match = state_name
+                            
                     except Exception as template_e:
                         self.logger.debug(LogCategory.DEVICE, f'模板匹配异常: {template_e}')
                         continue
-            self.logger.debug(LogCategory.DEVICE, f'本地模板匹配结果: {best_match} (置信度: {best_score:.2f})')
+            
+            self.logger.debug(LogCategory.DEVICE, f'模板匹配结果: {best_match} (置信度: {best_score:.2f})')
             return best_match
+            
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'本地状态检测异常: {e}')
+            self.logger.exception(LogCategory.DEVICE, f'状态检测异常: {e}')
             return 'unknown'
+
+    def _get_template_image_from_server(self, template_path: str) -> Optional[Any]:
+        """从服务端获取模板图像
+        
+        Args:
+            template_path: 模板路径
+            
+        Returns:
+            OpenCV图像对象或None
+        """
+        try:
+            import cv2
+            import numpy as np
+            
+            if not self.communicator:
+                return None
+            
+            # 请求模板图像数据
+            response = self.communicator.send_request(
+                "get_template_image",
+                {"template_path": template_path}
+            )
+            
+            if response and response.get('status') == 'success':
+                image_data = response.get('image_data')
+                if image_data:
+                    # 解码base64图像数据
+                    import base64
+                    img_bytes = base64.b64decode(image_data)
+                    nparr = np.frombuffer(img_bytes, np.uint8)
+                    img = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+                    return img
+            
+            return None
+            
+        except Exception as e:
+            self.logger.debug(LogCategory.DEVICE, f'获取模板图像失败: {template_path}, 错误: {e}')
+            return None
+
+    def _get_default_state_templates(self) -> Dict[str, List[Dict[str, Any]]]:
+        """获取默认状态模板配置（本地回退）
+        
+        Returns:
+            默认状态模板配置
+        """
+        return {
+            'game_main': [
+                {'path': 'Resell/inGame1.png', 'threshold': 0.7},
+                {'path': 'Resell/inGame2.png', 'threshold': 0.7}
+            ],
+            'friend_list': [
+                {'path': 'VisitFriends/OnFriendList.png', 'threshold': 0.7}
+            ],
+            'login_confirm': [
+                {'path': 'SceneManager/LoginConfirm.png', 'threshold': 0.7}
+            ],
+            'terminal': [
+                {'path': 'SceneManager/Terminal.png', 'threshold': 0.7}
+            ],
+            'home_screen': [
+                {'path': 'SceneManager/HomeScreen.png', 'threshold': 0.7}
+            ],
+            'error_dialog': [
+                {'path': 'SceneManager/ErrorDialog.png', 'threshold': 0.7}
+            ],
+            'loading_screen': [
+                {'path': 'SceneManager/LoadingIcon.png', 'threshold': 0.7}
+            ]
+        }
+
+    def clear_template_cache(self):
+        """清除状态模板缓存"""
+        self._state_templates_cache = {}
+        self._cache_timestamp = 0
+        self.logger.info(LogCategory.DEVICE, '状态模板缓存已清除')
 
     def recover_to_safe_state(self, device_serial: str, target_state: str='game_main') -> bool:
         current_state = self.detect_current_state(device_serial)

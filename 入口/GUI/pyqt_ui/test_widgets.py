@@ -109,7 +109,7 @@ class TestMainWindow(QMainWindow):
         
         status_layout.addStretch()
         
-        test_info = QLabel("所有组件已加载成功 ✓")
+        test_info = QLabel("所有组件已加载成功 [OK]")
         test_info.setProperty("variant", "success")
         test_info.style().unpolish(test_info)
         test_info.style().polish(test_info)

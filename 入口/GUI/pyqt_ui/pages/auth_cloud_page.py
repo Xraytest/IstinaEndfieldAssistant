@@ -166,7 +166,7 @@ class AuthCloudPage(QWidget):
         main_layout.setSpacing(self._theme.get_spacing('md'))
         
         # === 页面标题 ===
-        title_label = QLabel("🔐 账户与云服务")
+        title_label = QLabel("[锁] 账户与云服务")
         title_label.setProperty("variant", "header")
         title_label.setStyleSheet(f"font-size: 20px; font-weight: bold; color: {self._theme.get_color('text_primary')};")
         main_layout.addWidget(title_label)
@@ -177,11 +177,11 @@ class AuthCloudPage(QWidget):
         
         # 标签页1: 认证
         self._auth_tab = self._create_auth_tab()
-        self._tab_widget.addTab(self._auth_tab, "🔐 账户认证")
+        self._tab_widget.addTab(self._auth_tab, "[锁] 账户认证")
         
         # 标签页2: 云服务
         self._cloud_tab = self._create_cloud_tab()
-        self._tab_widget.addTab(self._cloud_tab, "☁️ 云服务")
+        self._tab_widget.addTab(self._cloud_tab, "[云] 云服务")
         
         main_layout.addWidget(self._tab_widget)
     

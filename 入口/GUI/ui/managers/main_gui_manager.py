@@ -128,7 +128,7 @@ class MainGUIManager:
 
         # 执行日志
         log_frame = ttk.Frame(self.content_notebook)
-        self.content_notebook.add(log_frame, text='📋 执行日志')
+        self.content_notebook.add(log_frame, text='[剪贴板] 执行日志')
         self.log_text = scrolledtext.ScrolledText(log_frame, wrap=tk.WORD)
         configure_scrolledtext(self.log_text)
         self.log_text.pack(fill='both', expand=True)

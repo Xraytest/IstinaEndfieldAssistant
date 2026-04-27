@@ -264,7 +264,7 @@ class ModelManagerPage(QWidget):
         refresh_layout = QHBoxLayout()
         refresh_layout.addStretch()
         
-        self._refresh_btn = SecondaryButton("🔄 刷新列表")
+        self._refresh_btn = SecondaryButton("[刷新] 刷新列表")
         self._refresh_btn.clicked.connect(self._refresh_model_list)
         refresh_layout.addWidget(self._refresh_btn)
         
@@ -279,7 +279,7 @@ class ModelManagerPage(QWidget):
     
     def _create_disk_usage_section(self) -> CardWidget:
         """创建磁盘使用情况区域"""
-        card = CardWidget(title="💾 磁盘使用情况")
+        card = CardWidget(title="[磁盘] 磁盘使用情况")
         layout = card.get_content_layout()
         
         # 获取磁盘使用情况
@@ -321,7 +321,7 @@ class ModelManagerPage(QWidget):
         search_layout.setContentsMargins(8, 4, 8, 4)
         search_layout.setSpacing(8)
         
-        search_icon = QLabel("🔍")
+        search_icon = QLabel("[搜索]")
         search_layout.addWidget(search_icon)
         
         self._search_input = QLineEdit()
@@ -502,7 +502,7 @@ class ModelManagerPage(QWidget):
         layout.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.setSpacing(self._theme.get_spacing('md'))
         
-        icon_label = QLabel("📦")
+        icon_label = QLabel("[包裹]")
         icon_label.setStyleSheet("font-size: 48px;")
         icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         layout.addWidget(icon_label)
@@ -590,7 +590,7 @@ class ModelManagerPage(QWidget):
             self._empty_state_widget.setVisible(True)
             if self._all_models:
                 # 有模型但被过滤掉了
-                self._empty_state_widget.findChild(QLabel, "", Qt.FindChildOption.FindDirectChildrenOnly).setText("🔍")
+                self._empty_state_widget.findChild(QLabel, "", Qt.FindChildOption.FindDirectChildrenOnly).setText("[搜索]")
                 self._empty_state_widget.findChildren(QLabel)[1].setText("没有找到匹配的模型")
                 self._empty_state_widget.findChildren(QLabel)[2].setText("请尝试调整搜索条件")
         else:
@@ -915,11 +915,11 @@ class ModelManagerPage(QWidget):
         # 更新下载状态
         if success:
             self._download_state_manager.mark_completed(model_name)
-            self._download_status_label.setText("✅ " + message)
+            self._download_status_label.setText("[成功] " + message)
             QMessageBox.information(self, "成功", f"模型下载完成！\n{message}")
         else:
             self._download_state_manager.mark_failed(model_name, message)
-            self._download_status_label.setText("❌ " + message)
+            self._download_status_label.setText("[失败] " + message)
             QMessageBox.warning(self, "下载失败", message)
         
         # 隐藏进度条

@@ -159,15 +159,141 @@ class ClientBasedValidator:
         )
     
     def _template_match_score(self, task_context: TaskContext) -> float:
-        """模板匹配得分"""
-        # TODO: 实现实际的模板匹配逻辑
-        # 这里返回模拟得分
+        """模板匹配得分 - 使用OpenCV进行真实模板匹配
+        
+        Args:
+            task_context: 任务上下文，包含截图和模板配置
+            
+        Returns:
+            匹配得分 (0.0 - 1.0)
+        """
         templates = task_context.task_variables.get('templates', [])
         if not templates:
             return 0.0
         
-        # 模拟：如果有模板配置，认为匹配成功
-        return 0.85
+        if not task_context.screenshots:
+            self.logger.warning("没有截图可用于模板匹配")
+            return 0.0
+        
+        try:
+            import cv2
+            import numpy as np
+            from PIL import Image
+            
+            # 获取最新截图
+            latest_screenshot = task_context.screenshots[-1]
+            
+            # 确保截图是numpy数组格式
+            if isinstance(latest_screenshot, Image.Image):
+                screenshot_array = cv2.cvtColor(np.array(latest_screenshot), cv2.COLOR_RGB2BGR)
+            elif isinstance(latest_screenshot, np.ndarray):
+                if len(latest_screenshot.shape) == 3 and latest_screenshot.shape[2] == 3:
+                    # 已经是BGR格式
+                    screenshot_array = latest_screenshot
+                else:
+                    screenshot_array = latest_screenshot
+            else:
+                self.logger.warning(f"不支持的截图格式: {type(latest_screenshot)}")
+                return 0.0
+            
+            best_match_score = 0.0
+            
+            # 遍历所有模板进行匹配
+            for template_config in templates:
+                try:
+                    # 支持多种模板配置格式
+                    if isinstance(template_config, str):
+                        # 简单路径格式
+                        template_path = template_config
+                        threshold = 0.7
+                        region = None
+                    elif isinstance(template_config, dict):
+                        # 详细配置格式
+                        template_path = template_config.get('path', '')
+                        threshold = template_config.get('threshold', 0.7)
+                        region = template_config.get('region')  # 可选的匹配区域 [x, y, w, h]
+                    else:
+                        continue
+                    
+                    if not template_path:
+                        continue
+                    
+                    # 加载模板图像
+                    template_image = self._load_template_image(template_path)
+                    if template_image is None:
+                        continue
+                    
+                    # 如果指定了区域，裁剪截图
+                    search_image = screenshot_array
+                    if region and len(region) == 4:
+                        x, y, w, h = region
+                        h_img, w_img = screenshot_array.shape[:2]
+                        x = max(0, min(x, w_img - 1))
+                        y = max(0, min(y, h_img - 1))
+                        w = min(w, w_img - x)
+                        h = min(h, h_img - y)
+                        if w > 0 and h > 0:
+                            search_image = screenshot_array[y:y+h, x:x+w]
+                    
+                    # 执行模板匹配
+                    result = cv2.matchTemplate(search_image, template_image, cv2.TM_CCOEFF_NORMED)
+                    min_val, max_val, min_loc, max_loc = cv2.minMaxLoc(result)
+                    
+                    # 更新最佳匹配分数
+                    if max_val > best_match_score:
+                        best_match_score = max_val
+                    
+                    # 如果找到高置信度匹配，可以提前返回
+                    if max_val >= threshold:
+                        self.logger.debug(f"模板匹配成功: {template_path}, 得分: {max_val:.3f}")
+                    
+                except Exception as template_e:
+                    self.logger.debug(f"模板匹配异常: {template_e}")
+                    continue
+            
+            return best_match_score
+            
+        except ImportError as ie:
+            self.logger.error(f"缺少必要的库: {ie}")
+            # 如果无法导入OpenCV，返回模拟得分
+            return 0.5 if templates else 0.0
+        except Exception as e:
+            self.logger.error(f"模板匹配计算异常: {e}")
+            return 0.0
+    
+    def _load_template_image(self, template_path: str) -> Optional[np.ndarray]:
+        """加载模板图像
+        
+        Args:
+            template_path: 模板图像路径
+            
+        Returns:
+            OpenCV图像数组或None
+        """
+        try:
+            import cv2
+            import os
+            
+            # 尝试多个可能的路径
+            possible_paths = [
+                template_path,
+                f"data/templates/{template_path}",
+                f"templates/{template_path}",
+                f"assets/templates/{template_path}",
+            ]
+            
+            for path in possible_paths:
+                if os.path.exists(path):
+                    template = cv2.imread(path, cv2.IMREAD_COLOR)
+                    if template is not None:
+                        return template
+            
+            self.logger.debug(f"无法加载模板图像: {template_path}")
+            return None
+            
+        except Exception as e:
+            self.logger.debug(f"加载模板图像异常: {e}")
+            return None
     
     def _ocr_verification_score(self, task_context: TaskContext) -> float:
         """OCR 验证得分"""
