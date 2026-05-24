@@ -1,5 +1,5 @@
 """
-认证管理页面
+认证管理页面 - Endfield 终端风格
 处理用户登录、注销和用户状态显示
 """
 
@@ -17,7 +17,6 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor
 
-# 支持两种导入方式
 try:
     from ..theme.theme_manager import ThemeManager
     from ..widgets.base_widgets import PrimaryButton, SecondaryButton, DangerButton, CardWidget
@@ -25,7 +24,6 @@ try:
 except ImportError:
     import sys
     import os
-    # 计算项目根目录路径
     current_file = os.path.abspath(__file__)
     pages_dir = os.path.dirname(current_file)
     pyqt_ui_dir = os.path.dirname(pages_dir)
@@ -46,7 +44,7 @@ except ImportError:
 
 class AuthPage(QWidget):
     """
-    认证管理页面
+    认证管理页面 - Endfield 终端风格
 
     功能：
     - ArkPass文件认证登录
@@ -55,18 +53,17 @@ class AuthPage(QWidget):
     - 用户状态显示
 
     信号：
-    - arkpass_selected(str): ArkPass文件选择信号（文件路径）
+    - arkpass_selected(str): ArkPass文件选择信号
     - logout_requested(): 注销请求信号
     """
 
-    # 自定义信号
-    login_requested = pyqtSignal(str, str)     # 保留以兼容旧接口，但仅使用ArkPass路径
-    logout_requested = pyqtSignal()            # 注销请求信号
-    register_requested = pyqtSignal(str)       # 保留以兼容旧接口
-    arkpass_selected = pyqtSignal(str)         # ArkPass文件选择信号
-    auto_login_requested = pyqtSignal()        # 自动登录请求信号
+    login_requested = pyqtSignal(str, str)
+    logout_requested = pyqtSignal()
+    register_requested = pyqtSignal(str)
+    arkpass_selected = pyqtSignal(str)
+    auto_login_requested = pyqtSignal()
+    refresh_requested = pyqtSignal()
 
-    # 登录状态常量
     STATUS_LOGGED_OUT = "logged_out"
     STATUS_LOGGED_IN = "logged_in"
     STATUS_LOGGING_IN = "logging_in"
@@ -75,12 +72,6 @@ class AuthPage(QWidget):
         self,
         parent: Optional[QWidget] = None
     ) -> None:
-        """
-        初始化认证管理页面
-
-        Args:
-            parent: 父控件
-        """
         super().__init__(parent)
         self._theme = ThemeManager.get_instance()
         self._login_status: str = self.STATUS_LOGGED_OUT
@@ -93,304 +84,345 @@ class AuthPage(QWidget):
         self._setup_connections()
 
     def _get_cache_dir(self) -> str:
-        """获取缓存目录路径"""
-        # 从当前文件路径推导: auth_page.py -> pages -> pyqt_ui -> GUI -> 入口 -> IstinaEndfieldAssistant
         current_dir = os.path.dirname(os.path.abspath(__file__))
         istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
         cache_dir = os.path.join(istina_root, "cache")
         return cache_dir
 
     def _get_cached_arkpass(self) -> Optional[str]:
-        """获取缓存的ArkPass文件路径"""
         cache_dir = self._get_cache_dir()
-
         if not os.path.exists(cache_dir):
             return None
-
-        # 查找所有 .arkpass 文件
         arkpass_files = glob.glob(os.path.join(cache_dir, "*.arkpass"))
-
         if not arkpass_files:
             return None
-
-        # 返回最新修改的文件
         return max(arkpass_files, key=os.path.getmtime)
 
     def try_auto_login(self) -> bool:
-        """
-        尝试自动登录
-
-        Returns:
-            是否找到缓存文件并发起自动登录请求
-        """
+        """尝试自动登录"""
         cached_arkpass = self._get_cached_arkpass()
-
         if cached_arkpass and os.path.exists(cached_arkpass):
-            # 更新UI显示缓存的文件路径
-            self._arkpass_path_display.setText(cached_arkpass)
-            self._arkpass_path_display.setProperty("variant", "primary")
-            self._arkpass_path = cached_arkpass
-
-            # 设置正在登录状态
-            self.set_logging_in()
-
-            # 发送自动登录请求信号
-            self.arkpass_selected.emit(cached_arkpass)
-            return True
-
+            try:
+                # 额外验证文件是否可读
+                with open(cached_arkpass, 'r', encoding='utf-8') as f:
+                    content = f.read().strip()
+                
+                if not content:
+                    import logging
+                    logging.getLogger(__name__).warning(f"缓存的 ArkPass 文件为空：{cached_arkpass}")
+                    return False
+                
+                self._arkpass_path_display.setText(cached_arkpass)
+                self._arkpass_path_display.setProperty("variant", "primary")
+                self._arkpass_path = cached_arkpass
+                self.set_logging_in()
+                self.arkpass_selected.emit(cached_arkpass)
+                return True
+            except Exception as e:
+                import logging
+                logging.getLogger(__name__).error(f"读取缓存凭证失败：{e}", exc_info=True)
+                # 显示警告但不阻止后续操作
+                self._arkpass_path_display.setText("读取失败")
+                self._arkpass_path_display.setStyleSheet("color: #ff3355; font-size: 11px; font-family: Consolas; padding: 8px 0;")
+                return False
         return False
 
     def _setup_ui(self) -> None:
-        """设置UI结构"""
         main_layout = QVBoxLayout(self)
-        main_layout.setContentsMargins(
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md')
-        )
-        main_layout.setSpacing(self._theme.get_spacing('md'))
+        main_layout.setContentsMargins(24, 24, 24, 24)
+        main_layout.setSpacing(16)
 
-        # === 登录状态区域 ===
+        # 终端标题
+        title = QLabel("// AUTHENTICATION TERMINAL")
+        title.setStyleSheet("""
+            QLabel {
+                color: #18d1ff;
+                font-size: 14px;
+                font-family: Consolas;
+                font-weight: bold;
+                letter-spacing: 1px;
+                padding: 4px 0;
+            }
+        """)
+        main_layout.addWidget(title)
+
+        # 登录状态指示器
         status_frame = QWidget()
         status_layout = QHBoxLayout(status_frame)
         status_layout.setContentsMargins(0, 0, 0, 0)
-        status_layout.setSpacing(self._theme.get_spacing('md'))
+        status_layout.setSpacing(12)
 
-        # 登录状态指示器
-        self._status_indicator = ConnectionStatusIndicator(
-            connection_type="server"
-        )
+        self._status_indicator = ConnectionStatusIndicator(connection_type="server")
         status_layout.addWidget(self._status_indicator)
-
         status_layout.addStretch()
 
         main_layout.addWidget(status_frame)
 
-        # === 登录表单区域 ===
+        # ======== 登录终端面板 ========
         login_card = CardWidget()
-        # 使用CardWidget的内部布局
         login_layout = login_card.get_content_layout()
-        login_layout.setContentsMargins(
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md')
-        )
-        login_layout.setSpacing(self._theme.get_spacing('md'))
+        login_layout.setContentsMargins(20, 20, 20, 20)
+        login_layout.setSpacing(16)
 
-        # 登录标题
-        login_title = QLabel("账户认证")
-        login_title.setProperty("variant", "header")
+        login_title = QLabel("ARKPASS AUTHENTICATION")
+        login_title.setStyleSheet("""
+            QLabel {
+                color: #e8e8ee;
+                font-size: 16px;
+                font-family: Consolas;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+        """)
         login_layout.addWidget(login_title)
 
-        # ArkPass文件选择区域
+        # ArkPass 文件选择
         arkpass_frame = QWidget()
         arkpass_layout = QHBoxLayout(arkpass_frame)
         arkpass_layout.setContentsMargins(0, 0, 0, 0)
-        arkpass_layout.setSpacing(self._theme.get_spacing('sm'))
+        arkpass_layout.setSpacing(12)
 
-        arkpass_label = QLabel("ArkPass:")
-        arkpass_label.setProperty("variant", "secondary")
+        arkpass_label = QLabel("ARKPASS:")
+        arkpass_label.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; font-weight: bold;")
         arkpass_label.setFixedWidth(80)
         arkpass_layout.addWidget(arkpass_label)
 
-        self._arkpass_path_display = QLabel("未选择文件")
-        self._arkpass_path_display.setProperty("variant", "muted")
-        self._arkpass_path_display.setFixedWidth(250)
-        arkpass_layout.addWidget(self._arkpass_path_display)
+        self._arkpass_path_display = QLabel("NULL")
+        self._arkpass_path_display.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 8px 0;")
+        arkpass_layout.addWidget(self._arkpass_path_display, 1)
 
-        self._select_arkpass_btn = SecondaryButton("选择文件")
+        self._select_arkpass_btn = SecondaryButton("BROWSE")
         self._select_arkpass_btn.setFixedWidth(100)
         arkpass_layout.addWidget(self._select_arkpass_btn)
 
         arkpass_layout.addStretch()
         login_layout.addWidget(arkpass_frame)
 
-        # 操作按钮区域
+        # 操作按钮
         btn_frame = QWidget()
         btn_layout = QHBoxLayout(btn_frame)
         btn_layout.setContentsMargins(0, 0, 0, 0)
-        btn_layout.setSpacing(self._theme.get_spacing('md'))
+        btn_layout.setSpacing(12)
 
-        self._login_btn = PrimaryButton("登录")
+        self._login_btn = PrimaryButton("AUTHENTICATE")
         btn_layout.addWidget(self._login_btn)
-
         btn_layout.addStretch()
+
         login_layout.addWidget(btn_frame)
 
-        # 提示信息
-        tip_label = QLabel("提示：请选择ArkPass认证文件进行登录")
-        tip_label.setProperty("variant", "muted")
+        # 提示
+        tip_label = QLabel("// Select an ArkPass authentication file to access the terminal")
+        tip_label.setStyleSheet("color: #404058; font-size: 11px; font-family: Consolas; font-style: italic;")
         tip_label.setWordWrap(True)
         login_layout.addWidget(tip_label)
 
         main_layout.addWidget(login_card)
 
-        # === 用户信息区域 ===
+        # ======== 用户信息面板 ========
         user_info_card = CardWidget()
         user_info_layout = user_info_card.get_content_layout()
-        user_info_layout.setContentsMargins(
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md'),
-            self._theme.get_spacing('padding_md')
-        )
-        user_info_layout.setSpacing(self._theme.get_spacing('sm'))
+        user_info_layout.setContentsMargins(20, 20, 20, 20)
+        user_info_layout.setSpacing(12)
 
-        # 用户信息标题
-        user_info_title = QLabel("用户信息")
-        user_info_title.setProperty("variant", "header")
+        user_info_title = QLabel("// USER PROFILE")
+        user_info_title.setStyleSheet("""
+            QLabel {
+                color: #e8e8ee;
+                font-size: 16px;
+                font-family: Consolas;
+                font-weight: bold;
+                letter-spacing: 1px;
+            }
+        """)
         user_info_layout.addWidget(user_info_title)
 
-        # 用户名显示
-        self._user_id_label = QLabel("用户名: 未登录")
-        self._user_id_label.setProperty("variant", "secondary")
-        user_info_layout.addWidget(self._user_id_label)
+        # 用户信息以终端键值对显示
+        info_style = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 4px 0;"
+        value_style = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 4px 0;"
 
-        # 用户层级显示
-        self._user_tier_label = QLabel("用户层级: -")
-        self._user_tier_label.setProperty("variant", "secondary")
-        user_info_layout.addWidget(self._user_tier_label)
+        user_row1 = QHBoxLayout()
+        user_row1.addWidget(QLabel("USER_ID:"))
+        user_row1.itemAt(0).widget().setStyleSheet(info_style)
+        self._user_id_label = QLabel("NULL")
+        self._user_id_label.setStyleSheet(value_style)
+        user_row1.addWidget(self._user_id_label)
+        user_row1.addStretch()
+        user_info_layout.addLayout(user_row1)
 
-        # 登录时间显示
-        self._login_time_label = QLabel("登录时间: -")
-        self._login_time_label.setProperty("variant", "muted")
-        user_info_layout.addWidget(self._login_time_label)
+        user_row2 = QHBoxLayout()
+        user_row2.addWidget(QLabel("TIER:"))
+        user_row2.itemAt(0).widget().setStyleSheet(info_style)
+        self._user_tier_label = QLabel("NULL")
+        self._user_tier_label.setStyleSheet(value_style)
+        user_row2.addWidget(self._user_tier_label)
+        user_row2.addStretch()
+        user_info_layout.addLayout(user_row2)
+
+        user_row3 = QHBoxLayout()
+        user_row3.addWidget(QLabel("LOGIN:"))
+        user_row3.itemAt(0).widget().setStyleSheet(info_style)
+        self._login_time_label = QLabel("NULL")
+        self._login_time_label.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 4px 0;")
+        user_row3.addWidget(self._login_time_label)
+        user_row3.addStretch()
+        user_info_layout.addLayout(user_row3)
+
+        # 分隔线
+        sep = QLabel("──────────────────────────────")
+        sep.setStyleSheet("color: rgba(24, 209, 255, 0.10); font-size: 10px;")
+        user_info_layout.addWidget(sep)
+
+        # 注销
+        self._logout_btn = DangerButton("LOGOUT")
+        self._logout_btn.setVisible(False)
+        user_info_layout.addWidget(self._logout_btn)
 
         main_layout.addWidget(user_info_card)
-
         main_layout.addStretch()
 
     def _setup_style(self) -> None:
-        """设置样式"""
-        # 页面样式通过QApplication全局应用，这里只设置特定控件样式
         pass
 
     def _setup_connections(self) -> None:
-        """设置信号连接"""
-        # 按钮点击信号
         self._login_btn.clicked.connect(self._on_login_clicked)
         self._select_arkpass_btn.clicked.connect(self._on_select_arkpass_clicked)
-
-    # === 信号处理方法 ===
+        self._logout_btn.clicked.connect(self.logout_requested.emit)
 
     def _on_login_clicked(self) -> None:
-        """登录按钮点击 - 仅支持ArkPass登录"""
-        # 检查是否有ArkPass文件
         arkpass_path = self._arkpass_path_display.text()
-        if arkpass_path == "未选择文件" or not arkpass_path:
-            QMessageBox.warning(self, "警告", "请先选择ArkPass认证文件")
+        if arkpass_path == "NULL" or not arkpass_path:
+            QMessageBox.warning(self, "WARNING", "请先选择 ArkPass 认证文件")
             return
-
-        # 使用ArkPass文件登录
         self._arkpass_path = arkpass_path
         self.arkpass_selected.emit(arkpass_path)
 
     def _on_select_arkpass_clicked(self) -> None:
-        """选择ArkPass文件按钮点击"""
         file_path, _ = QFileDialog.getOpenFileName(
             self,
-            "选择ArkPass文件",
+            "选择 ArkPass 文件",
             "",
             "ArkPass Files (*.arkpass);;All Files (*.*)"
         )
-
         if file_path:
+            # 检查文件是否存在
+            if not os.path.exists(file_path):
+                QMessageBox.critical(
+                    self,
+                    "错误",
+                    f"访问凭证读取失败\n\n文件不存在或无法访问:\n{file_path}"
+                )
+                return
+            
+            # 检查文件是否可读
+            try:
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                if not content or len(content.strip()) == 0:
+                    QMessageBox.warning(
+                        self,
+                        "警告",
+                        f"ArkPass 文件为空或无效:\n{file_path}\n\n请选择有效的认证文件。"
+                    )
+                    return
+            except PermissionError:
+                QMessageBox.critical(
+                    self,
+                    "权限错误",
+                    f"无法读取文件，请检查文件权限:\n{file_path}"
+                )
+                return
+            except UnicodeDecodeError:
+                QMessageBox.warning(
+                    self,
+                    "文件格式错误",
+                    f"ArkPass 文件格式不正确 (应为 UTF-8):\n{file_path}"
+                )
+                return
+            except Exception as e:
+                QMessageBox.warning(
+                    self,
+                    "读取失败",
+                    f"访问凭证读取失败:\n{str(e)}\n\n文件路径:\n{file_path}"
+                )
+                return
+            
+            # 文件验证通过，更新 UI
             self._arkpass_path_display.setText(file_path)
-            self._arkpass_path_display.setProperty("variant", "primary")
+            self._arkpass_path_display.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; padding: 8px 0;")
             self._arkpass_path = file_path
 
-    # === 公共方法 ===
-
     def set_login_status(self, is_logged_in: bool, user_info: Optional[Dict[str, Any]] = None) -> None:
-        """
-        设置登录状态
-
-        Args:
-            is_logged_in: 是否已登录
-            user_info: 用户信息字典
-        """
         self._login_status = self.STATUS_LOGGED_IN if is_logged_in else self.STATUS_LOGGED_OUT
         self._user_info = user_info or {}
 
         if is_logged_in:
             self._status_indicator.set_connected()
             self._login_btn.setEnabled(False)
-
-            # 禁用ArkPass选择
             self._select_arkpass_btn.setEnabled(False)
 
-            # 更新用户信息显示
             self._user_id = user_info.get('user_id', 'Unknown') if user_info else 'Unknown'
-            self._user_id_label.setText(f"用户名: {self._user_id}")
+            self._user_id_label.setText(self._user_id)
+            self._user_id_label.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; padding: 4px 0;")
 
             if user_info:
                 tier = user_info.get('tier', 'free')
                 tier_names = {
-                    'free': '免费用户',
-                    'prime': 'Prime用户',
-                    'plus': 'Plus用户',
-                    'pro': '专业用户'
+                    'free': 'FREE',
+                    'prime': 'PRIME',
+                    'plus': 'PLUS',
+                    'pro': 'PRO'
                 }
-                tier_text = tier_names.get(tier, tier)
-                self._user_tier_label.setText(f"用户层级: {tier_text}")
+                tier_text = tier_names.get(tier, tier.upper())
+                self._user_tier_label.setText(tier_text)
 
-                # 设置层级颜色
                 tier_colors = {
-                    'free': self._theme.get_color('text_secondary'),
-                    'prime': self._theme.get_color('primary'),
-                    'plus': self._theme.get_color('success'),
-                    'pro': self._theme.get_color('warning'),
+                    'free': '#606080',
+                    'prime': '#18d1ff',
+                    'plus': '#fffa00',
+                    'pro': '#ff1aac',
                 }
-                tier_color = tier_colors.get(tier, self._theme.get_color('text_primary'))
-                self._user_tier_label.setStyleSheet(f"color: {tier_color};")
+                tier_color = tier_colors.get(tier, '#e8e8ee')
+                self._user_tier_label.setStyleSheet(f"color: {tier_color}; font-size: 12px; font-family: Consolas; padding: 4px 0;")
 
-                # 登录时间
                 login_time = user_info.get('login_time', '-')
-                self._login_time_label.setText(f"登录时间: {login_time}")
+                self._login_time_label.setText(login_time)
+            
+            self._logout_btn.setVisible(True)
         else:
             self._status_indicator.set_disconnected()
             self._login_btn.setEnabled(True)
-
-            # 启用ArkPass选择
             self._select_arkpass_btn.setEnabled(True)
 
-            # 清空用户信息显示
             self._user_id = None
-            self._user_id_label.setText("用户名: 未登录")
-            self._user_tier_label.setText("用户层级: -")
-            self._user_tier_label.setStyleSheet("")
-            self._login_time_label.setText("登录时间: -")
+            self._user_id_label.setText("NULL")
+            self._user_id_label.setStyleSheet("color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 4px 0;")
+            self._user_tier_label.setText("NULL")
+            self._user_tier_label.setStyleSheet("color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 4px 0;")
+            self._login_time_label.setText("NULL")
+            
+            self._logout_btn.setVisible(False)
 
     def set_logging_in(self) -> None:
-        """设置为正在登录状态"""
         self._login_status = self.STATUS_LOGGING_IN
         self._status_indicator.set_connecting()
         self._login_btn.setEnabled(False)
 
     def get_user_id(self) -> Optional[str]:
-        """获取当前用户ID"""
         return self._user_id
 
     def get_user_info(self) -> Dict[str, Any]:
-        """获取用户信息"""
         return self._user_info
 
     def is_logged_in(self) -> bool:
-        """检查是否已登录"""
         return self._login_status == self.STATUS_LOGGED_IN
 
     def clear_form(self) -> None:
-        """清空登录表单"""
-        self._arkpass_path_display.setText("未选择文件")
-        self._arkpass_path_display.setProperty("variant", "muted")
+        self._arkpass_path_display.setText("NULL")
+        self._arkpass_path_display.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 8px 0;")
         self._arkpass_path = ""
 
     def set_username(self, username: str) -> None:
-        """设置用户名（保留方法，当前版本不使用）"""
         pass
 
     def set_remember_password(self, remember: bool) -> None:
-        """设置记住密码选项（保留方法，当前版本不使用）"""
         pass

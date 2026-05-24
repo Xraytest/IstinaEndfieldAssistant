@@ -4,11 +4,11 @@
     "port": 9999
   },
   "adb": {
-    "path": "3rd-part/ADB/adb.exe",
+    "path": "3rd-party/adb/adb.exe",
     "timeout": 10
   },
   "git": {
-    "path": "3rd-part/Git/bin/git.exe"
+    "path": "3rd-party/git/bin/git.exe"
   },
   "screen": {
     "use_original_resolution": true

@@ -1,5 +1,5 @@
 """
-GPU检测模块 - 检测NVIDIA显卡配置和CUDA可用性
+GPU 检测模块 - 检测 NVIDIA 显卡配置和 CUDA 可用性
 """
 import os
 import sys
@@ -7,6 +7,11 @@ import subprocess
 from typing import Dict, Any, Optional, List
 from dataclasses import dataclass, field
 from pathlib import Path
+
+try:
+    import psutil
+except ImportError:
+    psutil = None
 
 # 添加项目根目录到路径
 if __name__ == "__main__":
@@ -18,14 +23,13 @@ try:
 except ImportError:
     import logging
     logger = logging.getLogger("GPUChecker")
-    # 创建LogCategory的替代
     class LogCategory:
         MAIN = "main"
 
 
 @dataclass
 class GPUInfo:
-    """GPU信息数据类"""
+    """GPU 信息数据类"""
     name: str = ""
     total_memory_gb: float = 0.0
     free_memory_gb: float = 0.0
@@ -34,7 +38,6 @@ class GPUInfo:
     cuda_version: str = ""
     
     def to_dict(self) -> Dict[str, Any]:
-        """转换为字典"""
         return {
             "name": self.name,
             "total_memory_gb": self.total_memory_gb,
@@ -47,23 +50,24 @@ class GPUInfo:
 
 class GPUChecker:
     """
-    显卡检测器 - 检测NVIDIA显卡配置
+    显卡检测器 - 检测 NVIDIA 显卡配置
     
     职责:
-    1. 检测CUDA可用性
+    1. 检测 CUDA 可用性
     2. 获取显卡显存信息
-    3. 判断是否满足本地推理要求
+    3. 判断是否满足本地推理要求（VRAM>=6GB 或 VRAM+RAM>=48GB）
     4. 推荐合适的模型
     """
     
-    MIN_MEMORY_GB = 16  # 最低显存要求(GB)
-    MIN_CUDA_VERSION = "12.0"  # 最低CUDA版本要求
+    MIN_VRAM_GB = 6  # 最低显存要求 (GB) - VRAM>=6GB
+    MIN_TOTAL_MEMORY_GB = 48  # 最低总内存要求 (GB) - VRAM+RAM>=48GB
+    MIN_CUDA_VERSION = "12.0"  # 最低 CUDA 版本要求
     
     # 模型推荐配置
     MODEL_RECOMMENDATIONS = {
-        24: "qwen3.5-35b-a3b-fp16",  # 24GB+ 推荐35B模型
-        16: "qwen3.5-9b-fp16",       # 16GB+ 推荐9B模型
-        8: "qwen3.5-0.6b-q8_0",      # 8GB+ 推荐0.6B模型
+        24: "qwen3.5-35b-a3b-fp16",
+        16: "qwen3.5-9b-fp16",
+        8: "qwen3.5-0.6b-q8_0",
     }
     
     def __init__(self):
@@ -74,22 +78,6 @@ class GPUChecker:
         self._checked: bool = False
         
     def check_gpu_availability(self) -> Dict[str, Any]:
-        """
-        检查GPU可用性
-        
-        Returns:
-            {
-                "available": bool,
-                "cuda_available": bool,
-                "cuda_version": str,
-                "driver_version": str,
-                "gpu_count": int,
-                "gpus": [],
-                "meets_requirements": bool,
-                "recommended_model": str | None,
-                "error": str | None
-            }
-        """
         result = {
             "available": False,
             "cuda_available": False,
@@ -103,40 +91,46 @@ class GPUChecker:
         }
         
         try:
-            # 方法1: 尝试使用nvidia-ml-py或pynvml
             nvml_result = self._check_via_nvml()
             if nvml_result["available"]:
                 result.update(nvml_result)
                 self._checked = True
                 return result
                 
-            # 方法2: 尝试使用torch
             torch_result = self._check_via_torch()
             if torch_result["available"]:
                 result.update(torch_result)
                 self._checked = True
                 return result
                 
-            # 方法3: 尝试使用nvidia-smi命令
             nvidia_smi_result = self._check_via_nvidia_smi()
             if nvidia_smi_result["available"]:
                 result.update(nvidia_smi_result)
                 self._checked = True
                 return result
                 
-            # 没有检测到NVIDIA GPU
-            result["error"] = "未检测到NVIDIA GPU或CUDA环境"
-            logger.warning("GPU检测: 未检测到NVIDIA GPU")
+            result["error"] = "未检测到 NVIDIA GPU 或 CUDA 环境"
+            logger.warning("GPU 检测：未检测到 NVIDIA GPU")
             
         except Exception as e:
-            result["error"] = f"GPU检测失败: {str(e)}"
-            logger.exception("GPU检测异常: %s", str(e))
+            result["error"] = f"GPU 检测失败：{str(e)}"
+            logger.exception("GPU 检测异常：%s", str(e))
         
         self._checked = True
         return result
     
+    def _get_total_ram_gb(self) -> float:
+        """获取系统总内存 (GB)"""
+        if psutil is not None:
+            return psutil.virtual_memory().total / (1024**3)
+        return 0.0
+    
+    def _check_meets_requirements(self, vram_gb: float) -> bool:
+        """检查是否满足要求：VRAM>=6GB 或 VRAM+RAM>=48GB"""
+        total_ram = self._get_total_ram_gb()
+        return vram_gb >= self.MIN_VRAM_GB or (vram_gb + total_ram) >= self.MIN_TOTAL_MEMORY_GB
+    
     def _check_via_nvml(self) -> Dict[str, Any]:
-        """通过NVML检查GPU"""
         result = {
             "available": False,
             "cuda_available": False,
@@ -149,7 +143,6 @@ class GPUChecker:
         }
         
         try:
-            # 尝试导入pynvml
             from pynvml import nvmlInit, nvmlShutdown, nvmlDeviceGetCount, \
                 nvmlDeviceGetHandleByIndex, nvmlDeviceGetName, nvmlDeviceGetMemoryInfo, \
                 nvmlDeviceGetCudaComputeCapability, nvmlSystemGetDriverVersion
@@ -157,13 +150,11 @@ class GPUChecker:
             nvmlInit()
             result["cuda_available"] = True
             
-            # 获取驱动版本
             try:
                 result["driver_version"] = nvmlSystemGetDriverVersion().decode('utf-8')
             except:
                 pass
             
-            # 获取GPU数量
             gpu_count = nvmlDeviceGetCount()
             result["gpu_count"] = gpu_count
             
@@ -173,13 +164,11 @@ class GPUChecker:
             for i in range(gpu_count):
                 handle = nvmlDeviceGetHandleByIndex(i)
                 
-                # 获取GPU名称
                 try:
                     name = nvmlDeviceGetName(handle).decode('utf-8')
                 except:
                     name = f"GPU {i}"
                 
-                # 获取显存信息
                 try:
                     mem_info = nvmlDeviceGetMemoryInfo(handle)
                     total_gb = mem_info.total / (1024**3)
@@ -188,7 +177,6 @@ class GPUChecker:
                     total_gb = 0
                     free_gb = 0
                 
-                # 获取计算能力
                 try:
                     major, minor = nvmlDeviceGetCudaComputeCapability(handle)
                     compute_capability = f"{major}.{minor}"
@@ -212,21 +200,20 @@ class GPUChecker:
             
             result["gpus"] = [g.to_dict() for g in gpus]
             result["available"] = True
-            result["meets_requirements"] = max_memory >= self.MIN_MEMORY_GB
+            result["meets_requirements"] = self._check_meets_requirements(max_memory)
             result["recommended_model"] = self._get_recommended_model(max_memory)
             
-            logger.info("GPU检测(NVML)成功: gpu_count=%d, max_memory=%.2fGB", 
+            logger.info("GPU 检测 (NVML) 成功：gpu_count=%d, max_memory=%.2fGB", 
                        gpu_count, max_memory)
             
         except ImportError:
-            logger.debug(LogCategory.MAIN, "pynvml未安装，跳过NVML检测")
+            logger.debug(LogCategory.MAIN, "pynvml 未安装，跳过 NVML 检测")
         except Exception as e:
-            logger.debug(LogCategory.MAIN, f"NVML检测失败: {str(e)}")
+            logger.debug(LogCategory.MAIN, f"NVML 检测失败：{str(e)}")
         
         return result
     
     def _check_via_torch(self) -> Dict[str, Any]:
-        """通过PyTorch检查GPU"""
         result = {
             "available": False,
             "cuda_available": False,
@@ -242,18 +229,16 @@ class GPUChecker:
             import torch
             
             if not torch.cuda.is_available():
-                logger.debug(LogCategory.MAIN, "PyTorch CUDA不可用")
+                logger.debug(LogCategory.MAIN, "PyTorch CUDA 不可用")
                 return result
             
             result["cuda_available"] = True
             
-            # 获取CUDA版本
             try:
                 result["cuda_version"] = torch.version.cuda or ""
             except:
                 pass
             
-            # 获取GPU数量
             gpu_count = torch.cuda.device_count()
             result["gpu_count"] = gpu_count
             
@@ -263,7 +248,6 @@ class GPUChecker:
             for i in range(gpu_count):
                 props = torch.cuda.get_device_properties(i)
                 
-                # 获取显存信息
                 total_bytes = props.total_memory
                 allocated_bytes = torch.cuda.memory_allocated(i)
                 
@@ -285,21 +269,20 @@ class GPUChecker:
             
             result["gpus"] = [g.to_dict() for g in gpus]
             result["available"] = True
-            result["meets_requirements"] = max_memory >= self.MIN_MEMORY_GB
+            result["meets_requirements"] = self._check_meets_requirements(max_memory)
             result["recommended_model"] = self._get_recommended_model(max_memory)
             
-            logger.info("GPU检测(PyTorch)成功: gpu_count=%d, max_memory=%.2fGB", 
+            logger.info("GPU 检测 (PyTorch) 成功：gpu_count=%d, max_memory=%.2fGB", 
                        gpu_count, max_memory)
             
         except ImportError:
-            logger.debug(LogCategory.MAIN, "PyTorch未安装，跳过PyTorch检测")
+            logger.debug(LogCategory.MAIN, "PyTorch 未安装，跳过 PyTorch 检测")
         except Exception as e:
-            logger.debug(LogCategory.MAIN, f"PyTorch检测失败: {str(e)}")
+            logger.debug(LogCategory.MAIN, f"PyTorch 检测失败：{str(e)}")
         
         return result
     
     def _check_via_nvidia_smi(self) -> Dict[str, Any]:
-        """通过nvidia-smi命令检查GPU"""
         result = {
             "available": False,
             "cuda_available": False,
@@ -312,7 +295,6 @@ class GPUChecker:
         }
         
         try:
-            # 运行nvidia-smi命令
             output = subprocess.check_output(
                 ["nvidia-smi", "--query-gpu=name,memory.total,memory.free,memory.used,compute_cap", 
                  "--format=csv,noheader"],
@@ -320,7 +302,6 @@ class GPUChecker:
                 stderr=subprocess.DEVNULL
             )
             
-            # 获取驱动版本
             try:
                 driver_output = subprocess.check_output(
                     ["nvidia-smi", "--query-gpu=driver_version", "--format=csv,noheader"],
@@ -341,7 +322,7 @@ class GPUChecker:
                 parts = [p.strip() for p in line.split(',')]
                 if len(parts) >= 5:
                     name = parts[0]
-                    # 解析显存 (格式: "16384 MiB")
+                    
                     total_str = parts[1].replace('MiB', '').strip()
                     free_str = parts[2].replace('MiB', '').strip()
                     
@@ -371,40 +352,35 @@ class GPUChecker:
             result["gpus"] = [g.to_dict() for g in gpus]
             result["available"] = True
             result["cuda_available"] = True
-            result["meets_requirements"] = max_memory >= self.MIN_MEMORY_GB
+            result["meets_requirements"] = self._check_meets_requirements(max_memory)
             result["recommended_model"] = self._get_recommended_model(max_memory)
             
-            logger.info("GPU检测(nvidia-smi)成功: gpu_count=%d, max_memory=%.2fGB", 
+            logger.info("GPU 检测 (nvidia-smi) 成功：gpu_count=%d, max_memory=%.2fGB", 
                        len(gpus), max_memory)
             
         except FileNotFoundError:
-            logger.debug(LogCategory.MAIN, "nvidia-smi命令未找到")
+            logger.debug(LogCategory.MAIN, "nvidia-smi 命令未找到")
         except Exception as e:
-            logger.debug(LogCategory.MAIN, f"nvidia-smi检测失败: {str(e)}")
+            logger.debug(LogCategory.MAIN, f"nvidia-smi 检测失败：{str(e)}")
         
         return result
     
     def _get_recommended_model(self, memory_gb: float) -> Optional[str]:
-        """根据显存大小推荐模型"""
         for min_mem, model in sorted(self.MODEL_RECOMMENDATIONS.items(), reverse=True):
             if memory_gb >= min_mem:
                 return model
         return None
     
     def get_gpu_info(self) -> List[GPUInfo]:
-        """获取GPU信息列表"""
         return self._gpu_info
     
     def is_cuda_available(self) -> bool:
-        """检查CUDA是否可用"""
         return self._cuda_available
     
     def get_cuda_version(self) -> str:
-        """获取CUDA版本"""
         return self._cuda_version
     
     def meets_requirements(self) -> bool:
-        """检查是否满足最低要求"""
         if not self._checked:
             self.check_gpu_availability()
         
@@ -412,10 +388,9 @@ class GPUChecker:
             return False
         
         max_memory = max(gpu.total_memory_gb for gpu in self._gpu_info)
-        return max_memory >= self.MIN_MEMORY_GB
+        return self._check_meets_requirements(max_memory)
     
     def get_recommended_model(self) -> Optional[str]:
-        """获取推荐的模型"""
         if not self._checked:
             result = self.check_gpu_availability()
             return result.get("recommended_model")
@@ -427,46 +402,42 @@ class GPUChecker:
         return self._get_recommended_model(max_memory)
 
 
-# 便捷函数
 def check_gpu() -> Dict[str, Any]:
-    """快速检查GPU可用性"""
     checker = GPUChecker()
     return checker.check_gpu_availability()
 
 
 def is_gpu_sufficient() -> bool:
-    """检查GPU是否满足本地推理要求"""
     checker = GPUChecker()
     return checker.meets_requirements()
 
 
 if __name__ == "__main__":
-    # 测试GPU检测
     print("=" * 60)
-    print("GPU检测测试")
+    print("GPU 检测测试")
     print("=" * 60)
     
     result = check_gpu()
     
     print(f"\n检测结果:")
-    print(f"  可用: {result['available']}")
-    print(f"  CUDA可用: {result['cuda_available']}")
-    print(f"  CUDA版本: {result['cuda_version']}")
-    print(f"  驱动版本: {result['driver_version']}")
-    print(f"  GPU数量: {result['gpu_count']}")
-    print(f"  满足要求: {result['meets_requirements']}")
-    print(f"  推荐模型: {result['recommended_model']}")
+    print(f"  可用：{result['available']}")
+    print(f"  CUDA 可用：{result['cuda_available']}")
+    print(f"  CUDA 版本：{result['cuda_version']}")
+    print(f"  驱动版本：{result['driver_version']}")
+    print(f"  GPU 数量：{result['gpu_count']}")
+    print(f"  满足要求：{result['meets_requirements']}")
+    print(f"  推荐模型：{result['recommended_model']}")
     
     if result['gpus']:
-        print(f"\nGPU详情:")
+        print(f"\nGPU 详情:")
         for i, gpu in enumerate(result['gpus']):
             print(f"  GPU {i}:")
-            print(f"    名称: {gpu['name']}")
-            print(f"    总显存: {gpu['total_memory_gb']:.2f} GB")
-            print(f"    可用显存: {gpu['free_memory_gb']:.2f} GB")
-            print(f"    计算能力: {gpu['compute_capability']}")
+            print(f"    名称：{gpu['name']}")
+            print(f"    总显存：{gpu['total_memory_gb']:.2f} GB")
+            print(f"    可用显存：{gpu['free_memory_gb']:.2f} GB")
+            print(f"    计算能力：{gpu['compute_capability']}")
     
     if result['error']:
-        print(f"\n错误: {result['error']}")
+        print(f"\n错误：{result['error']}")
     
     print("\n" + "=" * 60)

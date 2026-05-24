@@ -1,16 +1,13 @@
-"""云服务业务逻辑层"""
+"""Cloud service business logic layer"""
 
-from .task_manager import TaskManager
+from .agent_executor import AgentExecutor
 from .managers import (
     AuthManager,
     DeviceManager,
-    ExecutionManager,
-    TaskQueueManager,
     LogManager
 )
 
 __all__ = [
-    'TaskManager',
-    'AuthManager', 'DeviceManager', 'ExecutionManager',
-    'TaskQueueManager', 'LogManager'
+    'AgentExecutor',
+    'AuthManager', 'DeviceManager', 'LogManager'
 ]

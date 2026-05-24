@@ -1,38 +1,16 @@
-"""
-对话框模块
-提供 Material Design 3 风格的对话框组件
-"""
+"""Dialog module stubs"""
 
 from .message_box import (
-    MessageBox,
-    show_info,
-    show_warning,
-    show_error,
-    show_success,
-    ask_question,
+    MessageBox, ProgressDialog,
+    show_info, show_warning, show_error, show_success,
+    ask_question, confirm_action, confirm_delete, confirm_exit,
 )
-from .confirm_dialog import (
-    ConfirmDialog,
-    ProgressDialog,
-    confirm_action,
-    confirm_delete,
-    confirm_exit,
-)
-
+from .confirm_dialog import ConfirmDialog
+from .local_inference_dialog import LocalInferenceDialog, show_local_inference_dialog
 
 __all__ = [
-    # 消息框
-    'MessageBox',
-    'show_info',
-    'show_warning',
-    'show_error',
-    'show_success',
-    'ask_question',
-    
-    # 确认对话框
-    'ConfirmDialog',
-    'ProgressDialog',
-    'confirm_action',
-    'confirm_delete',
-    'confirm_exit',
+    'MessageBox', 'ConfirmDialog', 'ProgressDialog',
+    'show_info', 'show_warning', 'show_error', 'show_success',
+    'ask_question', 'confirm_action', 'confirm_delete', 'confirm_exit',
+    'LocalInferenceDialog', 'show_local_inference_dialog',
 ]

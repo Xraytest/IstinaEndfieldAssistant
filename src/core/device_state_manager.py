@@ -28,18 +28,18 @@ class DeviceStateManager:
         """
         try:
             # 获取屏幕截图
-            screenshot_data = self.screen_capture.capture_screen_base64(device_serial)
+            screenshot_data = self.screen_capture.capture_screen(device_serial)
             if not screenshot_data:
-                self.logger.warning(LogCategory.DEVICE, '无法获取屏幕截图，返回unknown状态')
+                self.logger.warning(LogCategory.ADB, '无法获取屏幕截图，返回unknown状态')
                 return 'unknown'
             
             # 使用模板匹配检测状态
             detected_state = self._detect_state_with_templates(screenshot_data, device_serial)
-            self.logger.info(LogCategory.DEVICE, f'设备状态检测结果: {detected_state}')
+            self.logger.info(LogCategory.ADB, f'设备状态检测结果: {detected_state}')
             return detected_state
             
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'状态检测异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'状态检测异常: {e}')
             return 'unknown'
 
     def _get_state_templates_from_server(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -50,13 +50,13 @@ class DeviceStateManager:
         """
         try:
             if not self.communicator:
-                self.logger.warning(LogCategory.DEVICE, '通信器未初始化，无法获取状态模板')
+                self.logger.warning(LogCategory.ADB, '通信器未初始化，无法获取状态模板')
                 return {}
             
             # 检查缓存是否有效
             current_time = time.time()
             if self._state_templates_cache and (current_time - self._cache_timestamp) < self._cache_ttl:
-                self.logger.debug(LogCategory.DEVICE, '使用缓存的状态模板')
+                self.logger.debug(LogCategory.ADB, '使用缓存的状态模板')
                 return self._state_templates_cache
             
             # 从服务端获取状态模板
@@ -69,15 +69,15 @@ class DeviceStateManager:
                 templates = response.get('templates', {})
                 self._state_templates_cache = templates
                 self._cache_timestamp = current_time
-                self.logger.info(LogCategory.DEVICE, f'从服务端获取状态模板成功: {len(templates)}个状态')
+                self.logger.info(LogCategory.ADB, f'从服务端获取状态模板成功: {len(templates)}个状态')
                 return templates
             else:
                 error_msg = response.get('message', '未知错误') if response else '无响应'
-                self.logger.warning(LogCategory.DEVICE, f'从服务端获取状态模板失败: {error_msg}')
+                self.logger.warning(LogCategory.ADB, f'从服务端获取状态模板失败: {error_msg}')
                 return self._state_templates_cache  # 返回缓存（即使可能过期）
                 
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'获取状态模板异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'获取状态模板异常: {e}')
             return self._state_templates_cache  # 返回缓存（即使可能过期）
 
     def _detect_state_with_templates(self, screen_data: str, device_serial: str) -> str:
@@ -108,7 +108,7 @@ class DeviceStateManager:
             
             # 如果没有获取到模板，尝试使用本地默认模板
             if not state_templates:
-                self.logger.warning(LogCategory.DEVICE, '未获取到状态模板，使用默认配置')
+                self.logger.warning(LogCategory.ADB, '未获取到状态模板，使用默认配置')
                 state_templates = self._get_default_state_templates()
             
             best_match = 'unknown'
@@ -145,14 +145,14 @@ class DeviceStateManager:
                             best_match = state_name
                             
                     except Exception as template_e:
-                        self.logger.debug(LogCategory.DEVICE, f'模板匹配异常: {template_e}')
+                        self.logger.debug(LogCategory.ADB, f'模板匹配异常: {template_e}')
                         continue
             
-            self.logger.debug(LogCategory.DEVICE, f'模板匹配结果: {best_match} (置信度: {best_score:.2f})')
+            self.logger.debug(LogCategory.ADB, f'模板匹配结果: {best_match} (置信度: {best_score:.2f})')
             return best_match
             
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'状态检测异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'状态检测异常: {e}')
             return 'unknown'
 
     def _get_template_image_from_server(self, template_path: str) -> Optional[Any]:
@@ -190,7 +190,7 @@ class DeviceStateManager:
             return None
             
         except Exception as e:
-            self.logger.debug(LogCategory.DEVICE, f'获取模板图像失败: {template_path}, 错误: {e}')
+            self.logger.debug(LogCategory.ADB, f'获取模板图像失败: {template_path}, 错误: {e}')
             return None
 
     def _get_default_state_templates(self) -> Dict[str, List[Dict[str, Any]]]:
@@ -228,30 +228,30 @@ class DeviceStateManager:
         """清除状态模板缓存"""
         self._state_templates_cache = {}
         self._cache_timestamp = 0
-        self.logger.info(LogCategory.DEVICE, '状态模板缓存已清除')
+        self.logger.info(LogCategory.ADB, '状态模板缓存已清除')
 
     def recover_to_safe_state(self, device_serial: str, target_state: str='game_main') -> bool:
         current_state = self.detect_current_state(device_serial)
-        self.logger.info(LogCategory.DEVICE, f'当前设备状态: {current_state}, 目标状态: {target_state}')
+        self.logger.info(LogCategory.ADB, f'当前设备状态: {current_state}, 目标状态: {target_state}')
         if current_state == target_state:
-            self.logger.info(LogCategory.DEVICE, '设备已在目标状态，无需恢复')
+            self.logger.info(LogCategory.ADB, '设备已在目标状态，无需恢复')
             return True
         max_attempts = 3
         for attempt in range(max_attempts):
-            self.logger.info(LogCategory.DEVICE, f'开始第 {attempt + 1} 次状态恢复尝试')
+            self.logger.info(LogCategory.ADB, f'开始第 {attempt + 1} 次状态恢复尝试')
             if self._execute_recovery_strategy(device_serial, current_state, target_state):
                 time.sleep(2)
                 new_state = self.detect_current_state(device_serial)
                 if new_state == target_state:
-                    self.logger.info(LogCategory.DEVICE, f'状态恢复成功: {current_state} -> {target_state}')
+                    self.logger.info(LogCategory.ADB, f'状态恢复成功: {current_state} -> {target_state}')
                     return True
                 else:
-                    self.logger.warning(LogCategory.DEVICE, f'状态恢复后验证失败: 期望 {target_state}, 实际 {new_state}')
+                    self.logger.warning(LogCategory.ADB, f'状态恢复后验证失败: 期望 {target_state}, 实际 {new_state}')
                     current_state = new_state
             else:
-                self.logger.warning(LogCategory.DEVICE, f'状态恢复策略执行失败: {current_state}')
+                self.logger.warning(LogCategory.ADB, f'状态恢复策略执行失败: {current_state}')
             time.sleep(1)
-        self.logger.error(LogCategory.DEVICE, f'状态恢复失败，已尝试 {max_attempts} 次')
+        self.logger.error(LogCategory.ADB, f'状态恢复失败，已尝试 {max_attempts} 次')
         return False
 
     def _execute_recovery_strategy(self, device_serial: str, current_state: str, target_state: str) -> bool:
@@ -259,11 +259,11 @@ class DeviceStateManager:
             strategy = self.recovery_strategies.get(current_state, self._recover_from_unknown_state)
             return strategy(device_serial, target_state)
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'恢复策略执行异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'恢复策略执行异常: {e}')
             return False
 
     def _recover_from_unknown_state(self, device_serial: str, target_state: str) -> bool:
-        self.logger.info(LogCategory.DEVICE, '执行未知状态恢复策略')
+        self.logger.info(LogCategory.ADB, '执行未知状态恢复策略')
         if self._press_key(device_serial, 'back'):
             time.sleep(1)
             return True
@@ -279,19 +279,19 @@ class DeviceStateManager:
         return True
 
     def _recover_from_error_dialog(self, device_serial: str, target_state: str) -> bool:
-        self.logger.info(LogCategory.DEVICE, '执行错误对话框恢复策略')
+        self.logger.info(LogCategory.ADB, '执行错误对话框恢复策略')
         if self._click_position(device_serial, 0.8, 0.8):
             time.sleep(1)
             return True
         return self._press_key(device_serial, 'back')
 
     def _recover_from_loading_screen(self, device_serial: str, target_state: str) -> bool:
-        self.logger.info(LogCategory.DEVICE, '执行加载界面恢复策略')
+        self.logger.info(LogCategory.ADB, '执行加载界面恢复策略')
         time.sleep(3)
         return True
 
     def _recover_from_login_confirm(self, device_serial: str, target_state: str) -> bool:
-        self.logger.info(LogCategory.DEVICE, '执行登录确认界面恢复策略')
+        self.logger.info(LogCategory.ADB, '执行登录确认界面恢复策略')
         if self._click_position(device_serial, 0.75, 0.75):
             time.sleep(2)
             return True
@@ -303,7 +303,7 @@ class DeviceStateManager:
                 return self.touch_executor.execute_tool_call(device_serial, 'press_key', {'key': key})
             return False
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'按键操作异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'按键操作异常: {e}')
             return False
 
     def _click_position(self, device_serial: str, x_ratio: float, y_ratio: float) -> bool:
@@ -312,18 +312,18 @@ class DeviceStateManager:
                 return self.touch_executor.execute_tool_call(device_serial, 'click', {'coordinates': [x_ratio, y_ratio]})
             return False
         except Exception as e:
-            self.logger.exception(LogCategory.DEVICE, f'点击操作异常: {e}')
+            self.logger.exception(LogCategory.ADB, f'点击操作异常: {e}')
             return False
 
     def _click_center(self, device_serial: str) -> bool:
         return self._click_position(device_serial, 0.5, 0.5)
 
     def ensure_device_ready(self, device_serial: str, task_id: str) -> bool:
-        self.logger.info(LogCategory.DEVICE, f'确保设备准备好执行任务: {task_id}')
+        self.logger.info(LogCategory.ADB, f'确保设备准备好执行任务: {task_id}')
         current_state = self.detect_current_state(device_serial)
         target_state = self._get_target_state_for_task(task_id)
         if current_state == target_state:
-            self.logger.info(LogCategory.DEVICE, f'设备已处于目标状态: {target_state}')
+            self.logger.info(LogCategory.ADB, f'设备已处于目标状态: {target_state}')
             return True
         return self.recover_to_safe_state(device_serial, target_state)
 
