@@ -16,7 +16,7 @@ src_dir = os.path.join(project_root, "src")
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
-print("[IMPORT] Importing dependencies...")
+print("[导入] 正在导入依赖模块...")
 
 # Import business logic modules
 from core.logger import init_logger, get_logger, LogCategory, LogLevel
@@ -27,7 +27,7 @@ from core.communication.communicator import ClientCommunicator
 from core.cloud.managers.auth_manager import AuthManager
 from core.cloud.managers.device_manager import DeviceManager
 
-print("[IMPORT] All dependencies imported successfully")
+print("[导入] 所有依赖模块导入成功")
 
 
 def load_config(config_file: str) -> dict:
@@ -83,50 +83,50 @@ def main():
     """Main function - Start PyQt6 GUI application"""
     
     print("=" * 70)
-    print("ISTINA ENDFIELD ASSISTANT - STARTING")
+    print("伊丝蒂娜·终末地助手 - 启动中")
     print("=" * 70)
     
-    # Initialize logging system
-    print("[MAIN] Initializing logger...")
+    # 初始化日志系统
+    print("[主进程] 初始化日志系统...")
     init_logger()
     logger = get_logger()
     
-    logger.info(LogCategory.MAIN, "IstinaEndfieldAssistant client started (Agent Mode)")
+    logger.info(LogCategory.MAIN, "IstinaEndfieldAssistant 客户端已启动（代理模式）")
     
-    # Load configuration
-    print("[MAIN] Loading configuration...")
+    # 加载配置
+    print("[主进程] 加载配置...")
     config = load_config("config/client_config.json")
-    logger.debug(LogCategory.MAIN, "Configuration file loaded successfully")
-    print(f"[MAIN] Config loaded OK")
+    logger.debug(LogCategory.MAIN, "配置文件加载成功")
+    print(f"[主进程] 配置加载成功")
     
     try:
-        # Initialize core function modules
+        # 初始化核心功能模块
         
-        # ADB path
+        # ADB 路径
         adb_path = os.path.join(project_root, config['adb']['path'])
         
         if not os.path.exists(adb_path):
-            logger.error(LogCategory.MAIN, f"ADB executable does not exist: {adb_path}")
-            print(f"[Error] ADB executable does not exist: {adb_path}")
+            logger.error(LogCategory.MAIN, f"ADB 可执行文件不存在: {adb_path}")
+            print(f"[错误] ADB 可执行文件不存在: {adb_path}")
             return 1
         
-        print("[MAIN] Initializing core modules (ADB, ScreenCapture, TouchManager)...")
-        logger.debug(LogCategory.MAIN, "Initializing ADB device manager", adb_path=adb_path)
+        print("[主进程] 初始化核心模块（ADB、截屏、触控管理器）...")
+        logger.debug(LogCategory.MAIN, "初始化 ADB 设备管理器", adb_path=adb_path)
         adb_manager = ADBDeviceManager(
             adb_path=adb_path,
             timeout=config['adb']['timeout']
         )
         
-        logger.debug(LogCategory.MAIN, "Initializing screen capture module")
+        logger.debug(LogCategory.MAIN, "初始化截屏模块")
         screen_capture = ScreenCapture(adb_manager=adb_manager)
         
-        logger.debug(LogCategory.MAIN, "Initializing touch manager")
+        logger.debug(LogCategory.MAIN, "初始化触控管理器")
         touch_executor = TouchManager()
 
-        logger.debug(LogCategory.MAIN, "Linking screen capture to MAA touch manager")
+        logger.debug(LogCategory.MAIN, "关联截屏模块和 MAA 触控管理器")
         screen_capture.set_touch_manager(touch_executor)
 
-        logger.debug(LogCategory.MAIN, "Initializing communication module")
+        logger.debug(LogCategory.MAIN, "初始化通信模块")
         communicator = ClientCommunicator(
             host=config['server']['host'],
             port=config['server']['port'],
@@ -134,30 +134,30 @@ def main():
             timeout=300
         )
         
-        # Initialize business logic components
-        logger.debug(LogCategory.MAIN, "Initializing authentication management module")
+        # 初始化业务逻辑组件
+        logger.debug(LogCategory.MAIN, "初始化认证管理模块")
         auth_manager = AuthManager(communicator, config)
         
-        logger.debug(LogCategory.MAIN, "Initializing device management module")
+        logger.debug(LogCategory.MAIN, "初始化设备管理模块")
         device_manager = DeviceManager(adb_manager, config)
         
-        logger.info(LogCategory.MAIN, "All components initialized successfully")
-        print("[MAIN] All core modules initialized successfully")
+        logger.info(LogCategory.MAIN, "所有组件初始化成功")
+        print("[主进程] 核心模块全部初始化成功")
         
     except Exception as e:
-        logger.exception(LogCategory.MAIN, "Manager initialization failed", exc_info=True)
-        print(f"[Error] Manager initialization failed: {e}")
+        logger.exception(LogCategory.MAIN, "管理器初始化失败", exc_info=True)
+        print(f"[错误] 管理器初始化失败: {e}")
         return 1
     
-    # Start PyQt6 application
+    # 启动 PyQt6 应用
     from gui.pyqt6.app_main import run_application
     
-    print(f"\n[MAIN] Starting PyQt6 application...")
+    print(f"\n[主进程] 启动 PyQt6 应用程序...")
     
     try:
         from core.cloud.agent_executor import AgentExecutor
         
-        logger.debug(LogCategory.MAIN, "Initializing Agent Executor")
+        logger.debug(LogCategory.MAIN, "初始化代理执行器")
         agent_executor = AgentExecutor(
             communicator=communicator,
             screen_capture=screen_capture,
@@ -165,7 +165,7 @@ def main():
             config=config
         )
         
-        print(f"[MAIN] Calling run_application() - window should appear now...")
+        print(f"[主进程] 调用 run_application() - 窗口即将显示...")
         exit_code = run_application(
             auth_manager=auth_manager,
             device_manager=device_manager,
@@ -176,13 +176,13 @@ def main():
             config=config
         )
         
-        logger.info(LogCategory.MAIN, f"Application exited, exit code: {exit_code}")
-        print(f"[MAIN] Application exited with code: {exit_code}")
+        logger.info(LogCategory.MAIN, f"应用程序退出，退出码: {exit_code}")
+        print(f"[主进程] 应用程序退出，退出码: {exit_code}")
         return exit_code
         
     except Exception as e:
-        logger.exception(LogCategory.MAIN, "Application startup failed", exc_info=True)
-        print(f"[Error] Application startup failed: {e}")
+        logger.exception(LogCategory.MAIN, "应用程序启动失败", exc_info=True)
+        print(f"[错误] 应用程序启动失败: {e}")
         return 1
 
 

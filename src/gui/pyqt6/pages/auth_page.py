@@ -14,6 +14,8 @@ from PyQt6.QtWidgets import (
     QLineEdit,
     QMessageBox,
     QFileDialog,
+    QDialog,
+    QPushButton,
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor
@@ -41,6 +43,101 @@ except ImportError:
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.widgets.base_widgets import PrimaryButton, SecondaryButton, DangerButton, CardWidget
     from gui.pyqt6.widgets.status_indicator import ConnectionStatusIndicator
+
+
+class RegistrationDialog(QDialog):
+    """注册对话框——提示用户输入用户名"""
+
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("用户注册")
+        self.setFixedSize(360, 200)
+
+        layout = QVBoxLayout(self)
+        layout.setContentsMargins(24, 24, 24, 24)
+        layout.setSpacing(16)
+
+        prompt = QLabel("未检测到登录凭证，请输入用户名进行注册：")
+        prompt.setStyleSheet("color: #e8e8ee; font-size: 13px; font-family: Consolas;")
+        prompt.setWordWrap(True)
+        layout.addWidget(prompt)
+
+        self._username_input = QLineEdit()
+        self._username_input.setPlaceholderText("输入用户名（至少2个字符）")
+        self._username_input.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(10, 10, 15, 0.90);
+                color: #e0e0e8;
+                border: 1px solid rgba(24, 209, 255, 0.30);
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-size: 13px;
+                font-family: Consolas;
+            }
+            QLineEdit:focus {
+                border-color: #18d1ff;
+            }
+        """)
+        layout.addWidget(self._username_input)
+
+        btn_layout = QHBoxLayout()
+        btn_layout.setSpacing(12)
+
+        self._confirm_btn = QPushButton("注册")
+        self._confirm_btn.setStyleSheet("""
+            QPushButton {
+                background-color: rgba(24, 209, 255, 0.15);
+                color: #18d1ff;
+                border: 1px solid rgba(24, 209, 255, 0.30);
+                border-radius: 4px;
+                padding: 8px 24px;
+                font-size: 12px;
+                font-family: Consolas;
+                font-weight: bold;
+            }
+            QPushButton:hover {
+                background-color: rgba(24, 209, 255, 0.25);
+            }
+        """)
+        self._confirm_btn.clicked.connect(self._on_confirm)
+        btn_layout.addWidget(self._confirm_btn)
+
+        self._skip_btn = QPushButton("稍后注册")
+        self._skip_btn.setStyleSheet("""
+            QPushButton {
+                background-color: transparent;
+                color: #606080;
+                border: 1px solid rgba(144, 144, 168, 0.20);
+                border-radius: 4px;
+                padding: 8px 24px;
+                font-size: 12px;
+                font-family: Consolas;
+            }
+            QPushButton:hover {
+                color: #9090a8;
+                border-color: rgba(144, 144, 168, 0.40);
+            }
+        """)
+        self._skip_btn.clicked.connect(self.reject)
+        btn_layout.addWidget(self._skip_btn)
+
+        btn_layout.addStretch()
+        layout.addLayout(btn_layout)
+
+        self.setStyleSheet("background-color: #0c0c14;")
+
+    def _on_confirm(self):
+        username = self._username_input.text().strip()
+        if not username:
+            QMessageBox.warning(self, "警告", "请输入用户名")
+            return
+        if len(username) < 2:
+            QMessageBox.warning(self, "警告", "用户名至少需要 2 个字符")
+            return
+        self.accept()
+
+    def get_username(self) -> str:
+        return self._username_input.text().strip()
 
 
 class AuthPage(QWidget):
@@ -129,12 +226,18 @@ class AuthPage(QWidget):
             return False
 
     def _show_registration_prompt(self):
-        """Show registration prompt when no credentials detected"""
-        from PyQt6.QtWidgets import QMessageBox
+        """弹出注册对话框，提示用户输入用户名"""
+        dialog = RegistrationDialog(self)
+        if dialog.exec() == QDialog.DialogCode.Accepted:
+            username = dialog.get_username()
+            if username:
+                self._username_input.setText(username)
+                self._on_register_clicked()
+                return
         QMessageBox.information(
             self,
-            "Welcome to IEA",
-            "No login credentials detected.\n\nPlease register a new account or select an existing ArkPass file."
+            "提示",
+            "请先注册或选择已有的 ArkPass 认证文件以继续使用。"
         )
 
     def _setup_ui(self) -> None:
@@ -143,7 +246,7 @@ class AuthPage(QWidget):
         main_layout.setSpacing(16)
 
         # 终端标题
-        title = QLabel("// AUTHENTICATION TERMINAL")
+        title = QLabel("// 认证终端")
         title.setStyleSheet("""
             QLabel {
                 color: #18d1ff;
@@ -174,7 +277,7 @@ class AuthPage(QWidget):
         login_layout.setContentsMargins(20, 20, 20, 20)
         login_layout.setSpacing(16)
 
-        login_title = QLabel("ARKPASS AUTHENTICATION")
+        login_title = QLabel("ARKPASS 认证")
         login_title.setStyleSheet("""
             QLabel {
                 color: #e8e8ee;
@@ -201,7 +304,7 @@ class AuthPage(QWidget):
         self._arkpass_path_display.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 8px 0;")
         arkpass_layout.addWidget(self._arkpass_path_display, 1)
 
-        self._select_arkpass_btn = SecondaryButton("BROWSE")
+        self._select_arkpass_btn = SecondaryButton("浏览")
         self._select_arkpass_btn.setFixedWidth(100)
         arkpass_layout.addWidget(self._select_arkpass_btn)
 
@@ -218,7 +321,7 @@ class AuthPage(QWidget):
         reg_layout.setContentsMargins(0, 0, 0, 0)
         reg_layout.setSpacing(12)
 
-        reg_label = QLabel("USERNAME:")
+        reg_label = QLabel("用户名:")
         reg_label.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; font-weight: bold;")
         reg_label.setFixedWidth(80)
         reg_layout.addWidget(reg_label)
@@ -241,7 +344,7 @@ class AuthPage(QWidget):
         """)
         reg_layout.addWidget(self._username_input, 1)
 
-        self._register_btn = SecondaryButton("REGISTER")
+        self._register_btn = SecondaryButton("注册")
         self._register_btn.setFixedWidth(100)
         self._register_btn.setToolTip("注册新账户，将生成 ArkPass 认证文件")
         reg_layout.addWidget(self._register_btn)
@@ -255,14 +358,14 @@ class AuthPage(QWidget):
         btn_layout.setContentsMargins(0, 0, 0, 0)
         btn_layout.setSpacing(12)
 
-        self._login_btn = PrimaryButton("AUTHENTICATE")
+        self._login_btn = PrimaryButton("认证登录")
         btn_layout.addWidget(self._login_btn)
         btn_layout.addStretch()
 
         login_layout.addWidget(btn_frame)
 
         # 提示
-        tip_label = QLabel("// Select an ArkPass authentication file to access the terminal")
+        tip_label = QLabel("// 选择 ArkPass 认证文件以访问终端")
         tip_label.setStyleSheet("color: #404058; font-size: 11px; font-family: Consolas; font-style: italic;")
         tip_label.setWordWrap(True)
         login_layout.addWidget(tip_label)
@@ -275,7 +378,7 @@ class AuthPage(QWidget):
         user_info_layout.setContentsMargins(20, 20, 20, 20)
         user_info_layout.setSpacing(12)
 
-        user_info_title = QLabel("// USER PROFILE")
+        user_info_title = QLabel("// 用户信息")
         user_info_title.setStyleSheet("""
             QLabel {
                 color: #e8e8ee;
@@ -292,7 +395,7 @@ class AuthPage(QWidget):
         value_style = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 4px 0;"
 
         user_row1 = QHBoxLayout()
-        user_row1.addWidget(QLabel("USER_ID:"))
+        user_row1.addWidget(QLabel("用户ID:"))
         user_row1.itemAt(0).widget().setStyleSheet(info_style)
         self._user_id_label = QLabel("NULL")
         self._user_id_label.setStyleSheet(value_style)
@@ -301,7 +404,7 @@ class AuthPage(QWidget):
         user_info_layout.addLayout(user_row1)
 
         user_row2 = QHBoxLayout()
-        user_row2.addWidget(QLabel("TIER:"))
+        user_row2.addWidget(QLabel("等级:"))
         user_row2.itemAt(0).widget().setStyleSheet(info_style)
         self._user_tier_label = QLabel("NULL")
         self._user_tier_label.setStyleSheet(value_style)
@@ -310,7 +413,7 @@ class AuthPage(QWidget):
         user_info_layout.addLayout(user_row2)
 
         user_row3 = QHBoxLayout()
-        user_row3.addWidget(QLabel("LOGIN:"))
+        user_row3.addWidget(QLabel(\"登录:\"))
         user_row3.itemAt(0).widget().setStyleSheet(info_style)
         self._login_time_label = QLabel("NULL")
         self._login_time_label.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 4px 0;")
@@ -324,7 +427,7 @@ class AuthPage(QWidget):
         user_info_layout.addWidget(sep)
 
         # 注销
-        self._logout_btn = DangerButton("LOGOUT")
+        self._logout_btn = DangerButton("注销")
         self._logout_btn.setVisible(False)
         user_info_layout.addWidget(self._logout_btn)
 
@@ -343,7 +446,7 @@ class AuthPage(QWidget):
     def _on_login_clicked(self) -> None:
         arkpass_path = self._arkpass_path_display.text()
         if arkpass_path == "NULL" or not arkpass_path:
-            QMessageBox.warning(self, "WARNING", "请先选择 ArkPass 认证文件")
+            QMessageBox.warning(self, "警告", "请先选择 ArkPass 认证文件")
             return
         self._arkpass_path = arkpass_path
         self.arkpass_selected.emit(arkpass_path)
@@ -352,10 +455,10 @@ class AuthPage(QWidget):
         """点击注册按钮——emit register_requested 信号给 main_window 处理"""
         username = self._username_input.text().strip()
         if not username:
-            QMessageBox.warning(self, "WARNING", "请输入用户名以注册新账户")
+            QMessageBox.warning(self, "警告", "请输入用户名以注册新账户")
             return
         if len(username) < 2:
-            QMessageBox.warning(self, "WARNING", "用户名至少需要 2 个字符")
+            QMessageBox.warning(self, "警告", "用户名至少需要 2 个字符")
             return
         self._register_btn.setEnabled(False)
         self._username_input.setEnabled(False)

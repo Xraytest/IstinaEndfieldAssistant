@@ -273,7 +273,7 @@ class MainWindow(QMainWindow):
 
         self._status_bar = QStatusBar()
         self.setStatusBar(self._status_bar)
-        self._status_bar.showMessage(">>> SYSTEM READY")
+        self._status_bar.showMessage(">>> 系统就绪")
         self._status_bar.setStyleSheet("QStatusBar { background-color: #07070b; color: #18d1ff; border-top: 1px solid rgba(24, 209, 255, 0.10); font-size: 11px; font-family: Consolas; padding: 2px 12px; }")
 
         self._init_pages()
@@ -281,27 +281,27 @@ class MainWindow(QMainWindow):
     def _init_pages(self) -> None:
         from gui.pyqt6.pages.auth_page import AuthPage
         self._auth_page = AuthPage()
-        self.add_page("auth_cloud", "Terminal Auth", self._auth_page)
+        self.add_page("auth_cloud", "终端认证", self._auth_page)
 
         self._agent_page = AgentPage(agent_executor=self._agent_executor)
-        self.add_page("agent", "Agent Console", self._agent_page)
+        self.add_page("agent", "代理控制台", self._agent_page)
 
         self._model_manager_page = ModelManagerPage(config=self._config)
-        self.add_page("model_manager", "Model Repository", self._model_manager_page)
+        self.add_page("model_manager", "模型仓库", self._model_manager_page)
 
         self._standard_reasoning_page = StandardReasoningPage(
             communicator=self._communicator, agent_executor=self._agent_executor,
             screen_capture=self._screen_capture, touch_executor=self._touch_executor, config=self._config)
-        self.add_page("standard_reasoning", "Standard Reasoning", self._standard_reasoning_page)
+        self.add_page("standard_reasoning", "标准推理", self._standard_reasoning_page)
 
         self._prts_page = PrtsFullIntelligencePage(
             communicator=self._communicator, agent_executor=self._agent_executor,
             screen_capture=self._screen_capture, touch_executor=self._touch_executor, config=self._config)
-        self.add_page("prts_full", "PRTS Full Intelligence", self._prts_page)
+        self.add_page("prts_full", "PRTS 全智能", self._prts_page)
 
         from gui.pyqt6.pages.settings_page import SettingsPage
         self._settings_page = SettingsPage(config=self._config)
-        self.add_page("settings", "System Settings", self._settings_page, position="bottom")
+        self.add_page("settings", "系统设置", self._settings_page, position="bottom")
 
         self.show_page("auth_cloud")
         self._navigation_bar.set_login_state(True, False, "auth_cloud")
@@ -332,12 +332,12 @@ class MainWindow(QMainWindow):
 
     def _on_page_changed(self, page_id: str) -> None:
         page_names = {
-            "agent": "Agent Console", "auth_cloud": "Terminal Auth",
-            "settings": "System Settings", "model_manager": "Model Repository",
-            "standard_reasoning": "Standard Reasoning", "prts_full": "PRTS Full Intelligence"
+            "agent": "代理控制台", "auth_cloud": "终端认证",
+            "settings": "系统设置", "model_manager": "模型仓库",
+            "standard_reasoning": "标准推理", "prts_full": "PRTS 全智能"
         }
         page_name = page_names.get(page_id, page_id)
-        self.set_status(f">>> Terminal: {page_name}")
+        self.set_status(f">>> 终端: {page_name}")
         if page_id == "auth_cloud" and self._auth_manager:
             self._refresh_auth_status()
 
@@ -347,10 +347,10 @@ class MainWindow(QMainWindow):
         if 'local' not in self._config['inference']:
             self._config['inference']['local'] = {}
         self._config['inference']['local']['model_name'] = model_name
-        self.append_log(f"Model selected: {model_name}", "INFO")
+        self.append_log(f"模型已选择: {model_name}", "INFO")
 
     def _on_local_inference_toggled(self, enabled: bool):
-        self.append_log(f"Local Inference: {'ON' if enabled else 'OFF'}", "INFO")
+        self.append_log(f"本地推理: {'开启' if enabled else '关闭'}", "INFO")
         if 'inference' not in self._config:
             self._config['inference'] = {}
         if 'local' not in self._config['inference']:
@@ -366,18 +366,18 @@ class MainWindow(QMainWindow):
             self._settings_page._start_gpu_check()
 
     def _on_model_download_requested(self, model_name: str):
-        self.append_log(f"Model download: {model_name}", "INFO")
-        QMessageBox.information(self, "Model Download",
-                                f"Model '{model_name}' download not yet implemented.\n"
-                                f"In production this will download from the backend.")
+        self.append_log(f"模型下载: {model_name}", "INFO")
+        QMessageBox.information(self, "模型下载",
+                                f"模型 '{model_name}' 下载功能尚未实现。\n"
+                                f"生产环境中将从后端下载。")
 
     def _on_model_remove_requested(self, model_name: str):
-        self.append_log(f"Model removal requested: {model_name}", "INFO")
-        QMessageBox.question(self, "Confirm Delete",
-                             f"Delete model '{model_name}'?\nThis operation cannot be undone.",
+        self.append_log(f"模型删除请求: {model_name}", "INFO")
+        QMessageBox.question(self, "确认删除",
+                             f"删除模型 '{model_name}'？\n此操作不可撤销。",
                              QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                              QMessageBox.StandardButton.No)
-        self.append_log(f"Model removed: {model_name}", "INFO")
+        self.append_log(f"模型已删除: {model_name}", "INFO")
         if self._model_manager_page:
             self._model_manager_page.refresh_requested.emit()
 
@@ -455,8 +455,8 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event) -> None:
         self.window_closed.emit()
-        reply = QMessageBox.question(self, 'Confirm Exit',
-                                     'Exit Istina Endfield Assistant?',
+        reply = QMessageBox.question(self, '确认退出',
+                                     '退出伊丝蒂娜·终末地助手？',
                                      QMessageBox.StandardButton.Yes | QMessageBox.StandardButton.No,
                                      QMessageBox.StandardButton.No)
         if reply == QMessageBox.StandardButton.Yes:
@@ -466,51 +466,51 @@ class MainWindow(QMainWindow):
 
     def _on_arkpass_selected(self, arkpass_path: str):
         if not self._auth_manager:
-            self.append_log("Error: AuthManager not initialized", "ERROR")
-            QMessageBox.warning(self, "Error", "Auth component not initialized")
+            self.append_log("错误: 认证管理器未初始化", "ERROR")
+            QMessageBox.warning(self, "错误", "认证组件未初始化")
             return
         if not os.path.exists(arkpass_path):
-            self.set_status(">>> AUTH FAILED: FILE NOT FOUND")
-            self.append_log(f"Auth failed: file not found: {arkpass_path}", "ERROR")
-            QMessageBox.critical(self, "Credential Read Failed",
-                                 f"File not found or inaccessible:\n{arkpass_path}")
+            self.set_status(">>> 认证失败: 文件未找到")
+            self.append_log(f"认证失败: 文件未找到: {arkpass_path}", "ERROR")
+            QMessageBox.critical(self, "凭证读取失败",
+                                 f"文件未找到或无法访问:\n{arkpass_path}")
             return
         try:
             result = self._auth_manager.login_with_arkpass(arkpass_path)
             if isinstance(result, tuple):
                 success = result[0]
-                error_msg = result[1] if len(result) > 1 else "LOGIN FAILED"
+                error_msg = result[1] if len(result) > 1 else "登录失败"
             else:
                 success = bool(result)
-                error_msg = "LOGIN FAILED"
+                error_msg = "登录失败"
             if success:
-                self.set_status(">>> AUTHENTICATION SUCCESS")
+                self.set_status(">>> 认证成功")
                 self._is_logged_in = True
                 self._navigation_bar.set_login_state(True, True, None)
                 user_id = getattr(self._auth_manager, 'user_id', '')
-                self.append_log(f"User authenticated: {user_id}", "INFO")
+                self.append_log(f"用户已认证: {user_id}", "INFO")
                 if self.has_page("standard_reasoning"):
                     self.show_page("standard_reasoning")
-                QMessageBox.information(self, "Auth Success", f"Welcome back, {user_id or 'User'}")
+                QMessageBox.information(self, "认证成功", f"欢迎回来，{user_id or '用户'}")
             else:
-                actual_error = error_msg if error_msg else (result[1] if isinstance(result, tuple) and len(result) > 1 else "Unknown error")
-                self.set_status(f">>> AUTH FAILED: {actual_error}")
-                self.append_log(f"Auth failed: {actual_error}", "ERROR")
-                QMessageBox.warning(self, "Auth Failed",
-                                    f"Authentication failed:\n{actual_error}\n\nPath:\n{arkpass_path}")
+                actual_error = error_msg if error_msg else (result[1] if isinstance(result, tuple) and len(result) > 1 else "未知错误")
+                self.set_status(f">>> 认证失败: {actual_error}")
+                self.append_log(f"认证失败: {actual_error}", "ERROR")
+                QMessageBox.warning(self, "认证失败",
+                                    f"认证失败:\n{actual_error}\n\n路径:\n{arkpass_path}")
         except FileNotFoundError:
-            self.set_status(">>> AUTH FAILED: FILE NOT FOUND")
-            self.append_log(f"Auth failed: file not found: {arkpass_path}", "ERROR")
-            QMessageBox.critical(self, "Credential Read Failed", f"File not found:\n{arkpass_path}")
+            self.set_status(">>> 认证失败: 文件未找到")
+            self.append_log(f"认证失败: 文件未找到: {arkpass_path}", "ERROR")
+            QMessageBox.critical(self, "凭证读取失败", f"文件未找到:\n{arkpass_path}")
         except PermissionError:
-            self.set_status(">>> AUTH FAILED: PERMISSION DENIED")
-            self.append_log(f"Auth failed: permission denied: {arkpass_path}", "ERROR")
-            QMessageBox.critical(self, "Permission Error", f"Cannot read file:\n{arkpass_path}")
+            self.set_status(">>> 认证失败: 权限不足")
+            self.append_log(f"认证失败: 权限不足: {arkpass_path}", "ERROR")
+            QMessageBox.critical(self, "权限错误", f"无法读取文件:\n{arkpass_path}")
         except Exception as e:
-            self.append_log(f"Auth exception: {e}", "ERROR")
-            self.set_status(">>> AUTH FAILED: EXCEPTION")
-            QMessageBox.warning(self, "Auth Exception", str(e))
-            QMessageBox.critical(self, "Error", f"Auth exception: {e}")
+            self.append_log(f"认证异常: {e}", "ERROR")
+            self.set_status(">>> 认证失败: 异常")
+            QMessageBox.warning(self, "认证异常", str(e))
+            QMessageBox.critical(self, "错误", f"认证异常: {e}")
 
     def _on_logout_requested(self):
         if not self._auth_manager:
@@ -518,27 +518,27 @@ class MainWindow(QMainWindow):
         self._auth_manager.is_logged_in = False
         self._is_logged_in = False
         self._navigation_bar.set_login_state(True, False, "auth_cloud")
-        self.append_log("User logged out", "INFO")
-        QMessageBox.information(self, "Logged Out", "You have been logged out.")
+        self.append_log("用户已注销", "INFO")
+        QMessageBox.information(self, "已注销", "您已成功注销。")
 
     def _on_register_requested(self, username: str):
         if not self._auth_manager:
-            self.append_log("Error: AuthManager not initialized", "ERROR")
+            self.append_log("错误: 认证管理器未初始化", "ERROR")
             if self._auth_page:
                 self._auth_page.on_register_complete(False)
             return
-        self.set_status(f">>> REGISTERING: {username}")
-        self.append_log(f"Registering user: {username}...", "INFO")
+        self.set_status(f">>> 注册中: {username}")
+        self.append_log(f"注册用户: {username}...", "INFO")
         result = self._auth_manager.register_user(username)
         if isinstance(result, tuple):
             success = result[0]
-            error_msg = result[1] if len(result) > 1 else "Registration failed"
+            error_msg = result[1] if len(result) > 1 else "注册失败"
         else:
             success = bool(result)
-            error_msg = "Registration failed"
+            error_msg = "注册失败"
         if success:
-            self.append_log(f"User registered: {username}", "INFO")
-            self.set_status(f">>> REGISTERED: {username}")
+            self.append_log(f"用户已注册: {username}", "INFO")
+            self.set_status(f">>> 已注册: {username}")
             cache_dir = self._auth_page._get_cache_dir()
             arkpass_path = os.path.join(cache_dir, f"{username}.arkpass")
             if self._auth_page:
@@ -546,9 +546,9 @@ class MainWindow(QMainWindow):
             if os.path.exists(arkpass_path):
                 self._on_arkpass_selected(arkpass_path)
         else:
-            actual_error = error_msg if error_msg else "Unknown error"
-            self.append_log(f"Registration failed: {actual_error}", "ERROR")
-            self.set_status(f">>> REGISTER FAILED: {actual_error}")
+            actual_error = error_msg if error_msg else "未知错误"
+            self.append_log(f"注册失败: {actual_error}", "ERROR")
+            self.set_status(f">>> 注册失败: {actual_error}")
             if self._auth_page:
                 self._auth_page.on_register_complete(False)
 
@@ -564,4 +564,9 @@ class MainWindow(QMainWindow):
             self._auth_page.set_login_status(True, {"user_id": user_id})
             self._is_logged_in = True
             self._navigation_bar.set_login_state(True, True, None)
-            self.set_status(f">>> Authenticated: {user_id}")
+            self.set_status(f">>> 已认证: {user_id}")
+        else:
+            self._auth_page.set_login_status(False)
+            self._is_logged_in = False
+            self._navigation_bar.set_login_state(True, False, "auth_cloud")
+            self.set_status(">>> 未认证")

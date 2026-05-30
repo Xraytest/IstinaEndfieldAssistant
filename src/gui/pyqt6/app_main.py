@@ -95,16 +95,16 @@ def run_application(auth_manager=None, device_manager=None,
         touch_executor: TouchManager instance for touch operations
         config: Configuration dictionary
     """
-    print("[APP_MAIN] Creating QApplication...")
+    print("[应用主进程] 创建 QApplication...")
     app = QApplication(sys.argv)
     
-    # Apply theme
-    print("[APP_MAIN] Applying theme...")
+    # 应用主题
+    print("[应用主进程] 应用主题...")
     theme = ThemeManager.get_instance()
     app.setStyleSheet(theme.get_stylesheet())
     
-    # Create main window with all business logic components
-    print("[APP_MAIN] Creating MainWindow...")
+    # 创建主窗口
+    print("[应用主进程] 创建主窗口...")
     main_window = MainWindow(
         auth_manager=auth_manager,
         device_manager=device_manager,
@@ -115,10 +115,10 @@ def run_application(auth_manager=None, device_manager=None,
         config=config
     )
     
-    print("[APP_MAIN] Showing window...")
+    print("[应用主进程] 显示窗口...")
     main_window.show()
-    main_window.raise_()  # Bring to front
-    main_window.activateWindow()  # Activate window
+    main_window.raise_()
+    main_window.activateWindow()
     
-    print("[APP_MAIN] Starting event loop...")
+    print("[应用主进程] 启动事件循环...")
     return app.exec()

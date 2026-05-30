@@ -33,17 +33,25 @@ if src_dir not in sys.path:
 | `src/core/communication/` | ClientCommunicator — TCP client, custom binary protocol (magic `ARKS` + version + big-endian length), Fernet encryption |
 | `src/core/local_inference/` | InferenceManager, LocalInferenceEngine, RealTimeInferenceEngine, GPUChecker, ModelManager |
 | `src/core/device_state_manager.py` | ADB device lifecycle/state tracking with template matching |
+| `src/core/combat/` | **Empty** — no combat logic yet |
 | `src/core/logger.py` | LogCategory enum (MAIN, ADB, COMMUNICATION, EXECUTION, AUTHENTICATION, GUI, EXCEPTION, PERFORMANCE), requires `init_logger()` before use |
 | `src/device/adb_manager.py` | ADBDeviceManager (start-server, connect, shell, screencap) |
 | `src/device/touch/` | TouchManager, MaafwTouchAdapter, MaafwWin32Adapter |
 | `src/screenshot/` | ScreenCapture — MAA first, ADB fallback |
-| `src/gui/pyqt6/pages/` | auth_page, agent_page, cloud_page, settings_page, standard_reasoning_page, prts_full_intelligence_page, model_manager_page |
+| `src/gui/pyqt6/pages/` | auth_page, agent_page, cloud_page, iea_page, settings_page, standard_reasoning_page, prts_full_intelligence_page, model_manager_page |
 
 ### Key Flow
 1. `AuthManager.login_with_arkpass()` → server `register`/`login` → session_id → `*.arkpass` cached in `cache/`
 2. `DeviceManager` → ADB scan + selection
 3. `AgentExecutor` → captures screenshot → sends `agent_chat` request (with instruction + image + history) → server returns actions (tap/swipe/wait) → executes via TouchManager
 4. `InferenceManager` routes between `local` (llama-cpp-python, GGUF) and `cloud` modes
+
+### Important Entrypoints
+- `gui.pyqt6.app_main.run_application(auth_manager, device_manager, agent_executor, communicator, screen_capture, touch_executor, config)` — all core dependencies passed as arguments.
+
+## Server Protocol
+- See `command_help.md` for supported commands: `register`, `login`, `get_default_tasks`, `process_image`, `get_user_info`
+- Error types: `session_expired`, `invalid_api_key`, `quota_exceeded`, `provider_rate_limit_exceeded`
 
 ## Configuration
 - **File**: `config/client_config.json`

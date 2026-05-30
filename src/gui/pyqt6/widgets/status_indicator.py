@@ -28,6 +28,24 @@ class ConnectionStatusIndicator(QWidget):
         
         self.setStyleSheet("background-color: transparent;")
     
+    def set_connected(self) -> None:
+        """Set status to connected (online)"""
+        self.status_dot.setStyleSheet("color: #00ffa2; font-size: 10px;")
+        self.status_text.setText("ONLINE")
+        self.status_text.setStyleSheet("color: #00ffa2; font-size: 11px; font-family: Consolas;")
+    
+    def set_disconnected(self) -> None:
+        """Set status to disconnected (offline)"""
+        self.status_dot.setStyleSheet("color: #ff3355; font-size: 10px;")
+        self.status_text.setText("OFFLINE")
+        self.status_text.setStyleSheet("color: #ff3355; font-size: 11px; font-family: Consolas;")
+    
+    def set_connecting(self) -> None:
+        """Set status to connecting (in progress)"""
+        self.status_dot.setStyleSheet("color: #fffa00; font-size: 10px;")
+        self.status_text.setText("CONNECTING...")
+        self.status_text.setStyleSheet("color: #fffa00; font-size: 11px; font-family: Consolas;")
+    
     
 class StatusIndicatorWidget(QWidget):
     """状态指示器组件 - Agent 模式简化版"""
