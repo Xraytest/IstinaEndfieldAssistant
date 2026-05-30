@@ -11,6 +11,7 @@ from PyQt6.QtWidgets import (
     QVBoxLayout,
     QHBoxLayout,
     QLabel,
+    QLineEdit,
     QMessageBox,
     QFileDialog,
 )
@@ -99,19 +100,17 @@ class AuthPage(QWidget):
         return max(arkpass_files, key=os.path.getmtime)
 
     def try_auto_login(self) -> bool:
-        """尝试自动登录"""
+        """Try auto login, show registration prompt if no cached credentials"""
         cached_arkpass = self._get_cached_arkpass()
         if cached_arkpass and os.path.exists(cached_arkpass):
             try:
-                # 额外验证文件是否可读
                 with open(cached_arkpass, 'r', encoding='utf-8') as f:
                     content = f.read().strip()
-                
                 if not content:
                     import logging
-                    logging.getLogger(__name__).warning(f"缓存的 ArkPass 文件为空：{cached_arkpass}")
+                    logging.getLogger(__name__).warning(f"Cached ArkPass empty: {cached_arkpass}")
+                    self._show_registration_prompt()
                     return False
-                
                 self._arkpass_path_display.setText(cached_arkpass)
                 self._arkpass_path_display.setProperty("variant", "primary")
                 self._arkpass_path = cached_arkpass
@@ -120,12 +119,23 @@ class AuthPage(QWidget):
                 return True
             except Exception as e:
                 import logging
-                logging.getLogger(__name__).error(f"读取缓存凭证失败：{e}", exc_info=True)
-                # 显示警告但不阻止后续操作
-                self._arkpass_path_display.setText("读取失败")
+                logging.getLogger(__name__).error(f"Failed to read cached credentials: {e}", exc_info=True)
+                self._arkpass_path_display.setText("Read failed")
                 self._arkpass_path_display.setStyleSheet("color: #ff3355; font-size: 11px; font-family: Consolas; padding: 8px 0;")
+                self._show_registration_prompt()
                 return False
-        return False
+        else:
+            self._show_registration_prompt()
+            return False
+
+    def _show_registration_prompt(self):
+        """Show registration prompt when no credentials detected"""
+        from PyQt6.QtWidgets import QMessageBox
+        QMessageBox.information(
+            self,
+            "Welcome to IEA",
+            "No login credentials detected.\n\nPlease register a new account or select an existing ArkPass file."
+        )
 
     def _setup_ui(self) -> None:
         main_layout = QVBoxLayout(self)
@@ -197,6 +207,47 @@ class AuthPage(QWidget):
 
         arkpass_layout.addStretch()
         login_layout.addWidget(arkpass_frame)
+
+        # 注册区域（新用户）
+        register_line = QLabel("────────────────  新用户注册  ────────────────")
+        register_line.setStyleSheet("color: rgba(144, 144, 168, 0.30); font-size: 10px; font-family: Consolas;")
+        login_layout.addWidget(register_line)
+
+        reg_frame = QWidget()
+        reg_layout = QHBoxLayout(reg_frame)
+        reg_layout.setContentsMargins(0, 0, 0, 0)
+        reg_layout.setSpacing(12)
+
+        reg_label = QLabel("USERNAME:")
+        reg_label.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; font-weight: bold;")
+        reg_label.setFixedWidth(80)
+        reg_layout.addWidget(reg_label)
+
+        self._username_input = QLineEdit()
+        self._username_input.setPlaceholderText("输入用户名进行注册...")
+        self._username_input.setStyleSheet("""
+            QLineEdit {
+                background-color: rgba(10, 10, 15, 0.90);
+                color: #e0e0e8;
+                border: 1px solid rgba(24, 209, 255, 0.15);
+                border-radius: 4px;
+                padding: 8px 12px;
+                font-size: 12px;
+                font-family: Consolas;
+            }
+            QLineEdit:focus {
+                border-color: rgba(24, 209, 255, 0.40);
+            }
+        """)
+        reg_layout.addWidget(self._username_input, 1)
+
+        self._register_btn = SecondaryButton("REGISTER")
+        self._register_btn.setFixedWidth(100)
+        self._register_btn.setToolTip("注册新账户，将生成 ArkPass 认证文件")
+        reg_layout.addWidget(self._register_btn)
+
+        reg_layout.addStretch()
+        login_layout.addWidget(reg_frame)
 
         # 操作按钮
         btn_frame = QWidget()
@@ -287,6 +338,7 @@ class AuthPage(QWidget):
         self._login_btn.clicked.connect(self._on_login_clicked)
         self._select_arkpass_btn.clicked.connect(self._on_select_arkpass_clicked)
         self._logout_btn.clicked.connect(self.logout_requested.emit)
+        self._register_btn.clicked.connect(self._on_register_clicked)
 
     def _on_login_clicked(self) -> None:
         arkpass_path = self._arkpass_path_display.text()
@@ -295,6 +347,19 @@ class AuthPage(QWidget):
             return
         self._arkpass_path = arkpass_path
         self.arkpass_selected.emit(arkpass_path)
+
+    def _on_register_clicked(self) -> None:
+        """点击注册按钮——emit register_requested 信号给 main_window 处理"""
+        username = self._username_input.text().strip()
+        if not username:
+            QMessageBox.warning(self, "WARNING", "请输入用户名以注册新账户")
+            return
+        if len(username) < 2:
+            QMessageBox.warning(self, "WARNING", "用户名至少需要 2 个字符")
+            return
+        self._register_btn.setEnabled(False)
+        self._username_input.setEnabled(False)
+        self.register_requested.emit(username)
 
     def _on_select_arkpass_clicked(self) -> None:
         file_path, _ = QFileDialog.getOpenFileName(
@@ -406,6 +471,20 @@ class AuthPage(QWidget):
         self._login_status = self.STATUS_LOGGING_IN
         self._status_indicator.set_connecting()
         self._login_btn.setEnabled(False)
+
+    def on_register_complete(self, success: bool, arkpass_path: str = "") -> None:
+        """注册完成后恢复 UI 状态"""
+        self._register_btn.setEnabled(True)
+        self._username_input.setEnabled(True)
+        if success:
+            self._username_input.clear()
+            if arkpass_path:
+                self._arkpass_path_display.setText(arkpass_path)
+                self._arkpass_path_display.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; padding: 8px 0;")
+                self._arkpass_path = arkpass_path
+            QMessageBox.information(self, "注册成功", f"账户注册成功！\nArkPass 文件已保存至:\n{arkpass_path}")
+        else:
+            QMessageBox.warning(self, "注册失败", "注册失败，请检查网络连接或尝试其他用户名")
 
     def get_user_id(self) -> Optional[str]:
         return self._user_id

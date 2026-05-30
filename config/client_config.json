@@ -3,6 +3,11 @@
     "host": "127.0.0.1",
     "port": 9999
   },
+  "platform": {
+    "host": "127.0.0.1",
+    "port": 16512
+  },
+  "timeout": 300,
   "adb": {
     "path": "3rd-party/adb/adb.exe",
     "timeout": 10

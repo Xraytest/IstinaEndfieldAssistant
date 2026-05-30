@@ -1,28 +1,14 @@
 @echo off
-REM Start IstinaEndfieldAssistant Server
-REM This script starts the server (TCP and web dashboard)
-
-REM Set the working directory to the script's location
+REM Start IstinaPlatform Server (TCP 9999 + Web Dashboard 8000)
 cd /d "%~dp0"
 
-REM Add src directory to Python path
-set "PYTHONPATH=%cd%\src;%PYTHONPATH%"
-
-REM Start the server
-REM We assume the server entry point is in src/core or similar
-REM From the context, the server uses port 9999 for TCP and 8000 for web dashboard
-REM We need to find the actual server main file.
-
-REM Let's try to run a server module if it exists, otherwise show an error.
-if exist src\server\main.py (
+set "SERVER_DIR=%~dp0..\IstinaPlatform"
+if exist "%SERVER_DIR%\src\server\main.py" (
+    cd /d "%SERVER_DIR%"
+    set "PYTHONPATH=%cd%\src;%PYTHONPATH%"
     python src\server\main.py %*
-) else if exist src\core\server\main.py (
-    python src\core\server\main.py %*
-) else if exist src\main_server.py (
-    python src\main_server.py %*
 ) else (
-    echo [Error] Server entry point not found.
-    echo Please ensure the server code is available.
+    echo [Error] IstinaPlatform server not found at %SERVER_DIR%
     pause
     exit /b 1
 )

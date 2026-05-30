@@ -121,6 +121,8 @@ class MaaFwTouchExecutor:
         """
         连接Android设备
         
+        修复：处理emulator-5562等模拟器设备名到IP:PORT的转换
+        
         Returns:
             bool: 是否连接成功
         """
@@ -148,6 +150,16 @@ class MaaFwTouchExecutor:
             input_methods = self.config.input_methods
             device_config = self.config.config
             
+            # 解析模拟器设备名：emulator-5562 → 127.0.0.1:5562
+            if address and address.startswith("emulator-"):
+                port_part = address.replace("emulator-", "")
+                if port_part.isdigit():
+                    resolved_address = f"127.0.0.1:{port_part}"
+                    self.logger.info(LogCategory.MAIN, "解析模拟器地址",
+                                    original=address,
+                                    resolved=resolved_address)
+                    address = resolved_address
+            
             # 尝试使用Toolkit.find_adb_devices()查找目标设备
             try:
                 discovered_devices = Toolkit.find_adb_devices()
@@ -162,7 +174,6 @@ class MaaFwTouchExecutor:
                                         address=dev.address,
                                         screencap_methods=dev.screencap_methods,
                                         config=str(dev.config))
-                        # 使用发现的设备信息（包含模拟器专用配置）
                         adb_path = dev.adb_path
                         screencap_methods = dev.screencap_methods
                         input_methods = dev.input_methods

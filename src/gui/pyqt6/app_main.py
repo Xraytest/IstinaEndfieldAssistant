@@ -81,7 +81,8 @@ class PyQt6Application(QApplication):
 
 def run_application(auth_manager=None, device_manager=None,
                     agent_executor=None, communicator=None, 
-                    screen_capture=None, config=None):
+                    screen_capture=None, touch_executor=None,
+                    config=None):
     """
     Run the PyQt6 application with business logic components
     
@@ -91,6 +92,7 @@ def run_application(auth_manager=None, device_manager=None,
         agent_executor: AgentExecutor instance for agent execution
         communicator: ClientCommunicator instance for server communication
         screen_capture: ScreenCapture instance for screenshots
+        touch_executor: TouchManager instance for touch operations
         config: Configuration dictionary
     """
     print("[APP_MAIN] Creating QApplication...")
@@ -109,6 +111,7 @@ def run_application(auth_manager=None, device_manager=None,
         agent_executor=agent_executor,
         communicator=communicator,
         screen_capture=screen_capture,
+        touch_executor=touch_executor,
         config=config
     )
     

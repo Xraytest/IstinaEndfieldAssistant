@@ -122,7 +122,10 @@ def main():
         
         logger.debug(LogCategory.MAIN, "Initializing touch manager")
         touch_executor = TouchManager()
-        
+
+        logger.debug(LogCategory.MAIN, "Linking screen capture to MAA touch manager")
+        screen_capture.set_touch_manager(touch_executor)
+
         logger.debug(LogCategory.MAIN, "Initializing communication module")
         communicator = ClientCommunicator(
             host=config['server']['host'],
@@ -169,6 +172,7 @@ def main():
             agent_executor=agent_executor,
             communicator=communicator,
             screen_capture=screen_capture,
+            touch_executor=touch_executor,
             config=config
         )
         

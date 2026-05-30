@@ -86,7 +86,16 @@ class ModelManager:
             "quantization": "FP16",
             "parameters": "35B",
             "recommended_gpu_memory_gb": 24,
-        }
+        },
+        "gemma4-2b-q8_0": {
+            "modelscope_id": "unsloth/gemma-4-2b-it-GGUF",
+            "file_pattern": "*Q8_0*.gguf",
+            "size_gb": 2.5,
+            "description": "轻量级备用实时控制模型，2B参数，Q8量化",
+            "quantization": "Q8_0",
+            "parameters": "2B",
+            "recommended_gpu_memory_gb": 8,
+        },
     }
     
     def __init__(self, models_dir: str = "models"):

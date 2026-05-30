@@ -1,4 +1,4 @@
-﻿"""设备管理业务逻辑组件"""
+"""设备管理业务逻辑组件"""
 import os
 import json
 import re

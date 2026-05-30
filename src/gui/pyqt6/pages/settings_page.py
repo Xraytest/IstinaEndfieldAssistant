@@ -95,7 +95,17 @@ class SettingsPage(QWidget):
         self._enable_checkbox.toggled.connect(self._on_local_inference_toggled)
         inference_layout.addWidget(self._enable_checkbox)
 
-        # 状态键值对
+        # 标准推理设置 (large VLM)
+        self._large_vlm_container = QWidget()
+        self._large_vlm_container.setVisible(False)
+        lvlm_layout = QVBoxLayout(self._large_vlm_container)
+        lvlm_layout.setContentsMargins(0, 0, 0, 0)
+        lvlm_layout.setSpacing(6)
+
+        lvlm_sep = QLabel("─── Large VLM Settings ───")
+        lvlm_sep.setStyleSheet("color: rgba(144, 144, 168, 0.30); font-size: 10px; font-family: Consolas;")
+        lvlm_layout.addWidget(lvlm_sep)
+
         info_style = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
         val_style = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 
@@ -106,7 +116,7 @@ class SettingsPage(QWidget):
         self._gpu_status_label.setStyleSheet(val_style)
         row1.addWidget(self._gpu_status_label)
         row1.addStretch()
-        inference_layout.addLayout(row1)
+        lvlm_layout.addLayout(row1)
 
         row2 = QHBoxLayout()
         row2.addWidget(QLabel("VRAM:"))
@@ -115,7 +125,7 @@ class SettingsPage(QWidget):
         self._vram_label.setStyleSheet(val_style)
         row2.addWidget(self._vram_label)
         row2.addStretch()
-        inference_layout.addLayout(row2)
+        lvlm_layout.addLayout(row2)
 
         row3 = QHBoxLayout()
         row3.addWidget(QLabel("SYSTEM RAM:"))
@@ -124,7 +134,7 @@ class SettingsPage(QWidget):
         self._ram_label.setStyleSheet(val_style)
         row3.addWidget(self._ram_label)
         row3.addStretch()
-        inference_layout.addLayout(row3)
+        lvlm_layout.addLayout(row3)
 
         row4 = QHBoxLayout()
         row4.addWidget(QLabel("REQUIREMENTS:"))
@@ -133,7 +143,7 @@ class SettingsPage(QWidget):
         self._requirements_label.setStyleSheet("color: #18d1ff; font-size: 12px; font-family: Consolas; padding: 3px 0;")
         row4.addWidget(self._requirements_label)
         row4.addStretch()
-        inference_layout.addLayout(row4)
+        lvlm_layout.addLayout(row4)
 
         row5 = QHBoxLayout()
         row5.addWidget(QLabel("RECOMMENDED:"))
@@ -142,14 +152,12 @@ class SettingsPage(QWidget):
         self._model_label.setStyleSheet(val_style)
         row5.addWidget(self._model_label)
         row5.addStretch()
-        inference_layout.addLayout(row5)
+        lvlm_layout.addLayout(row5)
 
-        # 分隔
         sep = QLabel("────────────────────────────────")
         sep.setStyleSheet("color: rgba(24, 209, 255, 0.08); font-size: 10px;")
-        inference_layout.addWidget(sep)
+        lvlm_layout.addWidget(sep)
 
-        # 按钮
         button_layout = QHBoxLayout()
         self._check_gpu_btn = QPushButton("RE-SCAN GPU")
         self._check_gpu_btn.setStyleSheet("""
@@ -189,8 +197,9 @@ class SettingsPage(QWidget):
         button_layout.addWidget(self._check_gpu_btn)
         button_layout.addStretch()
         button_layout.addWidget(self._check_update_btn)
-        inference_layout.addLayout(button_layout)
+        lvlm_layout.addLayout(button_layout)
 
+        inference_layout.addWidget(self._large_vlm_container)
         layout.addWidget(inference_group)
         layout.addStretch()
 
@@ -201,6 +210,7 @@ class SettingsPage(QWidget):
         enabled = local_config.get("enabled", False)
         self._enable_checkbox.setEnabled(True)
         self._enable_checkbox.setChecked(enabled)
+        self._large_vlm_container.setVisible(enabled)
 
     def _start_gpu_check(self):
         self._gpu_status_label.setText("SCANNING...")
@@ -360,6 +370,7 @@ class SettingsPage(QWidget):
         self.settings_changed.emit(self._config)
 
         self._enable_checkbox.setChecked(checked)
+        self._large_vlm_container.setVisible(checked)
 
     def get_config(self) -> Dict[str, Any]:
         return self._config
