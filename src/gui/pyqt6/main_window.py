@@ -13,7 +13,7 @@ from PyQt6.QtGui import QIcon, QFont
 try:
     from .theme.theme_manager import ThemeManager
     from .widgets.base_widgets import NavigationButton, HorizontalSeparator
-    from .pages import AuthPage, SettingsPage, CloudPage, AgentPage
+    from .pages import AuthPage, SettingsPage, DeviceSettingsPage, CloudPage, AgentPage
     from .pages.agent_page import AgentPage as AgentPageDirect
     from .pages.model_manager_page import ModelManagerPage
     from .pages.standard_reasoning_page import StandardReasoningPage
@@ -30,7 +30,7 @@ except ImportError:
 
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.widgets.base_widgets import NavigationButton, HorizontalSeparator
-    from gui.pyqt6.pages import AuthPage, SettingsPage, CloudPage, AgentPage
+    from gui.pyqt6.pages import AuthPage, SettingsPage, DeviceSettingsPage, CloudPage, AgentPage
     from gui.pyqt6.pages.model_manager_page import ModelManagerPage
     from gui.pyqt6.pages.standard_reasoning_page import StandardReasoningPage
     from gui.pyqt6.pages.prts_full_intelligence_page import PrtsFullIntelligencePage
@@ -299,13 +299,30 @@ class MainWindow(QMainWindow):
             screen_capture=self._screen_capture, touch_executor=self._touch_executor, config=self._config)
         self.add_page("prts_full", "PRTS 全智能", self._prts_page)
 
+        from gui.pyqt6.pages.cloud_page import CloudPage
+        self._cloud_page = CloudPage(
+            communicator=self._communicator,
+            agent_executor=self._agent_executor,
+            config=self._config,
+        )
+        self.add_page("cloud_config", "云端模型配置", self._cloud_page)
+
         from gui.pyqt6.pages.settings_page import SettingsPage
         self._settings_page = SettingsPage(config=self._config)
         self.add_page("settings", "系统设置", self._settings_page, position="bottom")
 
+        from gui.pyqt6.pages.device_settings_page import DeviceSettingsPage
+        self._device_settings_page = DeviceSettingsPage(
+            device_manager=self._device_manager,
+            config=self._config
+        )
+        self.add_page("device_settings", "设备设置", self._device_settings_page)
+
         self.show_page("auth_cloud")
         self._navigation_bar.set_login_state(True, False, "auth_cloud")
         self._auth_page_id = "auth_cloud"
+        self._auto_login_attempted = False
+        QTimer.singleShot(100, self._auto_login)
 
     def _setup_connections(self) -> None:
         self._navigation_bar.page_changed.connect(self._content_area.show_page)
@@ -329,6 +346,23 @@ class MainWindow(QMainWindow):
             self._model_manager_page.model_download_requested.connect(self._on_model_download_requested)
             self._model_manager_page.model_remove_requested.connect(self._on_model_remove_requested)
             self._model_manager_page.refresh_requested.connect(self._refresh_model_manager)
+
+        if self._agent_executor:
+            if self._standard_reasoning_page:
+                self._standard_reasoning_page.model_tag_changed.connect(
+                    lambda tag: setattr(self._agent_executor, 'model_tag', tag)
+                )
+            if self._prts_page:
+                self._prts_page.model_tag_changed.connect(
+                    lambda tag: setattr(self._agent_executor, 'model_tag', tag)
+                )
+
+    def _auto_login(self) -> None:
+        if self._auto_login_attempted:
+            return
+        self._auto_login_attempted = True
+        if self._auth_page:
+            self._auth_page.try_auto_login()
 
     def _on_page_changed(self, page_id: str) -> None:
         page_names = {

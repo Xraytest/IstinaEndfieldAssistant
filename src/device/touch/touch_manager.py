@@ -17,7 +17,6 @@ from core.logger import get_logger, LogCategory, LogLevel
 class TouchDeviceType(Enum):
     """触控设备类型"""
     ANDROID = "android"
-    PC = "pc"
 
 
 class TouchManager:
@@ -30,12 +29,11 @@ class TouchManager:
     def __init__(self):
         self.logger = get_logger()
         self._android_executor = None
-        self._pc_executor = None
         self._device_type: Optional[TouchDeviceType] = None
         self._resolution: Tuple[int, int] = (0, 0)
         self._connected = False
         
-        # Pipeline执行器（优先使用）
+        # Pipeline 执行器（优先使用）
         self._tasker = None
         self._resource = None
         self._controller = None
@@ -92,59 +90,11 @@ class TouchManager:
             self.logger.exception(LogCategory.MAIN, "Android设备连接异常", error=str(e))
             return False
     
-    def connect_pc(self, 
-                   hwnd: int,
-                   screencap_method: int = 0,
-                   input_method: int = 0) -> bool:
-        """
-        连接PC窗口
-        
-        Args:
-            hwnd: 窗口句柄
-            screencap_method: 截图方式
-            input_method: 输入方式
-        
-        Returns:
-            bool: 是否连接成功
-        """
-        try:
-            from .maafw_win32_adapter import MaaFwWin32Executor, MaaFwWin32Config
-            
-            win32_config = MaaFwWin32Config(
-                hwnd=hwnd,
-                screencap_method=screencap_method,
-                input_method=input_method
-            )
-            
-            self._pc_executor = MaaFwWin32Executor(win32_config)
-            
-            if self._pc_executor.connect():
-                self._device_type = TouchDeviceType.PC
-                self._resolution = self._pc_executor.get_resolution()
-                self._connected = True
-                self._controller = self._pc_executor.controller
-                self._tasker = self._pc_executor.tasker
-                self._resource = self._pc_executor.resource
-                
-                self.logger.info(LogCategory.MAIN, "PC窗口连接成功",
-                                hwnd=hwnd,
-                                resolution=f"{self._resolution[0]}x{self._resolution[1]}")
-                return True
-            else:
-                self.logger.exception(LogCategory.MAIN, "PC窗口连接失败", hwnd=hwnd)
-                return False
-                
-        except Exception as e:
-            self.logger.exception(LogCategory.MAIN, "PC窗口连接异常", error=str(e))
-            return False
-    
     def disconnect(self) -> bool:
         """断开连接"""
         try:
             if self._android_executor:
                 self._android_executor.disconnect()
-            if self._pc_executor:
-                self._pc_executor.disconnect()
             
             self._connected = False
             self._device_type = None
@@ -442,20 +392,19 @@ class TouchManager:
                 params.get("tasks", [])
             )
         elif tool_name == "open_app":
-            # 启动应用程序 - 使用executor的封装方法
+            # 启动应用程序 - 使用 executor 的封装方法
             app_name = params.get("app_name", "")
             if not app_name:
                 self.logger.exception(LogCategory.MAIN, "open_app 缺少 app_name 参数")
                 return False
             
-            # 根据设备类型选择对应的executor
+            # 根据设备类型选择对应的 executor
             if self._device_type == TouchDeviceType.ANDROID and self._android_executor:
                 return self._android_executor.start_app(app_name)
-            elif self._device_type == TouchDeviceType.PC and self._pc_executor:
-                return self._pc_executor.start_app(app_name)
             else:
                 self.logger.exception(LogCategory.MAIN, "控制器未初始化")
                 return False
+            
         else:
             self.logger.exception(LogCategory.MAIN, "未知工具名称", tool_name=tool_name)
             return False

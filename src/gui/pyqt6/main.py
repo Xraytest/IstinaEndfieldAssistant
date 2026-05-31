@@ -141,6 +141,11 @@ def main():
         logger.debug(LogCategory.MAIN, "初始化设备管理模块")
         device_manager = DeviceManager(adb_manager, config)
         
+        last_device = device_manager.get_last_connected_device()
+        if last_device:
+            logger.info(LogCategory.MAIN, f"尝试自动连接上次设备：{last_device}")
+            device_manager.connect_device(last_device)
+        
         logger.info(LogCategory.MAIN, "所有组件初始化成功")
         print("[主进程] 核心模块全部初始化成功")
         

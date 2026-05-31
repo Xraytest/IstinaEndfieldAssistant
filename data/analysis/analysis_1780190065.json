@@ -1,0 +1,38 @@
+{
+  "page_name": "测试",
+  "page_type": "menu",
+  "elements": [
+    {
+      "element_id": "test1",
+      "semantic_id": "test_sem",
+      "element_type": "button",
+      "label": "测试按钮",
+      "bbox": [
+        100,
+        200,
+        300,
+        400
+      ],
+      "confidence": 0.95,
+      "page_name": "测试页面",
+      "page_hash": "",
+      "verification_count": 0,
+      "verification_status": "unverified",
+      "first_seen": 0.0,
+      "last_seen": 0.0,
+      "last_verified": 0.0,
+      "variant_labels": [],
+      "action": "tap",
+      "leads_to_page": "",
+      "extra": {}
+    }
+  ],
+  "has_daily_tasks": true,
+  "has_weekly_tasks": false,
+  "has_event": false,
+  "description": "测试分析",
+  "raw_reply": "",
+  "model_tag": "",
+  "timestamp": 1780190065.2390604,
+  "screenshot_hash": ""
+}

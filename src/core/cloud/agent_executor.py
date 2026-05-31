@@ -26,6 +26,7 @@ class AgentExecutor:
         self.state = AgentState.IDLE
         self.conversation_history: List[Dict[str, str]] = []
         self.session_id: Optional[str] = None
+        self.model_tag: str = config.get('inference', {}).get('model_tag', 'exploration_deep') if config else 'exploration_deep'
         self.device_width = 1920
         self.device_height = 1080
 
@@ -71,6 +72,7 @@ class AgentExecutor:
                 "screenshot": img_b64,
                 "device_width": self.device_width,
                 "device_height": self.device_height,
+                "model_tag": self.model_tag,
                 "history": self.conversation_history[-10:] if self.conversation_history else [],
                 "session_id": self.session_id or ""
             })

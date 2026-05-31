@@ -413,7 +413,7 @@ class AuthPage(QWidget):
         user_info_layout.addLayout(user_row2)
 
         user_row3 = QHBoxLayout()
-        user_row3.addWidget(QLabel(\"登录:\"))
+        user_row3.addWidget(QLabel('登录:'))
         user_row3.itemAt(0).widget().setStyleSheet(info_style)
         self._login_time_label = QLabel("NULL")
         self._login_time_label.setStyleSheet("color: #606080; font-size: 12px; font-family: Consolas; padding: 4px 0;")

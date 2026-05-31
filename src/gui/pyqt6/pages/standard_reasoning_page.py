@@ -7,7 +7,7 @@ from PyQt6.QtWidgets import (
     QGroupBox, QScrollArea, QTextEdit, QMessageBox,
     QComboBox, QCheckBox
 )
-from PyQt6.QtCore import Qt, pyqtSignal
+from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -92,7 +92,9 @@ class StandardReasoningPage(QWidget):
         self._config = config or {}
         self._selected_model_tag = self._load_model_tag()
         self._flow_checkboxes: Dict[str, QCheckBox] = {}
+        self._model_tags_loaded = False
         self._setup_ui()
+        QTimer.singleShot(500, self._refresh_model_tags)
 
     def _get_cache_dir(self) -> str:
         current = os.path.dirname(os.path.abspath(__file__))
@@ -242,6 +244,28 @@ class StandardReasoningPage(QWidget):
         self._selected_model_tag = tag
         self._save_model_tag(tag)
         self.model_tag_changed.emit(tag)
+
+    def _refresh_model_tags(self):
+        if self._model_tags_loaded or not self.communicator:
+            return
+        try:
+            response = self.communicator.get_available_models(
+                getattr(getattr(self, 'agent_executor', None), 'session_id', None) or ''
+            )
+            if response and response.get('status') == 'success':
+                models = response.get('models', [])
+                if models:
+                    tags = [m.get('name', '') for m in models if m.get('name')]
+                    if tags:
+                        current = self._model_tag_combo.currentText()
+                        self._model_tag_combo.clear()
+                        self._model_tag_combo.addItems(tags)
+                        if current in tags:
+                            self._model_tag_combo.setCurrentText(current)
+                        self._model_tags_loaded = True
+                        return
+        except Exception:
+            pass
 
     def _execute_selected_flows(self):
         selected = [fid for fid, cb in self._flow_checkboxes.items() if cb.isChecked()]
