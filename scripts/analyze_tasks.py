@@ -247,16 +247,16 @@ def main():
         # 仅快速分析
         do_quick_analysis(task_analyzer)
     elif args.claim:
-        # 分析并领取
-        do_task_analysis(task_analyzer)
+        # 分析并领取（含导航到任务/活动页面）
         do_claim(task_analyzer)
     elif args.session:
-        # 完整扫描
+        # 完整扫描并领取
         do_full_scan(task_analyzer)
+        do_claim(task_analyzer)
     else:
-        # 默认：快速分析 + 任务分析
+        # 默认：导航 → 扫描任务 → 领取
         print("\n" + "=" * 50)
-        print("模式: 默认（快速分析 + 任务分析）")
+        print("模式: 默认（导航 → 扫描 → 领取）")
         print("=" * 50)
 
         session = task_analyzer.start_session()
@@ -266,6 +266,13 @@ def main():
         if quick_result and (quick_result.has_daily_tasks or quick_result.has_weekly_tasks):
             time.sleep(2)
             do_task_analysis(task_analyzer)
+
+        # 导航到任务页面并分析领奖
+        claimed = task_analyzer.claim_all_available()
+        if claimed:
+            print(f"\n本次领取 {len(claimed)} 个奖励:")
+            for c in claimed:
+                print(f"  - {c}")
 
         summary = task_analyzer.end_session()
         print(f"\n{'=' * 50}")

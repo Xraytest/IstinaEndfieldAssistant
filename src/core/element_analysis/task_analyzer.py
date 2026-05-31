@@ -327,14 +327,57 @@ class TaskAnalyzer:
         return self.tap_position(*NAVIGATION_POINTS["event_entry"])
 
     def claim_all_available(self) -> List[str]:
-        """一键领取所有可领取的奖励"""
+        """导航领奖：遍历所有任务页面并领取可领取奖励
+        
+        流程：
+        1. 先分析当前页面，领取可领取任务
+        2. 导航到任务日志页面，分析并领取
+        3. 导航到活动页面，分析并领取
+        4. 关闭任务页面（点击X）
+        """
         claimed = []
+
+        # 1. 分析当前页面
+        print("  [领奖] 分析当前页面...")
         tasks = self.analyze_current_tasks()
         for task in tasks:
             if task.status == TaskStatus.CLAIMABLE:
+                print(f"  [领奖] 领取: {task.task_name}")
                 if self.tap_claim_button(task):
                     claimed.append(task.task_name)
                     time.sleep(2)
+
+        # 2. 导航到任务页面
+        print("  [领奖] 导航到任务页面...")
+        if self.navigate_to_tasks():
+            time.sleep(4)
+            print("  [领奖] 分析任务页面...")
+            tasks = self.analyze_current_tasks()
+            for task in tasks:
+                if task.status == TaskStatus.CLAIMABLE:
+                    print(f"  [领奖] 领取: {task.task_name}")
+                    if self.tap_claim_button(task):
+                        claimed.append(task.task_name)
+                        time.sleep(2)
+
+            # 返回（点击X关闭任务页面）
+            self.tap_position(*NAVIGATION_POINTS["close_x"])
+            time.sleep(2)
+
+        # 3. 导航到活动页面
+        print("  [领奖] 导航到活动页面...")
+        if self.navigate_to_event_page():
+            time.sleep(4)
+            print("  [领奖] 分析活动页面...")
+            event_tasks = self.analyze_current_tasks()
+            for task in event_tasks:
+                if task.status == TaskStatus.CLAIMABLE:
+                    print(f"  [领奖] 领取: {task.task_name}")
+                    if self.tap_claim_button(task):
+                        claimed.append(task.task_name)
+                        time.sleep(2)
+
+        print(f"  [领奖] 完成，共领取 {len(claimed)} 个奖励")
         return claimed
 
     def scan_all_task_pages(self, max_steps: int = 10) -> Dict[str, List[TaskDefinition]]:
