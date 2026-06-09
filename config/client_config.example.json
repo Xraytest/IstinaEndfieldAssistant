@@ -96,7 +96,7 @@
   "vendors": {
     "newapi_channel": {
       "_type": "newapi_channel_conn",
-      "key": "sk-SHYG0HNKhAEPXbEHOdlLcggKXYlyEGJyolvGjh0T2r5FQOst",
+      "key": "YOUR_API_KEY_HERE",
       "url": "https://open.cherryin.ai",
       "enabled": true
     }
