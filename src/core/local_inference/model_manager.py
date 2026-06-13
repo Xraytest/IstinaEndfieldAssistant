@@ -60,13 +60,13 @@ class ModelManager:
     
     # 模型注册表
     MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
-        "qwen3.5-0.6b-q8_0": {
-            "modelscope_id": "unsloth/Qwen3.5-0.5B-Instruct-GGUF",
-            "file_pattern": "*Q8_0*.gguf",
-            "size_gb": 0.8,
-            "description": "测试用轻量级模型，0.6B参数，Q8量化",
-            "quantization": "Q8_0",
-            "parameters": "0.6B",
+        "qwen3.5-2b-qwen3.6-plus-distilled-f16": {
+            "modelscope_id": "unsloth/Qwen3.5-2B-GGUF",
+            "file_pattern": "*Q8_K_XL*.gguf",
+            "size_gb": 2.8,
+            "description": "Qwen3.5-2B高精度模型，Q8_K_XL量化，2.8GB",
+            "quantization": "Q8_K_XL",
+            "parameters": "2B",
             "recommended_gpu_memory_gb": 8,
         },
         "qwen3.5-9b-fp16": {
@@ -462,7 +462,7 @@ class ModelManager:
                 return model_name
         
         # 如果都不满足，返回最小的模型
-        return "qwen3.5-0.6b-q8_0"
+        return "qwen3.5-2b-qwen3.6-plus-distilled-f16"
     
     def _get_timestamp(self) -> str:
         """获取当前时间戳"""

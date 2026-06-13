@@ -300,7 +300,7 @@ class DeviceStateManager:
     def _press_key(self, device_serial: str, key: str) -> bool:
         try:
             if self.touch_executor:
-                return self.touch_executor.execute_tool_call(device_serial, 'press_key', {'key': key})
+                return self.touch_executor.execute_tool_call('press_key', {'key': key})
             return False
         except Exception as e:
             self.logger.exception(LogCategory.ADB, f'按键操作异常: {e}')
@@ -309,7 +309,15 @@ class DeviceStateManager:
     def _click_position(self, device_serial: str, x_ratio: float, y_ratio: float) -> bool:
         try:
             if self.touch_executor:
-                return self.touch_executor.execute_tool_call(device_serial, 'click', {'coordinates': [x_ratio, y_ratio]})
+                # 将比例坐标转换为像素坐标
+                res = self.touch_executor.get_resolution()
+                if res != (0, 0):
+                    x_px = int(x_ratio * res[0])
+                    y_px = int(y_ratio * res[1])
+                else:
+                    x_px = int(x_ratio * 1920)
+                    y_px = int(y_ratio * 1080)
+                return self.touch_executor.execute_tool_call('click', {'x': x_px, 'y': y_px})
             return False
         except Exception as e:
             self.logger.exception(LogCategory.ADB, f'点击操作异常: {e}')

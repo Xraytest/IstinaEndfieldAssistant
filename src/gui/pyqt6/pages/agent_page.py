@@ -25,11 +25,13 @@ class AgentInteractionThread(QThread):
 
 
 class AgentPage(QWidget):
-    def __init__(self, agent_executor=None, parent=None):
+    def __init__(self, agent_executor=None, parent=None, inference_manager=None):
         super().__init__(parent)
         self.agent_executor = agent_executor
+        self.inference_manager = inference_manager
         self._current_thread = None
         self._setup_ui()
+        QTimer.singleShot(100, self._update_inference_mode_indicator)
 
     def _setup_ui(self):
         self.setStyleSheet("background-color: #0a0a0f;")
@@ -71,6 +73,21 @@ class AgentPage(QWidget):
         header_layout.addWidget(status_dot)
         header_layout.addSpacing(4)
         header_layout.addWidget(status_text)
+        header_layout.addSpacing(8)
+
+        # 本地推理状态指示
+        self._local_inference_label = QLabel("CLOUD")
+        self._local_inference_label.setStyleSheet("""
+            QLabel {
+                color: rgba(144, 144, 168, 0.50);
+                font-size: 10px;
+                font-family: Consolas;
+                padding: 2px 8px;
+                border: 1px solid rgba(144, 144, 168, 0.15);
+                border-radius: 3px;
+            }
+        """)
+        header_layout.addWidget(self._local_inference_label)
         header_layout.addSpacing(16)
 
         self.reset_btn = QPushButton("RESET")
@@ -172,6 +189,33 @@ class AgentPage(QWidget):
         input_layout.addWidget(self.send_btn)
 
         main_layout.addWidget(input_area)
+
+    def _update_inference_mode_indicator(self):
+        """更新本地/云端推理模式指示器"""
+        if self.inference_manager and self.inference_manager.is_local_available():
+            self._local_inference_label.setText("LOCAL")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: #00ffa2;
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(0, 255, 162, 0.40);
+                    border-radius: 3px;
+                }
+            """)
+        else:
+            self._local_inference_label.setText("CLOUD")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: rgba(144, 144, 168, 0.50);
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(144, 144, 168, 0.15);
+                    border-radius: 3px;
+                }
+            """)
 
     def set_agent_executor(self, agent_executor):
         self.agent_executor = agent_executor

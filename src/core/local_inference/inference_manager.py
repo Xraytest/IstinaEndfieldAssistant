@@ -905,7 +905,7 @@ class InferenceManager(QObject):
         logger.info(LogCategory.MAIN, "推理管理器已关闭")
     
     def _save_config(self):
-        """保存配置"""
+        """保存配置到磁盘"""
         # 更新配置字典
         self._config["inference"] = {
             "mode": self._inference_config.mode,
@@ -922,9 +922,45 @@ class InferenceManager(QObject):
                 "auto_fallback": self._inference_config.auto_fallback
             }
         }
-        
-        # 这里可以添加实际保存到文件的逻辑
-        logger.debug(LogCategory.MAIN, "配置已更新")
+
+        # 实际保存到文件的逻辑
+        try:
+            import json, tempfile, os as _os
+            # 确定项目根目录
+            current = os.path.dirname(os.path.abspath(__file__))
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(current)))
+            config_path = os.path.join(project_root, "config", "client_config.json")
+            
+            # 读取现有配置
+            existing = {}
+            if _os.path.exists(config_path):
+                try:
+                    with open(config_path, 'r', encoding='utf-8') as f:
+                        existing = json.load(f)
+                except Exception as e:
+                    logger.warning(f"读取配置文件失败：{e}")
+                    existing = {}
+            
+            # 合并更新后的 inference 配置
+            def _merge(a, b):
+                for k, v in (b or {}).items():
+                    if isinstance(v, dict) and isinstance(a.get(k), dict):
+                        _merge(a[k], v)
+                    else:
+                        a[k] = v
+            
+            _merge(existing, self._config)
+            
+            # 原子写入
+            fd, tmp_path = tempfile.mkstemp(prefix="client_config_", suffix=".tmp", dir=_os.path.dirname(config_path))
+            with _os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
+            _os.replace(tmp_path, config_path)
+            logger.debug(LogCategory.MAIN, f"配置已保存到 {config_path}")
+            print(f"[配置保存] 已保存推理配置到 {config_path}")
+        except Exception as e:
+            logger.exception(LogCategory.MAIN, f"保存配置失败：{e}")
+            print(f"[配置保存] 保存失败：{e}")
     
     def mark_first_run_complete(self, user_choice: str):
         """

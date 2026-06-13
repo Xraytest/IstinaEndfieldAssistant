@@ -1,11 +1,9 @@
 """Standard Reasoning page - select and execute standard flow tasks"""
-import os
-import json
 from typing import Optional, Dict, Any, List
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QScrollArea, QTextEdit, QMessageBox,
-    QComboBox, QCheckBox
+    QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 
@@ -80,50 +78,19 @@ CHECK_STYLE = """
 class StandardReasoningPage(QWidget):
     """Standard Reasoning - select and execute standard flow tasks"""
 
-    model_tag_changed = pyqtSignal(str)
-
     def __init__(self, communicator=None, agent_executor=None, parent=None,
-                 screen_capture=None, touch_executor=None, config=None):
+                 screen_capture=None, touch_executor=None, config=None,
+                 inference_manager=None):
         super().__init__(parent)
         self.communicator = communicator
         self.agent_executor = agent_executor
         self.screen_capture = screen_capture
         self.touch_executor = touch_executor
+        self.inference_manager = inference_manager
         self._config = config or {}
-        self._selected_model_tag = self._load_model_tag()
         self._flow_checkboxes: Dict[str, QCheckBox] = {}
-        self._model_tags_loaded = False
         self._setup_ui()
-        QTimer.singleShot(500, self._refresh_model_tags)
-
-    def _get_cache_dir(self) -> str:
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
-        cache = os.path.join(root, "cache")
-        os.makedirs(cache, exist_ok=True)
-        return cache
-
-    def _load_model_tag(self) -> str:
-        path = os.path.join(self._get_cache_dir(), "model_tag.json")
-        try:
-            with open(path, 'r') as f:
-                data = json.load(f)
-            return data.get("standard_reasoning", "exploration_deep")
-        except:
-            return "exploration_deep"
-
-    def _save_model_tag(self, tag: str):
-        path = os.path.join(self._get_cache_dir(), "model_tag.json")
-        try:
-            data = {}
-            if os.path.exists(path):
-                with open(path, 'r') as f:
-                    data = json.load(f)
-            data["standard_reasoning"] = tag
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
-        except:
-            pass
+        QTimer.singleShot(100, self._update_inference_mode_indicator)
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -136,16 +103,24 @@ class StandardReasoningPage(QWidget):
         header.addWidget(title)
         header.addStretch()
 
-        header.addWidget(QLabel("Model Tag:"))
-        header.itemAt(header.count() - 1).widget().setStyleSheet(INFO_STYLE)
-        self._model_tag_combo = QComboBox()
-        self._model_tag_combo.setMinimumWidth(180)
-        self._model_tag_combo.setStyleSheet(COMBO_STYLE)
-        self._model_tag_combo.addItems(["exploration_deep", "exploration_fast", "standard", "premium"])
-        self._model_tag_combo.setCurrentText(self._selected_model_tag)
-        self._model_tag_combo.currentTextChanged.connect(self._on_model_tag_changed)
-        header.addWidget(self._model_tag_combo)
+        # 本地推理状态指示
+        self._local_inference_label = QLabel("CLOUD")
+        self._local_inference_label.setStyleSheet("""
+            QLabel {
+                color: rgba(144, 144, 168, 0.50);
+                font-size: 10px;
+                font-family: Consolas;
+                padding: 2px 8px;
+                border: 1px solid rgba(144, 144, 168, 0.15);
+                border-radius: 3px;
+                margin-left: 8px;
+            }
+        """)
+        header.addWidget(self._local_inference_label)
         layout.addLayout(header)
+
+        # 初始化推理模式指示
+        QTimer.singleShot(100, self._update_inference_mode_indicator)
 
         scroll = QScrollArea()
         scroll.setWidgetResizable(True)
@@ -240,32 +215,34 @@ class StandardReasoningPage(QWidget):
         group.layout().setSpacing(6)
         return group
 
-    def _on_model_tag_changed(self, tag: str):
-        self._selected_model_tag = tag
-        self._save_model_tag(tag)
-        self.model_tag_changed.emit(tag)
-
-    def _refresh_model_tags(self):
-        if self._model_tags_loaded or not self.communicator:
-            return
-        try:
-            response = self.communicator.get_available_models(
-                getattr(getattr(self, 'agent_executor', None), 'session_id', None) or ''
-            )
-            if response and response.get('status') == 'success':
-                models = response.get('models', [])
-                if models:
-                    tags = [m.get('name', '') for m in models if m.get('name')]
-                    if tags:
-                        current = self._model_tag_combo.currentText()
-                        self._model_tag_combo.clear()
-                        self._model_tag_combo.addItems(tags)
-                        if current in tags:
-                            self._model_tag_combo.setCurrentText(current)
-                        self._model_tags_loaded = True
-                        return
-        except Exception:
-            pass
+    def _update_inference_mode_indicator(self):
+        """更新本地/云端推理模式指示器"""
+        if self.inference_manager and self.inference_manager.is_local_available():
+            self._local_inference_label.setText("LOCAL")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: #00ffa2;
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(0, 255, 162, 0.40);
+                    border-radius: 3px;
+                    margin-left: 8px;
+                }
+            """)
+        else:
+            self._local_inference_label.setText("CLOUD")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: rgba(144, 144, 168, 0.50);
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(144, 144, 168, 0.15);
+                    border-radius: 3px;
+                    margin-left: 8px;
+                }
+            """)
 
     def _execute_selected_flows(self):
         selected = [fid for fid, cb in self._flow_checkboxes.items() if cb.isChecked()]
@@ -279,20 +256,49 @@ class StandardReasoningPage(QWidget):
         self._execute_btn.setEnabled(False)
         self._exec_stop_btn.setEnabled(True)
         self._flow_status.setText("RUNNING")
-        for flow_id in selected:
-            if not self._exec_stop_btn.isEnabled():
-                break
-            self._log(f"[{flow_id}] Starting...")
-            result = self.agent_executor.send_instruction(f"Execute standard flow: {flow_id}")
-            if result.get("status") == "success":
-                self._log(f"[{flow_id}] Completed")
-            else:
-                self._log(f"[{flow_id}] Failed: {result.get('message', 'Unknown')}")
+
+        class FlowExecutionThread(QThread):
+            flow_completed = pyqtSignal(str, bool, str)
+            all_done = pyqtSignal()
+
+            def __init__(self, agent_executor, flow_ids, stop_flag_ref):
+                super().__init__()
+                self.agent_executor = agent_executor
+                self.flow_ids = flow_ids
+                self._stop_flag = stop_flag_ref
+
+            def run(self):
+                for flow_id in self.flow_ids:
+                    if self._stop_flag[0]:
+                        self.flow_completed.emit(flow_id, False, "Stopped by user")
+                        break
+                    try:
+                        result = self.agent_executor.send_instruction(f"Execute standard flow: {flow_id}")
+                        if result.get("status") == "success":
+                            self.flow_completed.emit(flow_id, True, "Completed")
+                        else:
+                            self.flow_completed.emit(flow_id, False, result.get('message', 'Unknown'))
+                    except Exception as e:
+                        self.flow_completed.emit(flow_id, False, str(e))
+                self.all_done.emit()
+
+        self._flow_stop_flag = [False]
+        self._flow_thread = FlowExecutionThread(self.agent_executor, selected, self._flow_stop_flag)
+        self._flow_thread.flow_completed.connect(self._on_flow_completed)
+        self._flow_thread.all_done.connect(self._on_all_flows_done)
+        self._flow_thread.start()
+
+    def _on_flow_completed(self, flow_id: str, success: bool, message: str):
+        status = "OK" if success else "FAIL"
+        self._log(f"[{flow_id}] {status}: {message}")
+
+    def _on_all_flows_done(self):
         self._execute_btn.setEnabled(True)
         self._exec_stop_btn.setEnabled(False)
         self._flow_status.setText("All flows completed.")
 
     def _stop_execution(self):
+        self._flow_stop_flag[0] = True
         self._exec_stop_btn.setEnabled(False)
         self._log("Execution stopped by user.")
 
@@ -312,6 +318,3 @@ class StandardReasoningPage(QWidget):
 
     def set_touch_executor(self, touch_executor):
         self.touch_executor = touch_executor
-
-    def get_model_tag(self) -> str:
-        return self._selected_model_tag

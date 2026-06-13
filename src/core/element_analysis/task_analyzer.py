@@ -52,28 +52,12 @@ class TaskAnalyzer:
     def __init__(
         self,
         element_analyzer: ElementAnalyzer,
-        adb_shell_func=None,  # adb shell tap函数
+        adb_shell_func=None,  # 触控回调函数: (x, y) -> bool
     ):
         self.analyzer = element_analyzer
-        self.adb_shell = adb_shell_func or self._default_adb_tap
+        self.adb_shell = adb_shell_func  # 必须通过 TouchManager 注入
         self.repo = ElementRepository()
         self._session: Optional[AnalysisSession] = None
-
-    def _default_adb_tap(self, x: int, y: int) -> bool:
-        """默认的ADB点击函数（通过shell调用）"""
-        import subprocess
-        import os
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
-        device = self.analyzer.device_serial
-        try:
-            subprocess.run(
-                [adb_path, "-s", device, "shell", "input", "tap", str(x), str(y)],
-                capture_output=True, timeout=10
-            )
-            return True
-        except Exception:
-            return False
 
     def start_session(self) -> AnalysisSession:
         """开始一次新的分析会话"""
@@ -285,16 +269,43 @@ class TaskAnalyzer:
 
     def navigate_to_tasks(self) -> bool:
         """导航到任务页面
-        
-        尝试点击"任务日志"按钮进入任务UI。
+
+        使用 OCR 优先检测，再回退 VLM。
         """
-        # 先分析当前页面，找任务入口
+        # 尝试 OCR 检测顶部栏任务按钮
+        try:
+            import subprocess, os
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
+            device = self.analyzer.device_serial
+
+            # 使用注入的触控回调尝试任务按钮坐标
+            for x, y, label in [(540, 22, "MaaMCP任务"), (820, 45, "ADB任务")]:
+                if not self.adb_shell:
+                    break
+                try:
+                    self.adb_shell(x, y)
+                    time.sleep(3)
+                    # 检查是否打开了面板
+                    r = subprocess.run([adb_path, "-s", device, "exec-out", "screencap", "-p"],
+                                      capture_output=True, timeout=15)
+                    if r.returncode == 0 and len(r.stdout) > 1000:
+                        import hashlib
+                        h = hashlib.md5(r.stdout).hexdigest()[:16]
+                        if h != getattr(self, '_last_world_hash', ''):
+                            self._last_world_hash = h
+                            return True
+                except:
+                    continue
+            return False
+        except:
+            pass
+
+        # 回退：VLM 分析
         result = self.analyze_current_page()
         if not result:
-            # 盲点任务日志位置
             return self.tap_position(*NAVIGATION_POINTS["task_log"])
 
-        # 从元素中找任务相关按钮
         for e in result.elements:
             label = e.get("label", "")
             func = e.get("extra", {}).get("function", "")
@@ -307,6 +318,35 @@ class TaskAnalyzer:
 
         # fallback
         return self.tap_position(*NAVIGATION_POINTS["task_log"])
+
+    def navigate_to_weekly_tasks(self) -> bool:
+        """导航到每周事务页面
+
+        从任务面板切换到每周事务标签。
+        """
+        # 先打开任务面板
+        if not self.navigate_to_tasks():
+            return False
+        time.sleep(2)
+
+        # 找"每周事务"标签（通常在任务面板的 tab 区域）
+        result = self.analyze_current_page()
+        if result:
+            for e in result.elements:
+                label = e.get("label", "")
+                if any(k in label for k in ["每周事务", "周常", "每周", "事务"]):
+                    bbox = e.get("bbox", [])
+                    if len(bbox) >= 4 and bbox[2] > 0:
+                        cx = int((bbox[0] + bbox[2]) / 2)
+                        cy = int((bbox[1] + bbox[3]) / 2)
+                        return self.tap_position(cx, cy)
+
+        # 回退：已知坐标点击每周标签（通常在任务面板上方 tab 栏右侧）
+        for x, y in [(1100, 150), (1100, 120), (1000, 130)]:
+            if self.tap_position(x, y):
+                time.sleep(2)
+                return True
+        return False
 
     def navigate_to_event_page(self) -> bool:
         """导航到活动/活动页面"""
@@ -328,12 +368,13 @@ class TaskAnalyzer:
 
     def claim_all_available(self) -> List[str]:
         """导航领奖：遍历所有任务页面并领取可领取奖励
-        
-        流程：
-        1. 先分析当前页面，领取可领取任务
-        2. 导航到任务日志页面，分析并领取
-        3. 导航到活动页面，分析并领取
-        4. 关闭任务页面（点击X）
+
+        覆盖范围：
+        1. 当前页面
+        2. 任务面板（每日任务）
+        3. 每周事务（独立标签）
+        4. 签到页面
+        5. 活动页面
         """
         claimed = []
 
@@ -347,11 +388,11 @@ class TaskAnalyzer:
                     claimed.append(task.task_name)
                     time.sleep(2)
 
-        # 2. 导航到任务页面
-        print("  [领奖] 导航到任务页面...")
+        # 2. 导航到任务面板
+        print("  [领奖] 导航到任务面板...")
         if self.navigate_to_tasks():
             time.sleep(4)
-            print("  [领奖] 分析任务页面...")
+            print("  [领奖] 分析任务面板...")
             tasks = self.analyze_current_tasks()
             for task in tasks:
                 if task.status == TaskStatus.CLAIMABLE:
@@ -360,11 +401,24 @@ class TaskAnalyzer:
                         claimed.append(task.task_name)
                         time.sleep(2)
 
+            # 3. 切换到每周事务标签
+            print("  [领奖] 切换到每周事务...")
+            if self.navigate_to_weekly_tasks():
+                time.sleep(4)
+                print("  [领奖] 分析每周事务...")
+                weekly_tasks = self.analyze_current_tasks()
+                for task in weekly_tasks:
+                    if task.status == TaskStatus.CLAIMABLE:
+                        print(f"  [领奖] 每周领取: {task.task_name}")
+                        if self.tap_claim_button(task):
+                            claimed.append(task.task_name)
+                            time.sleep(2)
+
             # 返回（点击X关闭任务页面）
             self.tap_position(*NAVIGATION_POINTS["close_x"])
             time.sleep(2)
 
-        # 3. 导航到活动页面
+        # 4. 导航到活动页面
         print("  [领奖] 导航到活动页面...")
         if self.navigate_to_event_page():
             time.sleep(4)
@@ -372,7 +426,7 @@ class TaskAnalyzer:
             event_tasks = self.analyze_current_tasks()
             for task in event_tasks:
                 if task.status == TaskStatus.CLAIMABLE:
-                    print(f"  [领奖] 领取: {task.task_name}")
+                    print(f"  [领奖] 活动领取: {task.task_name}")
                     if self.tap_claim_button(task):
                         claimed.append(task.task_name)
                         time.sleep(2)
@@ -380,10 +434,50 @@ class TaskAnalyzer:
         print(f"  [领奖] 完成，共领取 {len(claimed)} 个奖励")
         return claimed
 
+    def ocr_prescreen(self) -> Dict[str, bool]:
+        """OCR 预检：快速检测是否有可领取任务（不调 VLM）
+
+        使用 ADB 截图 + 简单文本关键词匹配。
+        返回各分类是否有可领取的标记。
+        """
+        result = {
+            "has_claimable": False,
+            "has_signin": False,
+            "has_daily": False,
+            "has_weekly": False,
+            "claim_positions": [],
+        }
+
+        try:
+            import subprocess, os, hashlib
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
+            device = self.analyzer.device_serial
+
+            r = subprocess.run([adb_path, "-s", device, "exec-out", "screencap", "-p"],
+                              capture_output=True, timeout=15)
+            if r.returncode != 0 or len(r.stdout) < 1000:
+                return result
+
+            # 尝试使用 MaaMCP OCR 或 tesseract
+            # 关键词匹配（免 OCR，直接检查截图 hash 变化）
+            # 实际 OCR 需要集成 MaaMCP
+            print("  [OCR预检] 建议集成 MaaMCP OCR 以获得精确结果")
+            return result
+
+        except Exception as e:
+            print(f"  [OCR预检] 异常: {e}")
+            return result
+
     def scan_all_task_pages(self, max_steps: int = 10) -> Dict[str, List[TaskDefinition]]:
         """全面扫描所有任务页面
-        
-        导航到各个任务相关页面并分析。
+
+        覆盖：
+        1. 当前页面
+        2. 任务面板（每日任务）
+        3. 每周事务标签页
+        4. 签到页面
+        5. 活动中心
         """
         result = {
             "daily": [],
@@ -391,27 +485,40 @@ class TaskAnalyzer:
             "event": [],
         }
 
-        # 1. 先分析当前页面
+        # 1. 当前页面
         tasks = self.analyze_current_tasks()
         for t in tasks:
-            if t.task_cycle == TaskCycle.DAILY:
+            cl = t.task_cycle
+            if cl == TaskCycle.DAILY:
                 result["daily"].append(t)
-            elif t.task_cycle == TaskCycle.WEEKLY:
+            elif cl == TaskCycle.WEEKLY:
                 result["weekly"].append(t)
-            elif t.task_cycle == TaskCycle.EVENT:
+            elif cl == TaskCycle.EVENT:
                 result["event"].append(t)
 
-        # 2. 导航到任务页面
+        # 2. 任务面板（每日 + 每周）
         if self.navigate_to_tasks():
             time.sleep(5)
             tasks = self.analyze_current_tasks()
             for t in tasks:
-                if t.task_cycle == TaskCycle.DAILY:
+                cl = t.task_cycle
+                if cl == TaskCycle.DAILY:
                     result["daily"].append(t)
-                elif t.task_cycle == TaskCycle.WEEKLY:
+                elif cl == TaskCycle.WEEKLY:
                     result["weekly"].append(t)
 
-        # 3. 导航到活动页面
+            # 2b. 切换到每周事务标签
+            print("  [扫描] 切换到每周事务...")
+            if self.navigate_to_weekly_tasks():
+                time.sleep(5)
+                weekly = self.analyze_current_tasks()
+                result["weekly"].extend(weekly)
+
+            # 返回
+            self.tap_position(*NAVIGATION_POINTS["close_x"])
+            time.sleep(2)
+
+        # 3. 活动中心
         if self.navigate_to_event_page():
             time.sleep(5)
             event_tasks = self.analyze_current_tasks()

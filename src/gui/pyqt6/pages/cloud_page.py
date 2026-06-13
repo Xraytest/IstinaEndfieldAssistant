@@ -92,7 +92,7 @@ class CloudPage(QWidget):
         try:
             with open(path, 'r') as f:
                 return json.load(f)
-        except:
+        except Exception:
             return {}
 
     def _save_tag_config(self, data: dict):
@@ -100,7 +100,7 @@ class CloudPage(QWidget):
         try:
             with open(path, 'w') as f:
                 json.dump(data, f, indent=2)
-        except:
+        except Exception:
             pass
 
     def _setup_ui(self):

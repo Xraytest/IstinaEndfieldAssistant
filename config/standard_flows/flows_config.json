@@ -1,0 +1,538 @@
+{
+  "version": "4.0",
+  "_note": "2026-06-11 坐标验证后重构。✓=world验证有效 ?=面板内未验证 →=需通过菜单间接到达",
+  "variables": {
+    "nav_coords": {
+      "_comment": "ADB原生1080x1920物理坐标 (MaaFw 1280x720 x1.5)",
+      "quest_icon": [
+        860,
+        80
+      ],
+      "_quest_icon_note": "✓ ADB tap 扫描最佳 (860,80) 59.9% — 棋盘格：y=40/60/80 有效，y=50/70 无效",
+      "event_icon": [
+        928,
+        53
+      ],
+      "_event_icon_note": "✓ MID 352K — 从world打开活动面板",
+      "menu_icon": [
+        1392,
+        79
+      ],
+      "_menu_icon_note": "✓ BIG 1.72M — 从world打开系统菜单",
+      "city_map": [
+        150,
+        150
+      ],
+      "_city_map_note": "✓ MID 88K — 从world打开城市地图",
+      "industry_panel": [
+        300,
+        80
+      ],
+      "_industry_panel_note": "✓ BIG — 从world打开工业计划面板",
+      "region_building": [
+        400,
+        35
+      ],
+      "_region_building_note": "✓ BIG — 从world打开地区建设面板",
+      "industry_brief": [
+        90,
+        120
+      ],
+      "_industry_brief_note": "✓ MID 85K — 从world打开工业简报面板",
+      "claim_all": [
+        810,
+        900
+      ],
+      "_claim_note": "? 面板内通用领取按钮 (非world使用)",
+      "daily_claim": [
+        975,
+        288
+      ],
+      "_daily_note": "? 任务面板内每日领取按钮",
+      "weekly_tab": [
+        810,
+        300
+      ],
+      "_weekly_note": "? 任务面板内周常标签页",
+      "event_sub": [
+        900,
+        200
+      ],
+      "_event_note": "? 活动面板内子区域",
+      "mid_action": [
+        540,
+        400
+      ],
+      "_mid_note": "? 通用面板中部操作按钮",
+      "production_btn": [
+        540,
+        600
+      ],
+      "_prod_note": "? 基建内生产队列按钮",
+      "confirm_btn": [
+        540,
+        690
+      ],
+      "_confirm_note": "? 基建内确认按钮",
+      "confirm_dialog": [
+        810,
+        1035
+      ],
+      "_dialog_note": "? 弹窗确认按钮",
+      "base_entry_menu": [
+        960,
+        400
+      ],
+      "_base_menu_note": "→ 菜单内基建入口 (待验证, 基于金色元素估计)",
+      "char_entry_menu": [
+        1200,
+        330
+      ],
+      "_char_menu_note": "→ 菜单内角色入口 (待验证, 基于金色元素估计)",
+      "back_btn": [
+        90,
+        120
+      ],
+      "_back_note": "备用: 打开工业简报面板",
+      "exit_cancel": [
+        600,
+        750
+      ],
+      "_exit_cancel_note": "退出对话框取消按钮 (估计)"
+    },
+    "pages": {
+      "world_map": "world_map",
+      "main_menu": "main_menu",
+      "quest_ui": "quest_ui",
+      "base_industry": "base_industry",
+      "character": "character",
+      "explore": "explore",
+      "loading": "loading",
+      "exit_dialog": "exit_dialog",
+      "delivery": "delivery",
+      "dungeon": "dungeon"
+    }
+  },
+  "flows": {
+    "daily_quest": {
+      "enabled": true,
+      "description": "完成每日任务并领取奖励",
+      "_status": "添加 exit_dialog 检查和关闭步骤",
+      "steps": [
+        {
+          "id": "check_exit_dialog",
+          "action": "check",
+          "desc": "检查是否有退出对话框"
+        },
+        {
+          "id": "close_exit_dialog",
+          "action": "tap",
+          "coords": "{{nav_coords.exit_cancel}}",
+          "wait": 2,
+          "desc": "点击取消关闭退出对话框"
+        },
+        {
+          "id": "verify_world",
+          "action": "check",
+          "expect": "world",
+          "desc": "验证已进入世界"
+        },
+        {
+          "id": "open_quest",
+          "action": "tap",
+          "coords": "{{nav_coords.quest_icon}}",
+          "wait": 5,
+          "expect": "quest_panel",
+          "desc": "点击任务图标 (860,80)"
+        },
+        {
+          "id": "wait_stabilize",
+          "action": "wait",
+          "wait": 2,
+          "desc": "等待界面稳定"
+        },
+        {
+          "id": "check_daily",
+          "action": "check",
+          "desc": "检查每日任务状态"
+        },
+        {
+          "id": "claim_daily",
+          "action": "tap",
+          "coords": "{{nav_coords.daily_claim}}",
+          "wait": 3,
+          "desc": "点击领取按钮 (975,288)"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "wait": 3,
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "weekly_quest": {
+      "enabled": true,
+      "description": "完成周常任务并领取奖励",
+      "_status": "quest_icon已验证; weekly_tab面板内待确认",
+      "steps": [
+        {
+          "id": "open_quest",
+          "action": "tap",
+          "coords": "{{nav_coords.quest_icon}}",
+          "wait": 3,
+          "desc": "点击任务图标 (855,33) ✓"
+        },
+        {
+          "id": "switch_weekly",
+          "action": "tap",
+          "coords": "{{nav_coords.weekly_tab}}",
+          "wait": 2,
+          "desc": "周常标签页 (810,300) ?面板内"
+        },
+        {
+          "id": "check_weekly",
+          "action": "check",
+          "desc": "检查周常任务"
+        },
+        {
+          "id": "claim_weekly",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "一键领取"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "resource_collection": {
+      "enabled": true,
+      "description": "从基建收集资源 (通过菜单→基建)",
+      "_status": "menu_icon已验证; base_entry_menu待验证",
+      "steps": [
+        {
+          "id": "open_menu",
+          "action": "tap",
+          "coords": "{{nav_coords.menu_icon}}",
+          "wait": 3,
+          "desc": "打开系统菜单 (1392,79) ✓"
+        },
+        {
+          "id": "enter_base",
+          "action": "tap",
+          "coords": "{{nav_coords.base_entry_menu}}",
+          "wait": 3,
+          "desc": "点击基建入口 (960,400) →待验证"
+        },
+        {
+          "id": "check_production",
+          "action": "check",
+          "desc": "检查生产队列"
+        },
+        {
+          "id": "collect_resources",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "收集完成的资源"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "wait": 2,
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "base_management": {
+      "enabled": true,
+      "description": "管理基建设施和生产 (通过菜单→基建)",
+      "_status": "menu_icon已验证; base_entry_menu/production_btn待验证",
+      "steps": [
+        {
+          "id": "open_menu",
+          "action": "tap",
+          "coords": "{{nav_coords.menu_icon}}",
+          "wait": 3,
+          "desc": "打开系统菜单 (1392,79) ✓"
+        },
+        {
+          "id": "enter_base",
+          "action": "tap",
+          "coords": "{{nav_coords.base_entry_menu}}",
+          "wait": 3,
+          "desc": "点击基建入口 (960,400) →待验证"
+        },
+        {
+          "id": "check_facilities",
+          "action": "check",
+          "desc": "检查设施状态"
+        },
+        {
+          "id": "restart_queue",
+          "action": "tap",
+          "coords": "{{nav_coords.production_btn}}",
+          "wait": 2,
+          "desc": "重启生产队列 (540,600) ?面板内"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "character_ascension": {
+      "enabled": true,
+      "description": "角色突破 (通过菜单→角色)",
+      "_status": "menu_icon已验证; char_entry_menu待验证",
+      "steps": [
+        {
+          "id": "open_menu",
+          "action": "tap",
+          "coords": "{{nav_coords.menu_icon}}",
+          "wait": 3,
+          "desc": "打开系统菜单 (1392,79) ✓"
+        },
+        {
+          "id": "enter_character",
+          "action": "tap",
+          "coords": "{{nav_coords.char_entry_menu}}",
+          "wait": 3,
+          "desc": "点击角色入口 (1200,330) →待验证"
+        },
+        {
+          "id": "find_candidate",
+          "action": "check",
+          "desc": "查找可突破角色"
+        },
+        {
+          "id": "perform_ascension",
+          "action": "tap",
+          "coords": "{{nav_coords.mid_action}}",
+          "wait": 2,
+          "desc": "执行突破 (540,400) ?面板内"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "weapon_crafting": {
+      "enabled": true,
+      "description": "锻造武器 (通过菜单→基建→工坊)",
+      "_status": "menu_icon已验证; 菜单内坐标待验证",
+      "steps": [
+        {
+          "id": "open_menu",
+          "action": "tap",
+          "coords": "{{nav_coords.menu_icon}}",
+          "wait": 3,
+          "desc": "打开系统菜单 (1392,79) ✓"
+        },
+        {
+          "id": "enter_base",
+          "action": "tap",
+          "coords": "{{nav_coords.base_entry_menu}}",
+          "wait": 3,
+          "desc": "点击基建入口 (960,400) →待验证"
+        },
+        {
+          "id": "open_workshop",
+          "action": "tap",
+          "coords": "{{nav_coords.mid_action}}",
+          "wait": 2,
+          "desc": "打开工坊 (540,400) ?面板内"
+        },
+        {
+          "id": "craft",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "开始锻造"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "event_rewards": {
+      "enabled": true,
+      "description": "领取活动奖励",
+      "_status": "event_icon已验证 (928,53); event_sub面板内待确认",
+      "steps": [
+        {
+          "id": "open_events",
+          "action": "tap",
+          "coords": "{{nav_coords.event_icon}}",
+          "wait": 2,
+          "desc": "点击活动图标 (928,53) ✓"
+        },
+        {
+          "id": "navigate_event_panel",
+          "action": "tap",
+          "coords": "{{nav_coords.event_sub}}",
+          "wait": 2,
+          "desc": "活动面板子区域 (900,200) ?面板内"
+        },
+        {
+          "id": "claim_events",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "一键领取活动奖励"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "delivery_mission": {
+      "enabled": true,
+      "description": "执行送货/物流任务 (通过菜单→基建)",
+      "_status": "menu_icon已验证; 菜单内坐标待验证",
+      "steps": [
+        {
+          "id": "open_menu",
+          "action": "tap",
+          "coords": "{{nav_coords.menu_icon}}",
+          "wait": 3,
+          "desc": "打开系统菜单 (1392,79) ✓"
+        },
+        {
+          "id": "enter_base",
+          "action": "tap",
+          "coords": "{{nav_coords.base_entry_menu}}",
+          "wait": 3,
+          "desc": "点击基建入口 (960,400) →待验证"
+        },
+        {
+          "id": "check_delivery",
+          "action": "check",
+          "desc": "检查送货/物流选项"
+        },
+        {
+          "id": "select_delivery",
+          "action": "tap",
+          "coords": "{{nav_coords.production_btn}}",
+          "wait": 2,
+          "desc": "选择送货任务 (540,600) ?面板内"
+        },
+        {
+          "id": "confirm_delivery",
+          "action": "tap",
+          "coords": "{{nav_coords.confirm_btn}}",
+          "wait": 2,
+          "desc": "确认执行 (540,690) ?面板内"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "dungeon_grinding": {
+      "enabled": true,
+      "description": "自动刷副本/关卡 (通过城市地图)",
+      "_status": "city_map已验证 (150,150); 地图内坐标待验证",
+      "steps": [
+        {
+          "id": "open_map",
+          "action": "tap",
+          "coords": "{{nav_coords.city_map}}",
+          "wait": 3,
+          "desc": "打开城市地图 (150,150) ✓"
+        },
+        {
+          "id": "check_stages",
+          "action": "check",
+          "desc": "检查可用关卡节点"
+        },
+        {
+          "id": "select_stage",
+          "action": "tap",
+          "coords": "{{nav_coords.mid_action}}",
+          "wait": 2,
+          "desc": "选择关卡节点 (540,400) ?地图内"
+        },
+        {
+          "id": "start_battle",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "开始作战"
+        },
+        {
+          "id": "collect_rewards",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "领取结算奖励"
+        },
+        {
+          "id": "return_world",
+          "action": "back",
+          "desc": "返回探索界面"
+        }
+      ]
+    },
+    "auto_move": {
+      "enabled": true,
+      "description": "3D角色移动测试",
+      "_status": "swipe动作, 无需坐标验证",
+      "steps": [
+        {
+          "id": "ensure_world",
+          "action": "navigate",
+          "target": "explore",
+          "wait": 2,
+          "desc": "确保在探索界面 (回退到city_map 150,150)"
+        },
+        {
+          "id": "move_forward",
+          "action": "swipe",
+          "start": [200, 1700],
+          "end": [200, 1400],
+          "duration": 2000,
+          "desc": "向前移动2秒"
+        },
+        {
+          "id": "long_press_interact",
+          "action": "long_press",
+          "coords": [540, 960],
+          "duration": 1500,
+          "desc": "长按交互"
+        },
+        {
+          "id": "check_position",
+          "action": "check",
+          "desc": "检查位置是否改变"
+        },
+        {
+          "id": "return_world",
+          "action": "navigate",
+          "target": "explore",
+          "wait": 2,
+          "desc": "返回探索界面"
+        }
+      ]
+    }
+  },
+  "execution": {
+    "default_temperature": 0.3,
+    "max_retries": 3,
+    "_verification_todo": [
+      "TODO: 运行 verify_menu_entries.py 验证菜单内 base/character 精确坐标",
+      "TODO: 确认 daily_claim (975,288) 在任务面板内有效",
+      "TODO: 确认 weekly_tab (810,300) 在任务面板内有效",
+      "TODO: 确认 claim_all (810,900) 在各面板内有效",
+      "TODO: 菜单内 base_entry_menu 当前用 (960,400) 估计值, 需精确验证",
+      "TODO: 菜单内 char_entry_menu 当前用 (1200,330) 估计值, 需精确验证"
+    ]
+  }
+}

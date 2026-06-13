@@ -88,12 +88,13 @@ class IeaPage(QWidget):
 
     refresh_requested = pyqtSignal()
 
-    def __init__(self, communicator=None, agent_executor=None, parent=None, screen_capture=None, touch_executor=None):
+    def __init__(self, communicator=None, agent_executor=None, parent=None, screen_capture=None, touch_executor=None, device_manager=None):
         super().__init__(parent)
         self.communicator = communicator
         self.agent_executor = agent_executor
         self.screen_capture = screen_capture
         self.touch_executor = touch_executor
+        self.device_manager = device_manager
         self._fetch_threads: List[IeaFetchThread] = []
         self._server_status = "unknown"
         self._state_templates = {}
@@ -276,10 +277,6 @@ class IeaPage(QWidget):
         scroll_layout.addStretch()
         scroll.setWidget(scroll_content)
         layout.addWidget(scroll, 1)
-        scroll.setWidget(scroll_content)
-        layout.addWidget(scroll, 1)
-        scroll.setWidget(scroll_content)
-        layout.addWidget(scroll, 1)
 
     def _make_card(self, title: str) -> QGroupBox:
         group = QGroupBox()
@@ -437,12 +434,12 @@ class IeaPage(QWidget):
 
         from core.cloud.exploration_engine import ExplorationEngine, ExplorationConfig
 
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
         cache_dir = os.path.join(project_root, "cache")
         os.makedirs(cache_dir, exist_ok=True)
 
         config = ExplorationConfig(
-            device_serial="127.0.0.1:16512",
+            device_serial=self._get_device_serial(),
             verification_passes=self._verify_spin.value(),
             max_depth=self._depth_spin.value(),
             output_file=os.path.join(cache_dir, "game_map.md"),
@@ -530,3 +527,14 @@ class IeaPage(QWidget):
         import datetime
         ts = datetime.datetime.now().strftime("%H:%M:%S")
         self._explore_log.append(f"[{ts}] {text}")
+
+    def _get_device_serial(self) -> str:
+        if self.agent_executor:
+            serial = getattr(self.agent_executor, 'device_serial', None)
+            if serial:
+                return serial
+        if self.device_manager:
+            serial = self.device_manager.get_last_connected_device()
+            if serial:
+                return serial
+        return "localhost:16512"

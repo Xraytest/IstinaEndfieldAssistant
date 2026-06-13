@@ -10,9 +10,11 @@ sys.stdout.reconfigure(line_buffering=True)
 
 # Add src directory to Python path
 # __file__ = src/gui/pyqt6/main.py
-# dirname 4 times to get project root, then join with src
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-src_dir = os.path.join(project_root, "src")
+# dirname 5 times to get IstinaAI project root (one level above IstinaEndfieldAssistant)
+# dirname 4 times to get IstinaEndfieldAssistant project root (for src dir)
+iea_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+project_root = os.path.dirname(iea_root)  # IstinaAI root
+src_dir = os.path.join(iea_root, "src")  # IstinaEndfieldAssistant/src
 if src_dir not in sys.path:
     sys.path.insert(0, src_dir)
 
@@ -29,19 +31,27 @@ from core.cloud.managers.device_manager import DeviceManager
 
 print("[导入] 所有依赖模块导入成功")
 
+# 打印项目根目录用于调试
+print(f"[启动] 项目根目录：{project_root}")
+
 
 def load_config(config_file: str) -> dict:
-    """Load configuration file"""
+    """Load configuration file from project root only."""
+    # 统一使用项目根目录作为配置文件唯一位置
     config_path = os.path.join(project_root, config_file)
     if os.path.exists(config_path):
-        with open(config_path, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    else:
-        # Return default configuration
-        return {
+        try:
+            with open(config_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"[警告] 配置文件读取失败：{config_path}, 错误：{e}")
+            print("[提示] 将使用默认配置")
+    # 配置文件不存在或读取失败时返回默认配置
+    # 默认配置包含所有必需字段，确保配置完整性
+    return {
             "server": {"host": "127.0.0.1", "port": 9999},
-            "adb": {"path": "3rd-party/adb/adb.exe", "timeout": 10},
-            "git": {"path": "3rd-party/git/bin/git.exe"},
+            "adb": {"path": "IstinaEndfieldAssistant/3rd-party/adb/adb.exe", "timeout": 10},
+            "git": {"path": "IstinaEndfieldAssistant/3rd-party/git/bin/git.exe"},
             "screen": {"use_original_resolution": True},
             "touch": {
                 "maa_style": {
@@ -65,11 +75,15 @@ def load_config(config_file: str) -> dict:
                 "local": {"enabled": False, "model_name": "", "gpu_layers": -1}
             },
             "first_run": {
-                "local_inference_prompt_shown": False
+                "local_inference_prompt_shown": False,
+                "user_choice": "cloud"
             },
             "security": {
                 "enable_safe_press": True,
                 "enable_jitter": True
+            },
+            "system": {
+                "minimize_to_tray": False
             },
             "rendering": {
                 "hardware_acceleration": True,
@@ -101,10 +115,10 @@ def main():
     
     try:
         # 初始化核心功能模块
-        
-        # ADB 路径
-        adb_path = os.path.join(project_root, config['adb']['path'])
-        
+
+        # ADB 路径 - 使用 normpath 处理混合路径分隔符
+        adb_path = os.path.normpath(os.path.join(project_root, config['adb']['path']))
+
         if not os.path.exists(adb_path):
             logger.error(LogCategory.MAIN, f"ADB 可执行文件不存在: {adb_path}")
             print(f"[错误] ADB 可执行文件不存在: {adb_path}")
@@ -133,7 +147,18 @@ def main():
             password=config.get('communication', {}).get('password', 'default_password'),
             timeout=300
         )
-        
+
+        # 初始化推理管理器（端侧优先）
+        logger.debug(LogCategory.MAIN, "初始化推理管理器")
+        from core.local_inference.inference_manager import InferenceManager
+        inference_manager = InferenceManager(
+            config=config,
+            communicator=communicator,
+            models_dir=os.path.join(project_root, "models")
+        )
+        logger.info(LogCategory.MAIN, "推理管理器初始化完成",
+                   local_available=inference_manager.is_local_available())
+
         # 初始化业务逻辑组件
         logger.debug(LogCategory.MAIN, "初始化认证管理模块")
         auth_manager = AuthManager(communicator, config)
@@ -167,9 +192,10 @@ def main():
             communicator=communicator,
             screen_capture=screen_capture,
             touch_executor=touch_executor,
-            config=config
+            config=config,
+            inference_manager=inference_manager
         )
-        
+
         print(f"[主进程] 调用 run_application() - 窗口即将显示...")
         exit_code = run_application(
             auth_manager=auth_manager,
@@ -178,7 +204,8 @@ def main():
             communicator=communicator,
             screen_capture=screen_capture,
             touch_executor=touch_executor,
-            config=config
+            config=config,
+            inference_manager=inference_manager
         )
         
         logger.info(LogCategory.MAIN, f"应用程序退出，退出码: {exit_code}")

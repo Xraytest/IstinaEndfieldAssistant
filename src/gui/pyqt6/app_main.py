@@ -3,6 +3,100 @@ PyQt6 application entry - simplified for agent mode
 """
 import sys
 import os
+import ctypes
+
+
+def _set_dark_title_bar(window):
+    """Set Windows 10/11 title bar to dark mode via DWM API."""
+    if sys.platform != "win32":
+        return
+    try:
+        hwnd = int(window.winId())
+        # DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Windows 10 20H1+) / 19 (Win11 pre-22H2)
+        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        ctypes.windll.dwmapi.DwmSetWindowAttribute(
+            hwnd,
+            DWMWA_USE_IMMERSIVE_DARK_MODE,
+            ctypes.byref(ctypes.c_int(1)),
+            ctypes.sizeof(ctypes.c_int),
+        )
+    except Exception:
+        pass
+
+
+def _enable_windows_dark_mode():
+    """Enable dark mode for all app dialogs via uxtheme (Windows 10 1809+)."""
+    if sys.platform != "win32":
+        return
+    try:
+        # SetPreferredAppMode(AllowDark) — ordinal 135 in uxtheme.dll
+        ALLOW_DARK = 1
+        ctypes.windll.uxtheme.SetPreferredAppMode(ALLOW_DARK)
+        ctypes.windll.uxtheme.FlushMenuThemes()
+    except Exception:
+        pass
+    try:
+        # AllowDarkModeForWindow for the app itself (ordinal 133)
+        ctypes.windll.uxtheme.AllowDarkModeForWindow = ctypes.windll.uxtheme[133]
+        ctypes.windll.uxtheme.AllowDarkModeForWindow.restype = ctypes.c_int
+        ctypes.windll.uxtheme.AllowDarkModeForWindow.argtypes = [ctypes.c_int, ctypes.c_int]
+    except Exception:
+        pass
+
+
+def _install_dark_title_bar_hook(app):
+    """Install event filter to auto-darken every top-level dialog title bar and
+    defensively convert unparented top-level dialogs to TOOL windows to avoid
+    stray taskbar entries.
+    """
+    if sys.platform != "win32":
+        return
+    try:
+        from PyQt6.QtCore import QObject, QEvent, Qt
+
+        class DarkTitleBarFilter(QObject):
+            def eventFilter(self, obj, event):
+                if event.type() == QEvent.Type.Show:
+                    # Apply dark title bar and defensive TOOL conversion for unparented dialogs
+                    try:
+                        if hasattr(obj, 'isWindow') and obj.isWindow():
+                            try:
+                                _set_dark_title_bar(obj)
+                            except Exception:
+                                pass
+
+                            try:
+                                has_parent = False
+                                try:
+                                    has_parent = obj.parent() is not None
+                                except Exception:
+                                    has_parent = False
+                                cls_name = type(obj).__name__ if obj is not None else ''
+                                title = ''
+                                try:
+                                    title = obj.windowTitle() or ''
+                                except Exception:
+                                    title = ''
+                                DIALOG_CLASSES = {'QMessageBox', 'QDialog', 'QFileDialog', 'QInputDialog', 'QColorDialog', 'QProgressDialog'}
+                                if (not has_parent) and (not title.strip() or cls_name in DIALOG_CLASSES):
+                                    try:
+                                        obj.setWindowFlag(Qt.Tool, True)
+                                        try:
+                                            obj.setWindowFlags(obj.windowFlags())
+                                        except Exception:
+                                            pass
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
+                return False
+
+        _filter = DarkTitleBarFilter(app)
+        app.installEventFilter(_filter)
+    except Exception:
+        pass
 import logging
 import json
 from typing import Optional, Dict, Any
@@ -80,9 +174,9 @@ class PyQt6Application(QApplication):
 
 
 def run_application(auth_manager=None, device_manager=None,
-                    agent_executor=None, communicator=None, 
+                    agent_executor=None, communicator=None,
                     screen_capture=None, touch_executor=None,
-                    config=None):
+                    config=None, inference_manager=None):
     """
     Run the PyQt6 application with business logic components
     
@@ -94,14 +188,50 @@ def run_application(auth_manager=None, device_manager=None,
         screen_capture: ScreenCapture instance for screenshots
         touch_executor: TouchManager instance for touch operations
         config: Configuration dictionary
+        inference_manager: InferenceManager instance for local-first inference
     """
     print("[应用主进程] 创建 QApplication...")
     app = QApplication(sys.argv)
-    
+    # 防止最后一个窗口被关闭时退出（隐藏到托盘时仍保持运行）
+    try:
+        app.setQuitOnLastWindowClosed(False)
+    except Exception:
+        pass
+
+    # 启用 Windows 暗色模式（弹窗标题栏自动变暗）
+    _enable_windows_dark_mode()
+
     # 应用主题
     print("[应用主进程] 应用主题...")
     theme = ThemeManager.get_instance()
-    app.setStyleSheet(theme.get_stylesheet())
+    app.setStyleSheet(theme.get_stylesheet() + """
+        /* 暗色弹窗 */
+        QMessageBox {
+            background-color: #0c0c14;
+            color: #e8e8ee;
+        }
+        QMessageBox QLabel {
+            color: #e8e8ee;
+            font-size: 12px;
+            font-family: Consolas;
+        }
+        QMessageBox QPushButton {
+            background-color: rgba(24, 209, 255, 0.10);
+            color: #18d1ff;
+            border: 1px solid rgba(24, 209, 255, 0.25);
+            border-radius: 2px;
+            padding: 6px 16px;
+            font-size: 11px;
+            font-family: Consolas;
+            min-width: 70px;
+        }
+        QMessageBox QPushButton:hover {
+            background-color: rgba(24, 209, 255, 0.18);
+        }
+    """)
+
+    # 自动为所有顶层窗口（含弹窗）设置暗色标题栏
+    _install_dark_title_bar_hook(app)
     
     # 创建主窗口
     print("[应用主进程] 创建主窗口...")
@@ -112,13 +242,100 @@ def run_application(auth_manager=None, device_manager=None,
         communicator=communicator,
         screen_capture=screen_capture,
         touch_executor=touch_executor,
-        config=config
+        config=config,
+        inference_manager=inference_manager
     )
-    
+
+    # 在显示窗口前创建 native hidden owner（提高 owner 稳定性）
+    try:
+        # 主窗口提供 _ensure_hidden_owner，会优先尝试 native owner
+        main_window._ensure_hidden_owner()
+    except Exception:
+        pass
+
+    # 设置变更时自动持久化到 client_config.json
+    def _save_config(updated_config):
+        """统一保存到项目根目录的配置文件"""
+        # 确定唯一配置文件路径：项目根目录
+        _f = os.path.dirname(os.path.abspath(__file__))
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_f))))
+        config_path = os.path.join(project_root, "config", "client_config.json")
+
+        try:
+            import json, tempfile
+            import os as _os
+            # 递归清理，只保留 JSON 可序列化的基本类型
+            UNSET = object()
+            def _sanitize(obj):
+                if isinstance(obj, (str, int, float, bool)) or obj is None:
+                    return obj
+                if isinstance(obj, dict):
+                    out = {}
+                    for k, v in obj.items():
+                        if not isinstance(k, str):
+                            continue
+                        sv = _sanitize(v)
+                        if sv is not UNSET:
+                            out[k] = sv
+                    return out
+                if isinstance(obj, list):
+                    arr = []
+                    for item in obj:
+                        sv = _sanitize(item)
+                        if sv is not UNSET:
+                            arr.append(sv)
+                    return arr
+                return UNSET
+
+            cleaned = _sanitize(updated_config)
+            if cleaned is UNSET:
+                cleaned = {}
+            # 确保目录存在
+            _os.makedirs(_os.path.dirname(config_path), exist_ok=True)
+            # 读取现有配置并合并，避免因序列化失败而清空配置文件
+            existing = {}
+            try:
+                if _os.path.exists(config_path):
+                    with open(config_path, 'r', encoding='utf-8') as fr:
+                        existing = json.load(fr)
+            except Exception:
+                existing = {}
+
+            def _merge(a, b):
+                for k, v in (b or {}).items():
+                    if isinstance(v, dict) and isinstance(a.get(k), dict):
+                        _merge(a[k], v)
+                    else:
+                        a[k] = v
+
+            if isinstance(cleaned, dict):
+                _merge(existing, cleaned)
+            else:
+                # If cleaned is not dict (e.g., list), replace entirely
+                existing = cleaned
+
+            # 原子写入
+            fd, tmp_path = tempfile.mkstemp(prefix="client_config_", suffix=".tmp", dir=_os.path.dirname(config_path))
+            with os.fdopen(fd, 'w', encoding='utf-8') as f:
+                json.dump(existing, f, indent=2, ensure_ascii=False)
+            _os.replace(tmp_path, config_path)
+            print(f"[配置] 已保存配置到 {config_path}")
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).exception("保存配置失败: %s", e)
+            try:
+                print(f"[配置] 保存配置失败: {e}")
+            except Exception:
+                pass
+    main_window.settings_changed.connect(_save_config)
+
     print("[应用主进程] 显示窗口...")
     main_window.show()
     main_window.raise_()
     main_window.activateWindow()
-    
+
+    # 设置 Windows 标题栏暗色模式
+    _set_dark_title_bar(main_window)
+
     print("[应用主进程] 启动事件循环...")
     return app.exec()

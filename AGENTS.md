@@ -1,23 +1,28 @@
 # IstinaEndfieldAssistant - Agent Instructions
 
-## Project Overview
-Arknights Endfield automation client with VLM-powered Agent mode. Python 3.10+, PyQt6 GUI, TCP server at `127.0.0.1:9999`.
+## Project
+Arknights Endfield automation client (Python 3.10+, PyQt6 GUI). Cloud VLM-powered Agent mode via TCP server at `127.0.0.1:9999` (external IstinaPlatform project, `start_server.bat`).
 
 ## Entrypoints
-- **GUI app**: `python src/gui/pyqt6/main.py` → `gui.pyqt6.app_main.run_application()`
-- **CLI analysis**: `python scripts/analyze_tasks.py` — daily/weekly task analysis using IstinaPlatform large model
-- **No CLI entrypoint** — scripts in `scripts/` are standalone exploration utilities, not CLI entrypoints
-- **Server** is external (IstinaPlatform project), started via `start_server.bat`
+
+| Entrypoint | Command |
+|---|---|
+| **Unified CLI** | `python scripts/istina.py <subcommand>` |
+| **GUI** | `python src/gui/pyqt6/main.py` → `app_main.run_application(...)` |
+
+CLI subcommands: `daily`, `harvest`, `analyze`, `explore`, `gpu status/monitor/recommend/cuda-check`, `system doctor/env/disk/perf`, `device status/screenshot/info/tap/swipe/keyevent/monitor`, `scene capture/nav/analyze/ocr/explore`, `config`, `auth`, `model`
+
+Scripts in `scripts/` are standalone exploration utilities, **not** all are CLI entrypoints. Only `istina.py` is the unified CLI router; others (explore_game.py, analyze_tasks.py, etc.) run independently.
 
 ## Path Setup (Critical)
-All files under `src/` must add `src/` to `sys.path`. The dirname depth varies by location:
-- `src/gui/pyqt6/*.py`: 4× `dirname()` to reach project root
-- `scripts/*.py` (project root): 2× `dirname()` 
+All files under `src/` must add `src/` to `sys.path`. Dirname depth to project root varies by location:
+- `src/gui/pyqt6/*.py`: 4× `dirname()` (deepest)
 - `src/core/cloud/managers/*.py`: 5× `dirname()` (arkpass cache path)
-- `src/core/element_analysis/*.py`: 4× `dirname()` (project root)
-- `src/device/*.py`: 2× `dirname()` (inline in adb_manager.py)
+- `src/core/element_analysis/*.py`: 4× `dirname()`
+- `scripts/*.py`: 2× `dirname()`
+- `src/device/adb_manager.py`: 2× `dirname()` (inline)
 
-Pattern for scripts:
+Always compute relative to `__file__`, not the CWD. Standard pattern:
 ```python
 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 src_dir = os.path.join(project_root, "src")
@@ -27,80 +32,68 @@ if src_dir not in sys.path:
 
 ## Architecture
 
-| Directory | Responsibility |
-|-----------|----------------|
-| `src/core/element_analysis/` | ElementAnalyzer (VLM코고정도 분석), TaskAnalyzer(每日/每周任务), ElementRepository(持久化存储), models(数据模型) |
-| `src/core/cloud/managers/` | AuthManager, DeviceManager, ExceptionDetector, LogManager |
-| `src/core/cloud/` | AgentExecutor (VLM feedback loop), ExplorationEngine, PageTree (UI page graph), RealtimeCombatController |
-| `src/core/cloud/communication/` | Cloud-side communication submodule |
-| `src/core/communication/` | ClientCommunicator — TCP client, custom binary protocol (magic `ARKS` + version + big-endian length), Fernet encryption |
-| `src/core/local_inference/` | InferenceManager, LocalInferenceEngine, RealTimeInferenceEngine, GPUChecker, ModelManager |
-| `src/core/device_state_manager.py` | ADB device lifecycle/state tracking with template matching |
-| `src/core/combat/` | **Empty** — no combat logic yet |
-| `src/core/logger.py` | LogCategory enum (MAIN, ADB, COMMUNICATION, EXECUTION, AUTHENTICATION, GUI, EXCEPTION, PERFORMANCE), requires `init_logger()` before use |
-| `src/device/adb_manager.py` | ADBDeviceManager (start-server, connect, shell, screencap) |
-| `src/device/touch/` | TouchManager, MaafwTouchAdapter, MaafwWin32Adapter |
-| `src/screenshot/` | ScreenCapture — MAA first, ADB fallback |
-| `src/gui/pyqt6/pages/` | auth_page, agent_page, cloud_page, iea_page, settings_page, standard_reasoning_page, prts_full_intelligence_page, model_manager_page |
+### Core subsystems (`src/core/`)
+- **`communication/`** — `ClientCommunicator`: TCP client, custom binary protocol (magic `ARKS` + version + big-endian length), Fernet encryption (PBKDF2-derived key from password)
+- **`element_analysis/`** — `ElementAnalyzer`, `TaskAnalyzer`, `ElementRepository`, `AnalysisSession`; VLM-based page element & task analysis
+- **`cloud/`** — `AgentExecutor` (VLM feedback loop), `ExplorationEngine`, `PageTree` (UI page graph), `RealtimeCombatController`
+- **`cloud/managers/`** — `AuthManager`, `DeviceManager`, `ExceptionDetector`, `LogManager`
+- **`local_inference/`** — `InferenceManager`, `LocalInferenceEngine`, `RealTimeInferenceEngine`, `GPUChecker`, `ModelManager`
+- **`device_state_manager.py`** — ADB device lifecycle/state tracking with template matching
+- **`logger.py`** — `LogCategory` enum (MAIN, ADB, COMMUNICATION, EXECUTION, AUTHENTICATION, GUI, EXCEPTION, PERFORMANCE); requires `init_logger()` before any `get_logger()` or log call
 
-| **Data Storage** | |
-| `data/elements/` | 持久化页面元素知识 (PageKnowledge JSON) — 从cache分离 |
-| `data/tasks/` | 任务定义与实例快照 (TaskDefinition / TaskInstance) |
-| `data/events/` | 活动信息 (EventActivity) |
-| `data/analysis/` | 分析历史记录 (AnalysisResult 按时间戳) |
+### Device layer (`src/device/`, `src/screenshot/`)
+- `adb_manager.py` — `ADBDeviceManager` (start-server, connect, shell, screencap); ADB at `3rd-party/adb/adb.exe`
+- `touch/` — `TouchManager`, `MaaFwTouchAdapter`
+- `screenshot/` — `ScreenCapture`: MAA first, ADB fallback
 
-### Key Flow
+### CLI (`src/cli/`)
+- `device_cli.py`, `gpu_cli.py`, `scenario_cli.py`, `system_cli.py` — domain modules invoked by `scripts/istina.py`
+
+### Standard Flow Engine (`scripts/standard_flow_engine.py`, `scripts/prompt_optimizer.py`)
+- Config-driven execution: `config/standard_flows/flows_config.json`
+- Variables in prompts via `{{variable.key}}` syntax
+- Default model: local qwen3.5-2b (llama-cpp-python), auto fallback to API
+
+### Data storage
+| Directory | Purpose |
+|---|---|
+| `data/elements/` | PageKnowledge JSON |
+| `data/tasks/` | TaskDefinition / TaskInstance snapshots |
+| `data/events/` | EventActivity |
+| `data/analysis/` | AnalysisResult by timestamp |
+| `cache/` | Temporary session files, arkpass files, screenshots |
+
+## Key Flow
 1. `AuthManager.login_with_arkpass()` → server `register`/`login` → session_id → `*.arkpass` cached in `cache/`
 2. `DeviceManager` → ADB scan + selection
-3. `AgentExecutor` → captures screenshot → sends `agent_chat` request (with instruction + image + history) → server returns actions (tap/swipe/wait) → executes via TouchManager
+3. `AgentExecutor` → screenshot → `agent_chat` request (instruction + image + history) → server returns actions (tap/swipe/wait) → `TouchManager`
 4. `InferenceManager` routes between `local` (llama-cpp-python, GGUF) and `cloud` modes
 
-### Element Analysis Flow
-1. `ElementAnalyzer.analyze_full_page()` → screenshot → send to IstinaPlatform VLM (large model, model_tag=`exploration_deep`) → parse JSON → `ElementKnowledge` objects
-2. `TaskAnalyzer.analyze_current_tasks()` → VLM task-focused analysis → extract `TaskDefinition` objects with status/progress/claim-button
-3. `ElementRepository` → persist to `data/elements/`, `data/tasks/`, `data/events/`, `data/analysis/` (separate from `cache/`)
-4. `scripts/analyze_tasks.py` — main entry: supports `--quick`, `--claim`, `--session`, `--device`, `--model`
-
-### Important Entrypoints
-- `gui.pyqt6.app_main.run_application(auth_manager, device_manager, agent_executor, communicator, screen_capture, touch_executor, config)` — all core dependencies passed as arguments.
-- `scripts/analyze_tasks.py` — task analysis CLI for device `localhost:16512`
-
 ## Server Protocol
-- See `command_help.md` for supported commands: `register`, `login`, `get_default_tasks`, `process_image`, `get_user_info`
+- Commands: `register`, `login`, `get_default_tasks`, `process_image`, `get_user_info` (see `command_help.md`)
 - Error types: `session_expired`, `invalid_api_key`, `quota_exceeded`, `provider_rate_limit_exceeded`
 
 ## Configuration
-- **File**: `config/client_config.json`
-- Key sections: `server` (host/port), `communication.password`, `touch.maa_style` (press_jitter_px, swipe_delay), `inference.mode` (auto/local/cloud), `inference.local`
+- `config/client_config.json` — **gitignored** (contains secrets); template at `config/client_config.example.json`
+- Config sections: `server`, `platform` (port 16512), `communication.password`, `touch.maa_style`, `inference.mode` (auto/local/cloud), `inference.local`, `vendors`
+- Logging config: `config/logging_config.json`
 
 ## Testing
-```bash
-pytest tests/              # All tests (root + unit/ subdir)
-pytest tests/unit/         # Unit tests only (27 files)
-pytest tests/test_auth.py  # Single test
-pytest tests/ -v           # Verbose
-```
-- `tests/e2e/` and `tests/integration/` exist but are **empty** — only `tests/` root and `tests/unit/` have tests
-- Test files may produce `.json`/`.txt` output alongside `.py` (e.g., `test_robustness_results.json`)
+- Tests are **gitignored** in `.gitignore` but 9 files are tracked: `tests/test_auth.py`, `tests/test_modules_import.py`, etc.
+- Tests reference old Chinese-named directories (安卓相关, 入口) that no longer exist — imports will fail
+- Tests require the server running at `127.0.0.1:9999` and `client_config.json` present
+- No `tests/unit/`, `tests/e2e/`, or `tests/integration/` subdirectories exist
 - `pyproject.toml`: `testpaths = ["tests"]`, `pythonpath = ["."]`
-
-## Scripts & Exploration
-- Scripts in `scripts/` target device `emulator-5562` and server port `9999`
-- `scripts/explore_game.py` — full autonomous UI exploration via ExplorationEngine
-- `scripts/find_tasks.py` — task-focused exploration loop
-- `scripts/navigate_to_game.py` — login → world sequence (auto-tap through dialogs)
-- `scripts/analyze_tasks.py` — daily/weekly task analysis with IstinaPlatform large model (device localhost:16512)
-- `scripts/check_env.py` — verify ADB connectivity and MaaFramework paths
-- Auth flow in scripts: hardcoded api_key `aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763` for user `explorer`, `agent_chat` endpoint not `agent_chat` (see explore_game.py)
-- `model_tag: "exploration_deep"` routes to cherryin/qwen3.5-35b-a3b
-- `system_prompt` is sent in request data (server extracts it)
 
 ## Gotchas
 - **Windows-only**: ADB at `3rd-party/adb/adb.exe`, git at `3rd-party/git/bin/git.exe`
-- **Logging**: Must call `init_logger()` before any log call (uses `LogCategory` enum)
-- **TouchManager MAA connection**: `connect_android("emulator-5562")` fails (hostname resolution); use ADB-based touch fallback instead
+- **Logging**: Must call `init_logger()` before any `get_logger()` or log call
+- **TouchManager MAA**: `connect_android("emulator-5562")` fails (hostname resolution); use ADB-based touch fallback instead
 - **Auto-logout**: Server session expires after ~1h idle; game restart required
-- **Protocol**: TCP with Fernet encryption (password-derived key via PBKDF2), not plain HTTP
-- **Tests reference old dirs**: Some test files import from old Chinese-named directories — ignore those, use `src/` imports
-- **Server must be running** (`start_server.bat` or IstinaPlatform independently) before client auth
-- **element_analysis path**: `src/core/element_analysis/*.py` uses 4× `dirname()` for project root (same as gui/pyqt6)
+- **Protocol**: TCP with Fernet encryption, not plain HTTP
+- **Server must be running** before any client auth/operation
+- **Auth in scripts**: Hardcoded api_key for user `explorer`; `system_prompt` sent in request data (server extracts it)
+- **Endpoint naming**: Server endpoint is `agent_chat` in the protocol but not named `agent_chat` in client code
+- **model_tag `exploration_deep`** routes to `cherryin/qwen3.5-35b-a3b`
+- **Two server ports**: agent server at 9999, platform server at 16512 (both in `client_config.json`)
+- **Config file gitignored**: `config/client_config.json` is in `.gitignore`; copy from `config/client_config.example.json` and fill in secrets

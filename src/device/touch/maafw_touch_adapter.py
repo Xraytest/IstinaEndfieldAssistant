@@ -41,8 +41,13 @@ class MaaFwTouchConfig:
     adb_path: str = ""
     address: str = ""
     screencap_methods: int = 0  # MaaAdbScreencapMethodEnum.Default
-    input_methods: int = 0  # MaaAdbInputMethodEnum.Default
+    input_methods: int = 3  # MaaAdbInputMethodEnum.MaaTouch (默认使用MaaTouch，完全弃用AdbShell)
     config: Dict = None
+
+    # 常用枚举值（供外部直接引用）
+    # MaaAdbScreencapMethodEnum: Default=0, AdbShell=1, RawWithGzip=2, RawByNetcat=3, EncodeToFile=4, Minicap=5
+    # MaaAdbInputMethodEnum: Default=0, MiniTouch=2, MaaTouch=3 (AdbShell=1 已弃用)
+    SCREENCAP_ADB_SHELL: int = 1
     
     # 触控参数
     press_duration_ms: int = 50
@@ -81,7 +86,8 @@ class MaaFwTouchExecutor:
         
         # 设备状态
         self._connected = False
-        self._resolution: Tuple[int, int] = (0, 0)
+        self._resolution: Tuple[int, int] = (0, 0)  # MaaFw 缩放后的分辨率
+        self._original_resolution: Tuple[int, int] = (0, 0)  # 设备原始分辨率
         self._uuid = ""
         
     def _load_library(self, lib_path: Optional[str] = None) -> bool:
@@ -207,7 +213,34 @@ class MaaFwTouchExecutor:
             
             # 获取设备信息
             self._uuid = self._controller.uuid
-            
+
+            # 查询设备原始分辨率（通过ADB获取，不受MaaFw缩放影响）
+            try:
+                import subprocess
+                result = subprocess.run(
+                    [adb_path, "-s", address, "shell", "wm", "size"],
+                    capture_output=True, text=True, timeout=5
+                )
+                if result.returncode == 0:
+                    # 输出格式: "Physical size: 1080x1920"
+                    import re
+                    match = re.search(r"(\d+)x(\d+)", result.stdout)
+                    if match:
+                        w, h = int(match.group(1)), int(match.group(2))
+                        # wm size 返回竖屏分辨率（如1080x1920），
+                        # 但调用方使用横屏坐标空间（1920x1080），需要交换
+                        if h > w:
+                            # 竖屏 → 横屏：交换宽高
+                            self._original_resolution = (h, w)
+                            self.logger.debug(LogCategory.MAIN, "原始分辨率查询成功（已转为横屏）",
+                                             original=f"{h}x{w}")
+                        else:
+                            self._original_resolution = (w, h)
+                            self.logger.debug(LogCategory.MAIN, "原始分辨率查询成功",
+                                             original=f"{w}x{h}")
+            except Exception as e:
+                self.logger.warning(LogCategory.MAIN, "原始分辨率查询失败", error=str(e))
+
             # 连接成功后需要先截图才能获取cached_image
             screencap_job = self._controller.post_screencap()
             screencap_job.wait()
@@ -364,39 +397,42 @@ class MaaFwTouchExecutor:
     def click(self, x: int, y: int) -> bool:
         """
         点击（单次控制，建议优先使用Pipeline）
-        
+
         Args:
-            x: x坐标
+            x: x坐标（MaaFw截图空间 1280x720）
             y: y坐标
-        
+
         Returns:
             bool: 是否执行成功
         """
         if not self._connected or not self._controller:
             self.logger.exception(LogCategory.MAIN, "设备未连接")
             return False
-        
+
         try:
+            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
+            # post_click 期望 MaaFw 空间的坐标
+
             # 应用抖动（如果配置启用）
             if self.config.press_jitter_px > 0:
                 import random
                 x += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
                 y += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
-            
+
             job = self._controller.post_click(x, y)
             job.wait()
-            
+
             # 添加按压延时
             if self.config.press_duration_ms > 0:
                 time.sleep(self.config.press_duration_ms / 1000.0)
-            
+
             if job.succeeded:
                 self.logger.debug(LogCategory.MAIN, "点击执行成功", x=x, y=y)
                 return True
             else:
                 self.logger.exception(LogCategory.MAIN, "点击执行失败", x=x, y=y)
                 return False
-                
+
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "点击执行异常", error=str(e))
             return False
@@ -420,6 +456,8 @@ class MaaFwTouchExecutor:
             return False
         
         try:
+            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
+
             # 应用滑动延时随机化
             if self.config.swipe_delay_min_ms > 0 and self.config.swipe_delay_max_ms > 0:
                 import random
@@ -463,12 +501,15 @@ class MaaFwTouchExecutor:
             return False
         
         try:
+            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
+            # post_touch_down 期望 MaaFw 空间的坐标
+
             # 应用抖动
             if self.config.press_jitter_px > 0:
                 import random
                 x += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
                 y += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
-            
+
             # 使用touch_down + touch_up实现长按
             job = self._controller.post_touch_down(x, y)
             job.wait()

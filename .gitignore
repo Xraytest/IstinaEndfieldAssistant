@@ -68,6 +68,9 @@ test_scripts/
 *.arkpass
 config/client_config.json
 
+# Ignore legacy config location (use root only)
+IstinaEndfieldAssistant/config/client_config.json
+
 # Session and chat exports
 chat_export_*.md
 session_*.json

@@ -8,7 +8,7 @@ from typing import Optional, Dict, Any, List
 from PyQt6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton,
     QGroupBox, QScrollArea, QTextEdit, QMessageBox,
-    QComboBox, QCheckBox
+    QCheckBox
 )
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRectF
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QPen
@@ -109,6 +109,14 @@ class ParticleWidget(QWidget):
         self._timer.timeout.connect(self._update_particles)
         self._timer.start(33)
         self.setAttribute(Qt.WidgetAttribute.WA_TransparentForMouseEvents)
+
+    def stop_animation(self):
+        if self._timer.isActive():
+            self._timer.stop()
+
+    def start_animation(self):
+        if not self._timer.isActive():
+            self._timer.start(33)
         
     def resizeEvent(self, event):
         super().resizeEvent(event)
@@ -152,22 +160,20 @@ class ParticleWidget(QWidget):
 class PrtsFullIntelligencePage(QWidget):
     """PRTS Full Intelligence - full game takeover, auto-find completable content"""
 
-    model_tag_changed = pyqtSignal(str)
-
     def __init__(self, communicator=None, agent_executor=None, parent=None,
-                 screen_capture=None, touch_executor=None, config=None):
+                 screen_capture=None, touch_executor=None, config=None, inference_manager=None):
         super().__init__(parent)
         self.communicator = communicator
         self.agent_executor = agent_executor
         self.screen_capture = screen_capture
         self.touch_executor = touch_executor
+        self.inference_manager = inference_manager  # 本地推理管理器（可选）
         self._config = config or {}
         self._selected_model_tag = self._load_model_tag()
         self._bypass_special = False
         self._running = False
-        self._model_tags_loaded = False
         self._setup_ui()
-        QTimer.singleShot(500, self._refresh_model_tags)
+        QTimer.singleShot(100, self._update_inference_mode_indicator)
 
     def _get_cache_dir(self) -> str:
         current = os.path.dirname(os.path.abspath(__file__))
@@ -182,21 +188,11 @@ class PrtsFullIntelligencePage(QWidget):
             with open(path, 'r') as f:
                 data = json.load(f)
             return data.get("prts_full_intelligence", "exploration_deep")
-        except:
+        except Exception:
             return "exploration_deep"
 
-    def _save_model_tag(self, tag: str):
-        path = os.path.join(self._get_cache_dir(), "model_tag.json")
-        try:
-            data = {}
-            if os.path.exists(path):
-                with open(path, 'r') as f:
-                    data = json.load(f)
-            data["prts_full_intelligence"] = tag
-            with open(path, 'w') as f:
-                json.dump(data, f, indent=2)
-        except:
-            pass
+    def set_model_tag(self, tag: str):
+        self._selected_model_tag = tag
 
     def _setup_ui(self):
         layout = QVBoxLayout(self)
@@ -215,15 +211,20 @@ class PrtsFullIntelligencePage(QWidget):
         header.addWidget(title)
         header.addStretch()
 
-        header.addWidget(QLabel("Model Tag:"))
-        header.itemAt(header.count() - 1).widget().setStyleSheet(INFO_STYLE)
-        self._model_tag_combo = QComboBox()
-        self._model_tag_combo.setMinimumWidth(180)
-        self._model_tag_combo.setStyleSheet(COMBO_STYLE)
-        self._model_tag_combo.addItems(["exploration_deep", "exploration_fast", "standard", "premium"])
-        self._model_tag_combo.setCurrentText(self._selected_model_tag)
-        self._model_tag_combo.currentTextChanged.connect(self._on_model_tag_changed)
-        header.addWidget(self._model_tag_combo)
+        # 本地推理状态指示
+        self._local_inference_label = QLabel("CLOUD")
+        self._local_inference_label.setStyleSheet("""
+            QLabel {
+                color: rgba(144, 144, 168, 0.50);
+                font-size: 10px;
+                font-family: Consolas;
+                padding: 2px 8px;
+                border: 1px solid rgba(144, 144, 168, 0.15);
+                border-radius: 3px;
+                margin-left: 8px;
+            }
+        """)
+        header.addWidget(self._local_inference_label)
         layout.addLayout(header)
 
         scroll = QScrollArea()
@@ -335,6 +336,14 @@ class PrtsFullIntelligencePage(QWidget):
         super().resizeEvent(event)
         self._particle_widget.setGeometry(0, 0, self.width(), self.height())
 
+    def hideEvent(self, event):
+        super().hideEvent(event)
+        self._particle_widget.stop_animation()
+
+    def showEvent(self, event):
+        super().showEvent(event)
+        self._particle_widget.start_animation()
+
     def _make_card(self, title: str) -> QGroupBox:
         group = QGroupBox()
         group.setStyleSheet("""
@@ -355,33 +364,6 @@ class PrtsFullIntelligencePage(QWidget):
         group.layout().setContentsMargins(20, 16, 20, 16)
         group.layout().setSpacing(6)
         return group
-
-    def _on_model_tag_changed(self, tag: str):
-        self._selected_model_tag = tag
-        self._save_model_tag(tag)
-        self.model_tag_changed.emit(tag)
-
-    def _refresh_model_tags(self):
-        if self._model_tags_loaded or not self.communicator:
-            return
-        try:
-            response = self.communicator.get_available_models(
-                getattr(getattr(self, 'agent_executor', None), 'session_id', None) or ''
-            )
-            if response and response.get('status') == 'success':
-                models = response.get('models', [])
-                if models:
-                    tags = [m.get('name', '') for m in models if m.get('name')]
-                    if tags:
-                        current = self._model_tag_combo.currentText()
-                        self._model_tag_combo.clear()
-                        self._model_tag_combo.addItems(tags)
-                        if current in tags:
-                            self._model_tag_combo.setCurrentText(current)
-                        self._model_tags_loaded = True
-                        return
-        except Exception:
-            pass
 
     def _start_takeover(self):
         if not self.agent_executor or not self.communicator:
@@ -424,6 +406,10 @@ class PrtsFullIntelligencePage(QWidget):
         completed = 0
         failed = 0
         vlm_calls = 0
+
+        # 更新推理模式指示
+        self._update_inference_mode_indicator()
+
         from core.cloud.realtime_combat_controller import VLMController, CombatState
         vlm_ctrl = VLMController(
             self.communicator, self.touch_executor, self.screen_capture,
@@ -443,6 +429,16 @@ class PrtsFullIntelligencePage(QWidget):
             b64 = __import__('base64').b64encode(img_bytes).decode("utf-8")
             vlm_calls += 1
             self._vlm_calls_label.setText(str(vlm_calls))
+
+            # === 本地推理优先路径 ===
+            if self.inference_manager and self.inference_manager.is_local_available():
+                try:
+                    self._takeover_loop_local(b64)
+                    continue
+                except Exception as e:
+                    self._log(f"[LOCAL FALLBACK] {e}")
+
+            # === 云端推理路径（默认/降级） ===
             try:
                 response = self.communicator.send_request("agent_chat", {
                     "instruction": (
@@ -488,6 +484,82 @@ class PrtsFullIntelligencePage(QWidget):
                 self._sleep(2.0)
             self._sleep(1.0)
         self._log("PRTS takeover ended.")
+
+    def _update_inference_mode_indicator(self):
+        """更新本地/云端推理模式指示器"""
+        if self.inference_manager and self.inference_manager.is_local_available():
+            self._local_inference_label.setText("LOCAL")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: #00ffa2;
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(0, 255, 162, 0.40);
+                    border-radius: 3px;
+                    margin-left: 8px;
+                }
+            """)
+        else:
+            self._local_inference_label.setText("CLOUD")
+            self._local_inference_label.setStyleSheet("""
+                QLabel {
+                    color: rgba(144, 144, 168, 0.50);
+                    font-size: 10px;
+                    font-family: Consolas;
+                    padding: 2px 8px;
+                    border: 1px solid rgba(144, 144, 168, 0.15);
+                    border-radius: 3px;
+                    margin-left: 8px;
+                }
+            """)
+
+    def _takeover_loop_local(self, b64: str):
+        """使用本地推理的接管循环（单步）"""
+        import json as _json
+        prompt = (
+            "You are PRTS full intelligence system for Arknights Endfield. "
+            "Analyze the current screen and determine what task can be completed. "
+            "Auto-navigate to find completable content: main story, side missions, world quests, events. "
+            + ("Bypass special commission tasks." if self._bypass_special else "")
+            + " Output ONLY valid JSON: "
+            '{"action": "tap/swipe/wait", "x": 0.5, "y": 0.5, '
+            '"task_type": "main/side/world/event/unknown", '
+            '"task_name": "...", "completed": bool}'
+        )
+        task_context = {
+            "prompt": prompt,
+            "task_id": f"prts_takeover_{int(__import__('time').time())}",
+            "temperature": 0.3,
+            "max_tokens": 1024
+        }
+        result = self.inference_manager.process_image(b64, task_context)
+        if result.get("status") != "success":
+            self._log(f"[LOCAL ERROR] {result.get('error', 'Unknown')}")
+            return
+
+        result_data = result.get("result", result)
+        if isinstance(result_data, dict):
+            # 解析动作
+            raw_actions = result_data.get("actions") or result_data.get("touch_actions") or []
+            task_completed = result_data.get("task_completed", False)
+            task_name = result_data.get("task_name", "Unknown")
+            reasoning = result_data.get("reasoning", "")
+
+            if task_completed:
+                completed = int(self._completed_label.text()) + 1
+                self._completed_label.setText(str(completed))
+                self._log(f"Completed: {task_name}")
+                self._update_status(f"Task done: {task_name}")
+
+            # 执行动作
+            for act in raw_actions:
+                normalized = self.agent_executor._normalize_action(act) if hasattr(self.agent_executor, '_normalize_action') else act
+                if normalized:
+                    try:
+                        self.agent_executor._execute_action(normalized)
+                    except Exception as e:
+                        self._log(f"[ACTION ERROR] {e}")
 
     def _sleep(self, secs):
         import time

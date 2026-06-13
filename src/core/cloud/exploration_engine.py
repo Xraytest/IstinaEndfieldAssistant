@@ -185,39 +185,17 @@ class ExplorationEngine:
             return img_bytes.decode("utf-8")
         return img_bytes
 
-    def _adb_tap(self, x: int, y: int) -> bool:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
-        try:
-            subprocess.run([adb_path, "-s", self._config.device_serial, "shell", "input", "tap", str(x), str(y)],
-                          capture_output=True, timeout=5)
-            return True
-        except:
-            return False
-
     def _execute_tap(self, x: int, y: int) -> bool:
         if self._touch_executor:
             result = self._touch_executor.safe_press(x, y)
             if result:
                 self._stats["taps"] += 1
                 return True
-        result = self._adb_tap(x, y)
-        if result:
-            self._stats["taps"] += 1
-        return result
+        return False
 
     def _execute_back(self) -> bool:
         if self._touch_executor:
-            self._touch_executor.execute_tool_call("pipeline_task", {"entry": "Back"})
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-        adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
-        for _ in range(3):
-            try:
-                subprocess.run([adb_path, "-s", self._config.device_serial, "shell", "input", "keyevent", "4"],
-                              capture_output=True, timeout=5)
-                return True
-            except:
-                time.sleep(0.5)
+            return self._touch_executor.execute_tool_call("pipeline_task", {"entry": "Back"})
         return False
 
     def _call_vlm(self, screenshot_b64: str, user_prompt: str,

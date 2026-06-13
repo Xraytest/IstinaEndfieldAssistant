@@ -237,6 +237,20 @@ class ModelManagerPage(QWidget):
         
         layout.addStretch()
         
+    def _get_models_dir(self) -> str:
+        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        return os.path.join(project_root, "models")
+
+    def _scan_local_models(self) -> list:
+        models_dir = self._get_models_dir()
+        if not os.path.exists(models_dir):
+            return []
+        models = []
+        for f in os.listdir(models_dir):
+            if f.endswith('.gguf'):
+                models.append(os.path.splitext(f)[0])
+        return models
+
     def _refresh_models(self):
         self._status_label.setText("SCANNING MODEL LIST...")
         self._refresh_btn.setEnabled(False)

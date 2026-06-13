@@ -10,6 +10,7 @@ from .agent_page import AgentPage
 from .model_manager_page import ModelManagerPage
 from .standard_reasoning_page import StandardReasoningPage
 from .prts_full_intelligence_page import PrtsFullIntelligencePage
+from .iea_page import IeaPage
 
 
 __all__ = [
@@ -21,4 +22,5 @@ __all__ = [
     'ModelManagerPage',
     'StandardReasoningPage',
     'PrtsFullIntelligencePage',
+    'IeaPage',
 ]

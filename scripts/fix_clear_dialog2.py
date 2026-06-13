@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""恢复 daily_quest 的 clear_dialog 为 back，但添加条件判断"""
+import json
+
+file_path = r'C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant\config\standard_flows\flows_config.json'
+
+with open(file_path, 'r', encoding='utf-8') as f:
+    config = json.load(f)
+
+# 恢复 clear_dialog 为 back
+clear_step = config['flows']['daily_quest']['steps'][0]
+clear_step['action'] = 'back'
+if 'coords' in clear_step:
+    del clear_step['coords']
+clear_step['desc'] = '清除可能的退出对话框 (按返回)'
+
+with open(file_path, 'w', encoding='utf-8') as f:
+    json.dump(config, f, ensure_ascii=False, indent=2)
+
+print("SUCCESS: clear_dialog restored to back")
+print(f"Step: {clear_step}")

@@ -206,27 +206,29 @@ class TouchManager:
             return False
     
     # ==================== 单次控制方法（备用） ====================
-    
+
     def safe_press(self, x: int, y: int, duration: int = 50) -> bool:
         """
         安全点击（单次控制，建议优先使用Pipeline）
-        
+
         Args:
             x: x坐标
             y: y坐标
             duration: 按压时长（毫秒）
-        
+
         Returns:
             bool: 是否执行成功
         """
         if not self._connected or not self._controller:
             self.logger.exception(LogCategory.MAIN, "设备未连接")
             return False
-        
+
         try:
+            # 坐标直接透传，不做任何缩放
+
             job = self._controller.post_click(x, y)
             job.wait()
-            
+
             if job.succeeded:
                 self.logger.debug(LogCategory.MAIN, "点击执行成功", x=x, y=y)
                 return True
@@ -236,29 +238,31 @@ class TouchManager:
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "点击执行异常", error=str(e))
             return False
-    
+
     def safe_swipe(self, x1: int, y1: int, x2: int, y2: int, duration: int = 300) -> bool:
         """
         安全滑动（单次控制，建议优先使用Pipeline）
-        
+
         Args:
             x1: 起点x
             y1: 起点y
             x2: 终点x
             y2: 终点y
             duration: 滑动时长（毫秒）
-        
+
         Returns:
             bool: 是否执行成功
         """
         if not self._connected or not self._controller:
             self.logger.exception(LogCategory.MAIN, "设备未连接")
             return False
-        
+
         try:
+            # 坐标直接透传，不做任何缩放
+
             job = self._controller.post_swipe(x1, y1, x2, y2, duration)
             job.wait()
-            
+
             if job.succeeded:
                 self.logger.debug(LogCategory.MAIN, "滑动执行成功",
                                 x1=x1, y1=y1, x2=x2, y2=y2, duration=duration)
@@ -270,24 +274,26 @@ class TouchManager:
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "滑动执行异常", error=str(e))
             return False
-    
+
     def safe_long_press(self, x: int, y: int, duration: int = 1000) -> bool:
         """
         安全长按（单次控制，建议优先使用Pipeline）
-        
+
         Args:
             x: x坐标
             y: y坐标
             duration: 长按时长（毫秒）
-        
+
         Returns:
             bool: 是否执行成功
         """
         if not self._connected or not self._controller:
             self.logger.exception(LogCategory.MAIN, "设备未连接")
             return False
-        
+
         try:
+            # 坐标直接透传，不做任何缩放
+
             # 长按通过touch_down + delay + touch_up实现
             job = self._controller.post_touch_down(x, y)
             job.wait()
