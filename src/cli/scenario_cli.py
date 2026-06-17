@@ -44,9 +44,10 @@ def _get_touch_manager():
             config=config.config
         ):
             return tm
-    except Exception:
-        pass
-    return None
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"TouchManager 初始化失败：{e}")
+        return None
 
 
 def _get_comm():

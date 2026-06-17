@@ -97,14 +97,8 @@ menu = cap()
 print(f"Menu: mean={menu.mean():.1f}", flush=True)
 cv2.imwrite(os.path.join(CACHE, 'menu_panel.png'), menu)
 
-# Step 3: Golden element detection on menu
-print("\nStep 3: Golden detection on menu...", flush=True)
-analyzer = ScreenAnalyzer()
-golden = analyzer._detect_golden(menu)
-
-print(f"Golden elements: {len(golden)}", flush=True)
+# Step 3: Golden detection removed
 # Sort by area descending
-golden.sort(key=lambda g: g['area'], reverse=True)
 
 print("\nTop golden elements:", flush=True)
 for g in golden[:20]:
@@ -119,11 +113,7 @@ for g in golden[:20]:
         region = "[MID]"
     print(f"  ({g['cx']:>4},{g['cy']:>4}) {g['w']:>4}x{g['h']:>4} area={g['area']:>8.1f} {g['range']} {region}", flush=True)
 
-# Step 4: Test each promising golden element
-print("\nStep 4: Test golden buttons...", flush=True)
-
-# Filter for likely button-sized elements (area > 200, w*h reasonable)
-button_candidates = [g for g in golden if g['area'] > 500 and 20 < g['w'] < 400 and 20 < g['h'] < 200]
+# Step 4: Golden button testing removed
 
 # Also include specific regions of interest
 interesting_regions = {

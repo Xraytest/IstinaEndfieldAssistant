@@ -29,6 +29,7 @@ IstinaEndfieldAssistant — 统一 CLI 入口 v3
   python istina.py device tap <x> <y>        # 点击坐标
   python istina.py device swipe <x1> <y1> <x2> <y2> [dur]
   python istina.py device keyevent <code>    # 按键事件
+  python istina.py device wake [--device D]  # 设备唤醒 (keyevent 26)
   python istina.py device monitor            # 设备实时监控
 
   python istina.py scene capture [--count N] # 轻量场景采集

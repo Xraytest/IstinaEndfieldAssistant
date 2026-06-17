@@ -99,7 +99,7 @@ def test_tap_response():
             print(f"  [失败] 截图失败")
             continue
         
-        gold_before = detect_golden(before)
+        gold_before = []  # 已移除
         
         # 点击
         success = tap(x, y)
@@ -116,7 +116,7 @@ def test_tap_response():
             print(f"  [失败] 截图失败")
             continue
         
-        gold_after = detect_golden(after)
+        gold_after = []  # 已移除
         diff = screen_diff(before, after)
         
         print(f"  [结果] diff={diff:,} 金色={gold_before}->{gold_after}")
@@ -188,13 +188,13 @@ def test_quest_icon_detailed():
         print(f"\n[尝试 {attempt+1}/3] 点击任务图标 (860, 80)...")
         
         before = screencap()
-        gold_before = detect_golden(before)
+        gold_before = []  # 已移除
         
         tap(860, 80)
         time.sleep(3)
         
         after = screencap()
-        gold_after = detect_golden(after)
+        gold_after = []  # 已移除
         diff = screen_diff(before, after)
         
         print(f"  [结果] diff={diff:,} 金色={gold_before}->{gold_after}")

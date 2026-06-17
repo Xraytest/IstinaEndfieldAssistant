@@ -295,10 +295,14 @@ class TaskAnalyzer:
                         if h != getattr(self, '_last_world_hash', ''):
                             self._last_world_hash = h
                             return True
-                except:
+                except Exception as e:
+                    import logging
+                    logging.getLogger(__name__).debug(f"截图去重检查失败：{e}")
                     continue
             return False
-        except:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"ADB 截图失败：{e}")
             pass
 
         # 回退：VLM 分析

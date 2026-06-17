@@ -12,14 +12,36 @@ def _set_dark_title_bar(window):
         return
     try:
         hwnd = int(window.winId())
-        # DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Windows 10 20H1+) / 19 (Win11 pre-22H2)
+        if hwnd == 0:
+            return
+        # DWMWA_USE_IMMERSIVE_DARK_MODE = 20 (Windows 10 20H1+)
         DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+        # DWMWA_WINDOW_CORNER_PREFERENCE = 33 (圆角支持)
+        DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        DWMWCP_ROUND = 2
+        DWMWCP_ROUND_SMAILL = 3
+        
+        # 创建值变量（必须保持引用直到 API 调用完成）
+        dark_mode_value = ctypes.c_int(1)
+        corner_value = ctypes.c_int(DWMWCP_ROUND)
+        
+        # 启用暗色标题栏
         ctypes.windll.dwmapi.DwmSetWindowAttribute(
             hwnd,
             DWMWA_USE_IMMERSIVE_DARK_MODE,
-            ctypes.byref(ctypes.c_int(1)),
-            ctypes.sizeof(ctypes.c_int),
+            ctypes.byref(dark_mode_value),
+            ctypes.sizeof(dark_mode_value),
         )
+        # 启用圆角（可选，提升视觉效果）
+        try:
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd,
+                DWMWA_WINDOW_CORNER_PREFERENCE,
+                ctypes.byref(corner_value),
+                ctypes.sizeof(corner_value),
+            )
+        except Exception:
+            pass
     except Exception:
         pass
 
@@ -60,6 +82,14 @@ def _install_dark_title_bar_hook(app):
                     # Apply dark title bar and defensive TOOL conversion for unparented dialogs
                     try:
                         if hasattr(obj, 'isWindow') and obj.isWindow():
+                            # 获取类名
+                            cls_name = type(obj).__name__ if obj is not None else ''
+                            
+                            # 主窗口在 showEvent 中处理暗色标题栏（因为 setWindowFlags 会重建 HWND）
+                            # 这里只处理对话框
+                            if cls_name == 'MainWindow':
+                                return False  # 跳过主窗口
+                                
                             try:
                                 _set_dark_title_bar(obj)
                             except Exception:
@@ -71,16 +101,16 @@ def _install_dark_title_bar_hook(app):
                                     has_parent = obj.parent() is not None
                                 except Exception:
                                     has_parent = False
-                                cls_name = type(obj).__name__ if obj is not None else ''
                                 title = ''
                                 try:
                                     title = obj.windowTitle() or ''
                                 except Exception:
                                     title = ''
                                 DIALOG_CLASSES = {'QMessageBox', 'QDialog', 'QFileDialog', 'QInputDialog', 'QColorDialog', 'QProgressDialog'}
+                                # 只处理对话框
                                 if (not has_parent) and (not title.strip() or cls_name in DIALOG_CLASSES):
                                     try:
-                                        obj.setWindowFlag(Qt.Tool, True)
+                                        obj.setWindowFlag(Qt.WindowType.Tool, True)
                                         try:
                                             obj.setWindowFlags(obj.windowFlags())
                                         except Exception:

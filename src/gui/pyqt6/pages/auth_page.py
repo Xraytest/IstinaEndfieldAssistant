@@ -206,7 +206,7 @@ class AuthPage(QWidget):
                 if not content:
                     import logging
                     logging.getLogger(__name__).warning(f"Cached ArkPass empty: {cached_arkpass}")
-                    self._show_registration_prompt()
+                    # 自动登录场景下不显示注册对话框，静默失败
                     return False
                 self._arkpass_path_display.setText(cached_arkpass)
                 self._arkpass_path_display.setProperty("variant", "primary")
@@ -219,10 +219,10 @@ class AuthPage(QWidget):
                 logging.getLogger(__name__).error(f"Failed to read cached credentials: {e}", exc_info=True)
                 self._arkpass_path_display.setText("Read failed")
                 self._arkpass_path_display.setStyleSheet("color: #ff3355; font-size: 11px; font-family: Consolas; padding: 8px 0;")
-                self._show_registration_prompt()
+                # 自动登录场景下不显示注册对话框，静默失败
                 return False
         else:
-            self._show_registration_prompt()
+            # 自动登录场景下无缓存凭证时静默失败，不显示对话框
             return False
 
     def _show_registration_prompt(self):

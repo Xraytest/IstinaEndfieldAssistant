@@ -393,7 +393,96 @@ class MaaFwTouchExecutor:
             return False
     
     # ==================== 单次控制方法（备用） ====================
-    
+
+
+    def _convert_to_maa_coords(self, x: int, y: int) -> tuple:
+        """
+        将原始分辨率坐标转换为 MaaFw 坐标空间（修复 3.5）
+        
+        Args:
+            x: 原始分辨率 x 坐标
+            y: 原始分辨率 y 坐标
+            
+        Returns:
+            tuple: (maa_x, maa_y) MaaFw 坐标
+        """
+        if self._original_resolution[0] == 0 or self._original_resolution[1] == 0:
+            # 未获取到原始分辨率，直接使用输入坐标
+            return x, y
+        
+        if self._resolution[0] == 0 or self._resolution[1] == 0:
+            # 未获取到 MaaFw 分辨率，直接使用输入坐标
+            return x, y
+        
+        # 计算缩放比例
+        scale_x = self._resolution[0] / self._original_resolution[0]
+        scale_y = self._resolution[1] / self._original_resolution[1]
+        
+        maa_x = int(x * scale_x)
+        maa_y = int(y * scale_y)
+        
+        return maa_x, maa_y
+
+    def post_click(self, x: int, y: int):
+        """点击（返回 Job 对象）"""
+        if not self._connected or not self._controller:
+            return None
+        try:
+            if self.config.press_jitter_px > 0:
+                import random
+                x += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
+                y += random.randint(-self.config.press_jitter_px, self.config.press_jitter_px)
+            return self._controller.post_click(x, y)
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN, "点击执行异常", error=str(e))
+            return None
+
+    def post_keyevent(self, key_code: int):
+        """按键事件（返回 Job 对象）"""
+        if not self._connected or not self._controller:
+            return None
+        try:
+            return self._controller.post_keyevent(key_code)
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN, "按键执行异常", error=str(e))
+            return None
+
+    def post_swipe(self, x1: int, y1: int, x2: int, y2: int, duration: int = 300):
+        """滑动（返回 Job 对象）"""
+        if not self._connected or not self._controller:
+            return None
+        try:
+            if self.config.swipe_delay_min_ms > 0 and self.config.swipe_delay_max_ms > 0:
+                import random
+                actual_duration = random.randint(
+                    max(duration, self.config.swipe_delay_min_ms),
+                    duration + self.config.swipe_delay_max_ms
+                )
+            else:
+                actual_duration = duration
+            return self._controller.post_swipe(x1, y1, x2, y2, actual_duration)
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN, "滑动执行异常", error=str(e))
+            return None
+
+    def safe_press(self, x: int, y: int) -> bool:
+        """安全点击（带等待和结果检查）"""
+        job = self.post_click(x, y)
+        if job is None:
+            return False
+        job.wait()
+        if self.config.press_duration_ms > 0:
+            time.sleep(self.config.press_duration_ms / 1000.0)
+        return job.succeeded
+
+    def safe_swipe(self, x1: int, y1: int, x2: int, y2: int, duration: int = 300) -> bool:
+        """安全滑动（带等待和结果检查）"""
+        job = self.post_swipe(x1, y1, x2, y2, duration)
+        if job is None:
+            return False
+        job.wait()
+        return job.succeeded
+
     def click(self, x: int, y: int) -> bool:
         """
         点击（单次控制，建议优先使用Pipeline）
@@ -410,8 +499,13 @@ class MaaFwTouchExecutor:
             return False
 
         try:
-            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
-            # post_click 期望 MaaFw 空间的坐标
+            # 修复 3.5：坐标转换（原始分辨率 → MaaFw 空间）
+            if self.config.use_normalized_coords:
+                # 调用方传入原始分辨率坐标，需要转换
+                x, y = self._convert_to_maa_coords(x, y)
+                self.logger.debug(LogCategory.MAIN, "坐标转换",
+                                original=f"{x}/{y}", maa=f"{x}/{y}",
+                                scale=f"{self._resolution[0]}/{self._original_resolution[0]}")
 
             # 应用抖动（如果配置启用）
             if self.config.press_jitter_px > 0:
@@ -456,7 +550,13 @@ class MaaFwTouchExecutor:
             return False
         
         try:
-            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
+            # 修复 3.5：坐标转换（原始分辨率 → MaaFw 空间）
+            if self.config.use_normalized_coords:
+                x1, y1 = self._convert_to_maa_coords(x1, y1)
+                x2, y2 = self._convert_to_maa_coords(x2, y2)
+                self.logger.debug(LogCategory.MAIN, "滑动坐标转换",
+                                original=f"({x1},{y1})→({x2},{y2})",
+                                scale=f"{self._resolution[0]}/{self._original_resolution[0]}")
 
             # 应用滑动延时随机化
             if self.config.swipe_delay_min_ms > 0 and self.config.swipe_delay_max_ms > 0:
@@ -572,7 +672,8 @@ class MaaFwTouchExecutor:
                 image = self.screencap()
                 if image is not None:
                     self._resolution = (image.shape[1], image.shape[0])
-            except:
+            except Exception as e:
+                self.logger.debug(LogCategory.MAIN, f"通过截图获取分辨率失败：{e}")
                 pass
         return self._resolution
     
@@ -588,12 +689,13 @@ class MaaFwTouchExecutor:
         """
         if not self._connected or not self._controller:
             return False
-        
+
         try:
             job = self._controller.post_start_app(package_name)
             job.wait()
             return job.succeeded
-        except:
+        except Exception as e:
+            self.logger.warning(LogCategory.MAIN, f"启动应用失败：{package_name}, 错误：{e}")
             return False
     
     def stop_app(self, package_name: str) -> bool:
@@ -608,12 +710,13 @@ class MaaFwTouchExecutor:
         """
         if not self._connected or not self._controller:
             return False
-        
+
         try:
             job = self._controller.post_stop_app(package_name)
             job.wait()
             return job.succeeded
-        except:
+        except Exception as e:
+            self.logger.warning(LogCategory.MAIN, f"关闭应用失败：{package_name}, 错误：{e}")
             return False
     
     # ==================== 属性访问 ====================

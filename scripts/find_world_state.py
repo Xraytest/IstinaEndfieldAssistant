@@ -75,7 +75,7 @@ def find_world_state(max_attempts=30):
             print(f"[{i:2d}] 截图失败")
             continue
         
-        gold = detect_golden(img)
+        gold = []  # 已移除
         page = classify_page(gold)
         
         history.append((i, gold, page))
@@ -121,7 +121,7 @@ def verify_world_state(img):
     if img is None:
         return False
     
-    gold = detect_golden(img)
+    gold = []  # 已移除
     
     # 世界页面特征：
     # 1. 金色元素 16-24 个
@@ -144,7 +144,7 @@ def verify_world_state(img):
         print("[验证失败] 截图失败")
         return False
     
-    gold_after = detect_golden(after)
+    gold_after = []  # 已移除
     print(f"[验证] 点击后金色={gold_after} (变化={gold_after-gold:+d})")
     
     # 恢复

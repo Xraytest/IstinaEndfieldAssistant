@@ -157,6 +157,25 @@ class VlmActionDecider:
             "confidence": 0.0
         }
 
+    def decide(self, img: np.ndarray, prompt: str) -> Dict[str, Any]:
+        """
+        简化的 VLM 决策方法（用于标准流引擎的确认/验证场景）
+        
+        Args:
+            img: 当前截图 (np.ndarray)
+            prompt: 自定义提示词
+            
+        Returns:
+            VLM 返回的原始 JSON 解析结果
+        """
+        try:
+            _, buf = cv2.imencode('.png', img)
+            img_b64 = base64.b64encode(buf).decode()
+            resp = self._call_vlm(prompt, img_b64)
+            return self._parse_response(resp)
+        except Exception as e:
+            return {"error": str(e)}
+
 
 # ═══════════════════════════════════════════════════════════════
 # 集成点：标准流引擎中的 VLM 决策流程

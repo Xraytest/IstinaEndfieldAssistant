@@ -57,31 +57,6 @@ def screen_diff(img1, img2):
     return cv2.countNonZero(t), g.mean()
 
 
-def detect_golden_elements(img):
-    """检测金色元素（与 ScreenAnalyzer 一致）"""
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    ranges = [
-        ("亮金", np.array([15, 80, 150]), np.array([35, 255, 255])),
-        ("暗金", np.array([15, 50, 80]), np.array([35, 255, 200])),
-        ("暖金", np.array([10, 60, 100]), np.array([40, 255, 255])),
-    ]
-    all_elems = []
-    for name, lower, upper in ranges:
-        mask = cv2.inRange(hsv, lower, upper)
-        contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        for cnt in contours:
-            area = cv2.contourArea(cnt)
-            if area > 30:
-                x, y, bw, bh = cv2.boundingRect(cnt)
-                all_elems.append({
-                    "cx": x + bw // 2, "cy": y + bh // 2,
-                    "w": bw, "h": bh, "area": area, "range": name
-                })
-    unique = []
-    for elem in sorted(all_elems, key=lambda e: e["area"], reverse=True):
-        if not any(abs(elem["cx"] - u["cx"]) < 20 and abs(elem["cy"] - u["cy"]) < 20 for u in unique):
-            unique.append(elem)
-    return unique
 
 
 def classify_page_by_gold(gold_count, img_mean):
@@ -126,7 +101,7 @@ def find_exit_dialog_cancel_button(img):
     # 检测底部区域的金色/亮色元素（按钮）
     bottom_region = img[600:900, 400:1200]  # 底部中央区域
     
-    golden = detect_golden_elements(bottom_region)
+    golden = []  # 已移除
     
     # 筛选按钮大小的元素（宽度 80-200，高度 40-80）
     buttons = []
@@ -182,7 +157,7 @@ def verify_cancel_button_coords():
         print("  [失败] 无法截图")
         return False
     
-    world_gold = len(detect_golden_elements(world_img))
+    world_gold = 0  # 已移除
     world_page = classify_page_by_gold(world_gold, world_img.mean())
     print(f"  [当前] 页面={world_page} 金色={world_gold} 亮度={world_img.mean():.1f}")
     
@@ -196,7 +171,7 @@ def verify_cancel_button_coords():
         print("  [失败] 无法截图")
         return False
     
-    dialog_gold = len(detect_golden_elements(dialog_img))
+    dialog_gold = 0  # 已移除
     dialog_page = classify_page_by_gold(dialog_gold, dialog_img.mean())
     print(f"  [当前] 页面={dialog_page} 金色={dialog_gold} 亮度={dialog_img.mean():.1f}")
     
@@ -249,7 +224,7 @@ def verify_cancel_button_coords():
         diff, mean_diff = screen_diff(before, after)
         
         # 检查是否回到世界页面
-        after_gold = len(detect_golden_elements(after))
+        after_gold = 0  # 已移除
         after_page = classify_page_by_gold(after_gold, after.mean())
         
         print(f"diff={diff:,} mean={mean_diff:.1f} 页面={after_page}")
@@ -292,7 +267,7 @@ def verify_page_classification():
         if img is None:
             continue
         
-        gold = len(detect_golden_elements(img))
+        gold = 0  # 已移除
         mean = img.mean()
         page = classify_page_by_gold(gold, mean)
         
@@ -315,7 +290,7 @@ def verify_page_classification():
         if img is None:
             continue
         
-        gold = len(detect_golden_elements(img))
+        gold = 0  # 已移除
         mean = img.mean()
         page = classify_page_by_gold(gold, mean)
         

@@ -114,16 +114,15 @@ print(f"Menu: mean={menu.mean():.1f}", flush=True)
 cv2.imwrite(os.path.join(CACHE, 'mexp_menu.png'), menu)
 
 # Phase 3: 金色检测
-print("\n[Phase 3] Golden element detection...", flush=True)
-golden = detect_golden(menu)
-print(f"Found {len(golden)} golden elements", flush=True)
+# Golden detection removed
+golden = []  # 已移除
 for g in golden[:30]:
     region = "TOP" if g['cy'] < 200 else ("BTM" if g['cy'] > 800 else ("MID-BTM" if g['cy'] > 500 else "MID"))
     print(f"  ({g['cx']:>4},{g['cy']:>4}) {g['w']:>4}x{g['h']:>4} area={g['area']:>8.0f} [{region}]", flush=True)
 
 # Phase 4: 测试金色按钮（大区域优先）
 results = []
-print("\n[Phase 4] Test golden buttons on menu...", flush=True)
+# Golden button testing removed
 tested = set()
 for g in golden[:15]:
     x, y = g['cx'], g['cy']

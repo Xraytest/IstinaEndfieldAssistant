@@ -161,7 +161,9 @@ def cmd_cuda_check(args) -> int:
                 print(f"  {line}")
         else:
             print("  [未找到]")
-    except Exception:
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).debug(f"nvidia-smi 执行失败：{e}")
         print("  [不可用]")
 
     # 2. CUDA_PATH
@@ -199,7 +201,9 @@ def cmd_cuda_check(args) -> int:
         try:
             from llama_cpp import Llama
             print(f"  Supports GPU: {hasattr(Llama, 'n_gpu_layers')}")
-        except:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"llama_cpp Llama 检查失败：{e}")
             pass
     except ImportError:
         print("  [llama-cpp-python 未安装]")

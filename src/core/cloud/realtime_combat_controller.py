@@ -145,19 +145,25 @@ class VLMController:
 
 
 class CombatController:
-    """3C controls: movement, skill, jump, dodge"""
+    """3C controls: movement, skill, jump, dodge
+    
+    移动轮盘中心：(265, 850)，半径±50 像素
+    基于 1920x1080 分辨率
+    """
     _ACTIONS = {
-        "move_left": {"type": "swipe", "params": {"x1": 500, "y1": 500, "x2": 100, "y2": 500, "duration": 200}},
-        "move_right": {"type": "swipe", "params": {"x1": 100, "y1": 500, "x2": 500, "y2": 500, "duration": 200}},
-        "move_forward": {"type": "swipe", "params": {"x1": 300, "y1": 500, "x2": 300, "y2": 300, "duration": 200}},
-        "move_backward": {"type": "swipe", "params": {"x1": 300, "y1": 300, "x2": 300, "y2": 500, "duration": 200}},
-        "jump": {"type": "tap", "params": {"x": 600, "y": 200, "duration": 50}},
-        "dodge": {"type": "swipe", "params": {"x1": 500, "y1": 500, "x2": 500, "y2": 200, "duration": 100}},
-        "attack": {"type": "tap", "params": {"x": 700, "y": 900, "duration": 50}},
-        "skill_1": {"type": "tap", "params": {"x": 200, "y": 950, "duration": 50}},
-        "skill_2": {"type": "tap", "params": {"x": 300, "y": 950, "duration": 50}},
-        "skill_3": {"type": "tap", "params": {"x": 400, "y": 950, "duration": 50}},
-        "wait": {"type": "wait", "params": {"duration": 0.5}},
+        # 移动轮盘：中心 (265, 850)，半径 50 像素
+        "move_left":     {"type": "swipe", "params": {"x1": 265, "y1": 850, "x2": 215, "y2": 850, "duration": 200}},
+        "move_right":    {"type": "swipe", "params": {"x1": 265, "y1": 850, "x2": 315, "y2": 850, "duration": 200}},
+        "move_forward":  {"type": "swipe", "params": {"x1": 265, "y1": 850, "x2": 265, "y2": 800, "duration": 200}},
+        "move_backward": {"type": "swipe", "params": {"x1": 265, "y1": 850, "x2": 265, "y2": 900, "duration": 200}},
+        # 其他动作
+        "jump":          {"type": "tap",   "params": {"x": 600, "y": 200, "duration": 50}},
+        "dodge":         {"type": "swipe", "params": {"x1": 500, "y1": 500, "x2": 500, "y2": 200, "duration": 100}},
+        "attack":        {"type": "tap",   "params": {"x": 700, "y": 900, "duration": 50}},
+        "skill_1":       {"type": "tap",   "params": {"x": 200, "y": 950, "duration": 50}},
+        "skill_2":       {"type": "tap",   "params": {"x": 300, "y": 950, "duration": 50}},
+        "skill_3":       {"type": "tap",   "params": {"x": 400, "y": 950, "duration": 50}},
+        "wait":          {"type": "wait",  "params": {"duration": 0.5}},
     }
 
     def __init__(self, touch_executor, device_width=1920, device_height=1080):

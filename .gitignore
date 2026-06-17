@@ -90,6 +90,11 @@ test_module_integrity.py
 .kilo/tmp/
 .kilo/worktrees/
 
+# Python virtual environment
+venv/
+.venv/
+env/
+
 # Python compiled files
 __pycache__/
 *.py[cod]

@@ -3,10 +3,10 @@
 识别引擎 - MaaEnd 式多源融合识别系统
 
 实现 MaaEnd 的核心识别能力：
-1. 模板匹配（TemplateMatch）- OpenCV
-2. 颜色匹配（ColorMatch）- OpenCV HSV
+1. 模板匹配（TemplateMatch）- OpenCV SIFT 特征匹配
+2. 颜色匹配（ColorMatch）- OpenCV HSV 颜色轮廓检测
 3. 组合识别（And/Or）
-4. OCR 识别 - 通过 MaaFw Pipeline 系统（内建 OCR 引擎）
+4. OCR 识别 - MaaFw Pipeline 内建 OCR 引擎
 
 参考：MaaEnd-2/assets/resource/pipeline/Common/
 """
@@ -21,9 +21,8 @@ import sys
 class RecognitionEngine:
     """识别引擎，支持 MaaEnd 式节点识别
 
-    OCR 由 MaaFw Tasker+Resource 管道系统原生处理，无需额外安装。
+    OCR 通过 MaaFw Pipeline 系统调用（内建 OCR 引擎）。
     本引擎负责：模板匹配、颜色匹配、组合逻辑。
-    如需 OCR，使用 MaaFwPipelineOCR 包装类。
     """
 
     def __init__(self, assets_dir: str = None):
@@ -47,9 +46,8 @@ class RecognitionEngine:
         elif node_type == "Or":
             return self._or_recognize(img, node_config)
         elif node_type == "OCR":
-            # OCR 由 MaaFw Pipeline 原生实现，此处为占位
-            # 实际使用时应通过 MaaFwPipelineOCR 封装
-            return False, {"reason": "OCR requires MaaFw Pipeline (see MaaFwPipelineOCR)"}
+            # OCR 通过 MaaFw Pipeline 执行，此处返回提示
+            return False, {"reason": "OCR 需通过 MaaFw Pipeline 执行，请使用 Tasker.post_recognition()"}
         elif isinstance(node_config, str):
             return False, None
         return False, None
@@ -57,7 +55,7 @@ class RecognitionEngine:
     # ── 模板匹配（SIFT 特征匹配，尺度不变）─────────────────
 
     def _template_match(self, img: np.ndarray, config: Dict[str, Any]) -> Tuple[bool, Any]:
-        """SIFT 特征匹配 — 尺度/旋转不变，远超模板匹配
+        """SIFT 特征匹配 — 尺度/旋转不变，远超传统模板匹配
 
         config: {template: str, roi: [x,y,w,h], threshold: float (最小匹配点数)}
         """
@@ -170,31 +168,95 @@ class MaaFwPipelineOCR:
     """通过 MaaFw Tasker + Resource 管道系统执行 OCR
 
     用法:
-        ocr = MaaFwPipelineOCR(maafw_executor)
-        ok, result = ocr.recognize(image, roi, expected_texts)
+        from maa import Tasker, Resource, Controller
+        from maa.pipeline import JRecognitionType, JOCR
+
+        # 创建 Tasker 并绑定 Resource/Controller
+        tasker = Tasker()
+        resource = Resource()
+        controller = Controller()
+        tasker.bind(resource, controller)
+
+        # 执行 OCR
+        ocr_param = JOCR(
+            expected=["领取", "Claim"],
+            roi=(0, 0, 1280, 720)
+        )
+        job = tasker.post_recognition(JRecognitionType.OCR, ocr_param, image)
+        detail = job.get()
     """
 
-    def __init__(self, maafw_executor=None):
-        """如需使用 MaaFw 管道 OCR，传入已连接的 MaaFwTouchExecutor"""
-        self._executor = maafw_executor
-
-    def recognize(self, img: np.ndarray, roi: List[int],
-                  expected: List[str]) -> Tuple[bool, Any]:
-        """通过 MaaFw Pipeline 执行 OCR
+    @staticmethod
+    def create_ocr_param(expected: List[str], roi: Tuple[int, int, int, int] = (0, 0, 0, 0),
+                         threshold: float = 0.3) -> Dict[str, Any]:
+        """
+        创建 OCR 识别参数（JSON 格式，用于 Pipeline 配置）
 
         Args:
-            img: BGR 图像
-            roi: [x, y, w, h] 识别区域
-            expected: 期望匹配的文本列表
+            expected: 期望匹配的文本列表（支持正则表达式）
+            roi: 识别区域 (x, y, w, h)
+            threshold: 置信度阈值
 
         Returns:
-            (是否匹配, {"texts": list, "matches": list})
+            OCR 参数字典
         """
-        if self._executor is None:
-            return False, {"reason": "MaaFw executor not provided"}
-        # MaaFw Pipeline OCR 通过 JSON 配置执行
-        # 实际调用由 MaaFw Tasker.run_task() 完成
-        return False, {"reason": "Pipeline OCR not yet integrated"}
+        return {
+            "type": "OCR",
+            "param": {
+                "expected": expected,
+                "roi": list(roi),
+                "threshold": threshold
+            }
+        }
+
+    @staticmethod
+    def doc():
+        """返回 MaaFw OCR 使用文档"""
+        return """
+MaaFw Pipeline OCR 使用指南
+==========================
+
+1. 通过 Tasker.post_recognition() 执行 OCR:
+   from maa import Tasker, JRecognitionType
+   from maa.pipeline import JOCR
+
+   ocr_param = JOCR(
+       expected=["领取", "Claim", "(?i)collect"],  # 支持正则
+       roi=(0, 0, 1280, 720),
+       threshold=0.3
+   )
+   job = tasker.post_recognition(JRecognitionType.OCR, ocr_param, image)
+
+2. 在 Pipeline JSON 中配置 OCR:
+   {
+       "CheckClaimButton": {
+           "recognition": {
+               "type": "OCR",
+               "param": {
+                   "expected": ["领取", "一键领取", "Claim"],
+                   "roi": [950, 60, 330, 640],
+                   "threshold": 0.3
+               }
+           },
+           "action": {"type": "Click"}
+       }
+   }
+
+3. OCR 结果格式:
+   RecognitionDetail(
+       hit: bool,                          # 是否匹配期望文本
+       box: (x, y, w, h),                  # 匹配位置
+       all_results: list[RecognitionResult],
+       best_result: RecognitionResult
+   )
+
+4. 支持的特性:
+   - 多语言自动检测（中文/英文/日文/韩文）
+   - 正则表达式匹配（如 (?i) 不区分大小写）
+   - ROI 区域识别
+   - 置信度阈值过滤
+   - 文本排序（Horizontal/Vertical/Area 等）
+"""
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -202,7 +264,7 @@ class MaaFwPipelineOCR:
 # ═══════════════════════════════════════════════════════════════
 
 PREDEFINED_STATES = {
-    # ── 取消按钮（对话框区域 SIFT，阈值=5最小匹配点） ──
+    # ── 取消按钮（对话框区域 SIFT，阈值=5 最小匹配点） ──
     "CancelButton": {
         "type": "Or",
         "nodes": [
@@ -221,7 +283,7 @@ PREDEFINED_STATES = {
         ]
     },
 
-    # ── 世界页面（左上角小ROI SIFT） ──
+    # ── 世界页面（左上角小 ROI SIFT） ──
     "InWorld": {
         "type": "Or",
         "nodes": [
@@ -240,7 +302,7 @@ PREDEFINED_STATES = {
         ]
     },
 
-    # ── 任务图标（右上角ROI，高阈值防误匹配） ──
+    # ── 任务图标（右上角 ROI，高阈值防误匹配） ──
     "TaskIcon": {
         "type": "TemplateMatch",
         "template": "SceneManager/TaskIcon.png",
@@ -280,22 +342,15 @@ PREDEFINED_STATES = {
                 "upper": [191, 83, 85],
                 "min_area": 30,
                 "min_contours": 2
-            },
-            {
-                "type": "OCR",
-                "roi": [420, 1820, 450, 100],
-                "expected": ["FIELD", "ENDFIELD"]
             }
         ],
-        "note": "需要 MaaFw Pipeline OCR 支持"
+        "note": "OCR 部分需通过 MaaFw Pipeline 执行"
     },
 
-    # ── 行动手册 ──
+    # ── 行动手册（OCR 需 MaaFw Pipeline） ──
     "InOperationalManual": {
-        "type": "OCR",
-        "roi": [0, 0, 215, 60],
-        "expected": ["行动手册", "Operational Manual", "案内所"],
-        "note": "需要 MaaFw Pipeline OCR 支持"
+        "note": "需通过 MaaFw Pipeline OCR 执行:\n" +
+                "  ocr_param = JOCR(expected=['行动手册', 'Operational Manual'], roi=(0, 0, 215, 60))"
     }
 }
 
@@ -311,33 +366,15 @@ if __name__ == "__main__":
     SRC_DIR = Path(__file__).resolve().parent.parent.parent
     sys.path.insert(0, str(SRC_DIR))
 
-    from core.adb_utils import ADB
+    print("=" * 60)
+    print("识别引擎测试（MaaFw OCR + OpenCV 模板/颜色匹配）")
+    print("=" * 60)
 
-    adb = ADB()
-    img_bytes = adb.screencap(dedup=False)
+    # 打印 MaaFw OCR 使用文档
+    print("\nMaaFw OCR 使用指南:")
+    print(MaaFwPipelineOCR.doc())
 
-    if img_bytes:
-        img = cv2.imdecode(np.frombuffer(img_bytes, np.uint8), cv2.IMREAD_COLOR)
-        engine = RecognitionEngine()
-
-        print("\n[测试] 颜色匹配（黄色按钮）...")
-        ok, result = engine.recognize(img, {
-            "type": "ColorMatch",
-            "roi": [0, 0, 1920, 1080],
-            "lower": [28, 100, 100],
-            "upper": [29, 255, 255],
-            "count": 3000
-        })
-        print(f"  结果：{ok}, {result}")
-
-        print("\n[测试] OCR 识别（需 MaaFw Pipeline）...")
-        ok, result = engine.recognize(img, {
-            "type": "OCR",
-            "roi": [0, 0, 400, 100],
-            "expected": ["任务", "日常"]
-        })
-        print(f"  结果：{ok}, {result}")
-
-        print("\n[完成]")
-    else:
-        print("[错误] 截图失败")
+    # 测试预定义状态
+    print("\n预定义状态节点:")
+    for name, config in PREDEFINED_STATES.items():
+        print(f"  - {name}: {config.get('type', 'N/A')}")

@@ -112,6 +112,15 @@ class LogFormatter:
         return formatted
 
 
+
+
+class JSONLogFormatter:
+    """JSON 格式日志格式化器"""
+
+    def format(self, record: LogRecord) -> str:
+        """将日志记录格式化为 JSON 字符串"""
+        return json.dumps(record.to_dict(), ensure_ascii=False, default=str)
+
 class LogHandler:
     """日志处理器基类"""
     
@@ -145,7 +154,7 @@ class ConsoleHandler(LogHandler):
 
 
 class FileHandler(LogHandler):
-    """文件日志处理器"""
+    """文件日志处理器 - 按分类过滤 + 大小轮转"""
     
     def __init__(
         self,
@@ -154,7 +163,8 @@ class FileHandler(LogHandler):
         formatter: Optional[LogFormatter] = None,
         min_level: LogLevel = LogLevel.DEBUG,
         max_size: int = 50 * 1024 * 1024,
-        encoding: str = "utf-8"
+        encoding: str = "utf-8",
+        backup_count: int = 5
     ):
         super().__init__(formatter)
         self.log_dir = log_dir
@@ -162,7 +172,7 @@ class FileHandler(LogHandler):
         self.min_level = min_level
         self.max_size = max_size
         self.encoding = encoding
-        self._current_file = None
+        self.backup_count = backup_count
         self._ensure_log_dir()
     
     def _ensure_log_dir(self) -> None:
@@ -174,28 +184,38 @@ class FileHandler(LogHandler):
         """获取日志文件名"""
         date_str = datetime.now().strftime("%Y-%m-%d")
         return os.path.join(self.log_dir, f"{self.category.value}_{date_str}.log")
-    
-    def _check_file_size(self, filepath: str) -> bool:
-        """检查文件大小是否超过限制"""
+
+    def _rotate(self, filepath: str) -> None:
+        """日志文件轮转 - 按序号重命名旧文件"""
         if not os.path.exists(filepath):
-            return False
-        return os.path.getsize(filepath) >= self.max_size
+            return
+        oldest = f"{filepath}.{self.backup_count}"
+        if os.path.exists(oldest):
+            os.remove(oldest)
+        for bi in range(self.backup_count - 1, 0, -1):
+            old_file = f"{filepath}.{bi}"
+            new_file = f"{filepath}.{bi + 1}"
+            if os.path.exists(old_file):
+                os.rename(old_file, new_file)
+        os.rename(filepath, f"{filepath}.1")
     
     def emit(self, record: LogRecord) -> None:
-        """写入文件"""
+        """写入文件 - 仅处理匹配分类的日志"""
+        if record.category != self.category:
+            return
         if record.level.value < self.min_level.value:
             return
-        
         with self._lock:
             filepath = self._get_log_filename()
-            
+            if self.max_size > 0:
+                current_size = os.path.getsize(filepath) if os.path.exists(filepath) else 0
+                if current_size >= self.max_size:
+                    self._rotate(filepath)
             try:
                 with open(filepath, "a", encoding=self.encoding) as f:
                     f.write(self.format(record) + "\n")
             except Exception as e:
-                print(f"日志写入异常: {e}")
-
-
+                print(f"日志写入异常：{e}")
 class GUIHandler(LogHandler):
     """GUI日志处理器"""
     
@@ -221,12 +241,13 @@ class GUIHandler(LogHandler):
             try:
                 self.log_widget.insert("end", self.format(record) + "\n")
                 self.log_widget.see("end")
-                
+
                 self._line_count += 1
                 if self._line_count > self.max_lines:
                     self.log_widget.delete("1.0", "2.0")
                     self._line_count = self.max_lines
-            except Exception:
+            except Exception as e:
+                print(f"GUI 日志输出异常：{e}")
                 pass
 
 
@@ -314,13 +335,12 @@ class ClientLogger:
         self._handlers: List[LogHandler] = []
         self._device_context = ""
         self._config = self._load_config(config_path)
-        
         # 将日志目录转换为绝对路径
         log_dir = self._config.get("log_dir", "logs")
         if not os.path.isabs(log_dir):
-            # 获取logger.py所在的目录（client目录）
-            client_dir = os.path.dirname(os.path.abspath(__file__))
-            log_dir = os.path.join(client_dir, log_dir)
+            # logger.py 在 src/core/，向上 3 层到项目根目录
+            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+            log_dir = os.path.join(project_root, log_dir)
         self._config["log_dir"] = log_dir
         
         self._performance_monitor = PerformanceMonitor()
@@ -391,7 +411,8 @@ class ClientLogger:
     
     def _setup_handlers(self) -> None:
         """设置处理器"""
-        formatter = LogFormatter()
+        log_format = self._config.get("format", "text")
+        formatter = JSONLogFormatter() if log_format == "json" else LogFormatter()
         
         # 文件处理器
         if self._config["handlers"]["file"]["enabled"]:

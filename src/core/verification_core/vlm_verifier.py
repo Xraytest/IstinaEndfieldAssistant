@@ -86,7 +86,9 @@ class ModelEndpointManager:
                 return False
             content = r.json().get("choices", [{}])[0].get("message", {}).get("content", "")
             return "2" in content
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"模型健康检查失败：{e}")
             return False
 
     def discover_available(self) -> List[str]:

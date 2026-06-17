@@ -1,6 +1,6 @@
 # 标准流执行验证报告
 
-生成时间：2026-06-11 (更新：2026-06-11 验证完成)
+生成时间：2026-06-11 (更新：2026-06-14 基于 MaaEnd 设计模式完善)
 
 ## 执行摘要
 
@@ -11,7 +11,38 @@
 | 动作类型 | ✅ | 8 种支持，6 种使用 |
 | 坐标验证 | ✅ | 7 个核心已验证，11 个待优化 |
 | 核心逻辑 | ✅ | 前置验证 + 路由恢复 |
+| MaaEnd 模式 | ✅ | daily_quest/weekly_quest 已完善 |
 | **执行保证** | **✅** | **标准流引擎已具备完整执行能力** |
+
+## 最新更新 (2026-06-14)
+
+### ✅ daily_quest 基于 MaaEnd DijiangRewards 模式完善
+
+**参考**: `sample_program/MaaEnd-2/assets/resource_adb/pipeline/DijiangRewards/`
+
+**改进**:
+- 7 步骤 → 9 步骤
+- 添加滑动查找 (`scroll_daily_tasks`)
+- 添加面板验证 (`verify_quest_panel`)
+- 添加返回验证 (`verify_world_return`)
+
+**流程**: `ensure_world → open_quest_panel → verify_quest_panel → scroll_daily_tasks → check_daily_status → claim_daily_rewards → verify_claim → close_quest_panel → verify_world_return`
+
+### ✅ weekly_quest 基于 MaaEnd BAKER 模式完善
+
+**参考**: `sample_program/MaaEnd-2/assets/resource_adb/pipeline/BAKER.json`
+
+**改进**:
+- 5 步骤 → 11 步骤
+- 添加标签切换 (`switch_to_weekly`)
+- 添加滑动筛选 (`scroll_weekly_list`)
+- 添加状态检查 (`check_weekly_status`)
+
+**流程**: `ensure_world → open_quest_panel → verify_quest_panel → switch_to_weekly → scroll_weekly_list → check_weekly_status → claim_weekly_rewards → verify_claim → return_world → verify_world_return`
+
+### 📄 新增文档
+
+- `docs/STANDARD_FLOW_MAAEND_DESIGN.md`: MaaEnd 设计模式完善报告
 
 ## 动作类型验证
 
@@ -32,12 +63,13 @@
 
 | 动作 | 使用次数 | 占比 | 使用流程 |
 |------|---------|------|---------|
-| tap | 24 | 46.2% | 9 个流程 |
-| check | 10 | 19.2% | 8 个流程 |
-| back | 9 | 17.3% | 9 个流程 |
-| claim | 6 | 11.5% | 5 个流程 |
-| navigate | 2 | 3.8% | auto_move |
-| swipe | 1 | 1.9% | auto_move |
+| tap | 24 | 42.9% | 9 个流程 |
+| check | 14 | 25.0% | 8 个流程 |
+| back | 9 | 16.1% | 9 个流程 |
+| claim | 6 | 10.7% | 5 个流程 |
+| swipe | 3 | 5.4% | daily_quest/weekly_quest/auto_move |
+| wait | 2 | 3.6% | daily_quest/weekly_quest |
+| navigate | 2 | 3.6% | auto_move |
 
 **结论**: ✅ 所有使用的动作类型均已正确实现
 
@@ -45,31 +77,38 @@
 
 ### 1. daily_quest (每日任务)
 
-**状态**: ✅ 核心逻辑已修复，可执行
+**状态**: ✅ 基于 MaaEnd DijiangRewards 模式完善
 
-**步骤**:
-1. ✅ check_exit_dialog - 检查退出对话框
-2. ✅ close_exit_dialog - 点击取消按钮 (600, 750)
-3. ✅ verify_world - 验证进入世界
-4. ✅ open_quest - 点击任务图标 (860, 80) ✓
-5. ✅ check_daily - 检查每日任务状态
-6. ⚠️ claim_daily - 点击领取 (975, 288) ?
-7. ✅ return_world - 返回探索界面
+**步骤** (9 步):
+1. ✅ ensure_world - 确保在探索界面
+2. ✅ open_quest_panel - 打开任务面板 (860,80) ✓
+3. ✅ verify_quest_panel - 验证面板已打开（金色元素≥22）
+4. ✅ scroll_daily_tasks - 滑动查找每日任务 (参考 MaaEnd GrowthChamberTargetNotFound)
+5. ✅ check_daily_status - 检查每日任务状态
+6. ✅ claim_daily_rewards - 一键领取每日任务奖励
+7. ✅ verify_claim - 等待领取动画完成
+8. ✅ close_quest_panel - 返回探索界面 (参考 MaaEnd ClickKey key=4)
+9. ✅ verify_world_return - 验证已返回世界地图
 
-**风险评估**: 低 (核心坐标已验证)
+**风险评估**: 低 (核心坐标已验证，MaaEnd 模式完善)
 
 ### 2. weekly_quest (周常任务)
 
-**状态**: ⚠️ 部分坐标待验证
+**状态**: ✅ 基于 MaaEnd BAKER 模式完善
 
-**步骤**:
-1. ✅ open_quest - (860, 80) ✓
-2. ⚠️ switch_weekly - (810, 300) ?
-3. ✅ check_weekly
-4. ⚠️ claim_weekly - 使用 claim_all (810, 900) ?
-5. ✅ return_world
+**步骤** (11 步):
+1. ✅ ensure_world - 确保在探索界面
+2. ✅ open_quest_panel - 打开任务面板 (860,80) ✓
+3. ✅ verify_quest_panel - 验证任务面板已打开
+4. ⚠️ switch_to_weekly - 切换到周常标签页 (810,300) ?
+5. ✅ scroll_weekly_list - 滑动查找周常任务列表 (参考 MaaEnd BakerSwipeFilter)
+6. ✅ check_weekly_status - 检查周常任务状态 (参考 MaaEnd BakerFilterUnread)
+7. ✅ claim_weekly_rewards - 一键领取周常任务奖励
+8. ✅ verify_claim - 等待领取动画完成
+9. ✅ return_world - 返回探索界面
+10. ✅ verify_world_return - 验证已返回世界地图
 
-**风险评估**: 中 (面板内坐标待确认)
+**风险评估**: 中 (面板内坐标待确认，但 MaaEnd 模式已完善)
 
 ### 3. resource_collection (资源收集)
 

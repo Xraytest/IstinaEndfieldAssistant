@@ -1,0 +1,22 @@
+# IstinaEndfieldAssistant Dependencies (No llama-cpp-python)
+
+# GUI
+PyQt6>=6.5.0
+
+# Image processing
+Pillow>=10.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# Security
+cryptography>=41.0.0
+
+# HTTP/Network
+requests>=2.31.0
+
+# Utilities
+pyyaml>=6.0
+psutil>=5.9.0
+
+# Development
+pytest>=7.0.0

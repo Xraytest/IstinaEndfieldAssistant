@@ -271,11 +271,12 @@ class OptimizedExplorationEngine:
     """OCR 优先的优化探索引擎"""
 
     def __init__(self, adb_shell_func=None, maa_ocr_func=None, maa_click_func=None,
-                 maa_swipe_func=None, maa_screencap_func=None, vlm_func=None):
+                 maa_swipe_func=None, maa_back_func=None, maa_screencap_func=None, vlm_func=None):
         self._adb_shell = adb_shell_func or self._default_adb
         self._ocr = maa_ocr_func
         self._click = maa_click_func
         self._swipe = maa_swipe_func
+        self._back = maa_back_func
         self._screencap = maa_screencap_func
         self._vlm = vlm_func
         self._context = GameContext()
@@ -287,23 +288,17 @@ class OptimizedExplorationEngine:
         self._execution_log = []
 
     def _default_adb(self, cmd: str, *args) -> bytes:
-        """默认 ADB 调用"""
+        """默认 ADB 调用（仅保留截图功能，触控已完全迁移至 MaaFw）"""
         adb = r"C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant\3rd-party\adb\adb.exe"
-        full_cmd = [adb, "-s", "localhost:16512"]
-        if cmd == "tap":
-            full_cmd.extend(["shell", "input", "tap", str(args[0]), str(args[1])])
-        elif cmd == "swipe":
-            full_cmd.extend(["shell", "input", "swipe"] + [str(a) for a in args])
-        elif cmd == "keyevent":
-            full_cmd.extend(["shell", "input", "keyevent", str(args[0])])
-        elif cmd == "screencap":
+        # 触控操作已移除，仅保留截图
+        if cmd == "screencap":
             return subprocess.run(
                 [adb, "-s", "localhost:16512", "exec-out", "screencap", "-p"],
                 capture_output=True, timeout=15).stdout
-        try:
-            return subprocess.run(full_cmd, capture_output=True, timeout=10).stdout
-        except:
-            return b""
+        # 触控命令不再支持（已迁移至 MaaFw TouchManager）
+        import logging
+        logging.getLogger(__name__).warning(f"ADB 触控命令已弃用：{cmd}，请使用 MaaFw TouchManager")
+        return b""
 
     def log(self, msg: str):
         ts = time.strftime("%H:%M:%S")
@@ -314,22 +309,34 @@ class OptimizedExplorationEngine:
     # ── 核心操作 ──────────────────────────────────────────────
 
     def tap(self, x: int, y: int, label: str = ""):
+        """点击操作（必须通过回调函数，不再支持 ADB 回退）"""
         if self._click:
             self._click(x, y)
         else:
-            self._adb_shell("tap", x, y)
+            import logging
+            logging.getLogger(__name__).error("触控点击未配置回调函数，无法执行。请通过 MaaFw TouchManager 注入 click 回调")
+            raise RuntimeError("No click callback configured. Must use MaaFw TouchManager.")
         self._stats["taps"] += 1
         self.log(f"  tap ({x},{y}) {label}")
 
     def swipe(self, x1, y1, x2, y2, duration=500):
+        """滑动操作（必须通过回调函数，不再支持 ADB 回退）"""
         if self._swipe:
             self._swipe(x1, y1, x2, y2, duration)
         else:
-            self._adb_shell("swipe", x1, y1, x2, y2, duration)
+            import logging
+            logging.getLogger(__name__).error("触控滑动未配置回调函数，无法执行。请通过 MaaFw TouchManager 注入 swipe 回调")
+            raise RuntimeError("No swipe callback configured. Must use MaaFw TouchManager.")
         self.log(f"  swipe ({x1},{y1})→({x2},{y2})")
 
     def back(self):
-        self._adb_shell("keyevent", 4)
+        """返回键操作（必须通过回调函数，不再支持 ADB 回退）"""
+        if self._back:
+            self._back()
+        else:
+            import logging
+            logging.getLogger(__name__).error("返回键未配置回调函数，无法执行。请通过 MaaFw TouchManager 注入 back 回调")
+            raise RuntimeError("No back callback configured. Must use MaaFw TouchManager.")
         self.log("  back")
 
     def wait(self, s: float):

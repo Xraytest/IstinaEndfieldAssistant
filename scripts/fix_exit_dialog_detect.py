@@ -9,13 +9,6 @@ with open(file_path, 'r', encoding='utf-8') as f:
 # 找到插入位置：在"OCR 失效时的视觉特征判断"注释后
 old_code = '''        # OCR 失效时的视觉特征判断（VLM OCR 超时返回"无文字"）
         # 任务面板：大量金色元素（UI 按钮/边框）+ 无 person（非 3D 场景）
-        if len(golden_elements) > 20 and "person" not in yolo_classes:
-            return "quest_panel"'''
-
-new_code = '''        # OCR 失效时的视觉特征判断（VLM OCR 超时返回"无文字"）
-        # 退出对话框：12-16 个金色元素 + 无 person + OCR 为空/无文字
-        if 12 <= len(golden_elements) <= 16 and "person" not in yolo_classes and (not text.strip() or text == "无文字"):
-            return "exit_dialog"
         # 任务面板：大量金色元素（UI 按钮/边框）+ 无 person（非 3D 场景）
         if len(golden_elements) > 20 and "person" not in yolo_classes:
             return "quest_panel"'''

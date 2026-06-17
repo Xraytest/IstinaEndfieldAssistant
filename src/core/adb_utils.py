@@ -78,24 +78,25 @@ def list_devices() -> List[str]:
 
 # ── ADB 截图 ──────────────────────────────────────────────────────
 
-def adb_screencap(timeout: int = 15) -> Optional[bytes]:
+def adb_screencap(serial: str = DEVICE_SERIAL, timeout: int = 15) -> Optional[bytes]:
     """ADB 截图，返回 PNG 字节"""
     try:
-        r = _adb_cmd(["exec-out", "screencap", "-p"], timeout=timeout)
-        if r.returncode == 0 and len(r.stdout) > 1000:
+        cmd = [ADB_PATH, "-s", serial, "exec-out", "screencap", "-p"]
+        r = subprocess.run(cmd, capture_output=True, timeout=timeout)
+        if r.returncode == 0 and r.stdout:
             return r.stdout
         return None
-    except ADBError:
+    except Exception:
         return None
 
 
-def adb_screencap_unique(timeout: int = 15,
+def adb_screencap_unique(serial: str = DEVICE_SERIAL, timeout: int = 15,
                           last_hash: Optional[str] = None) -> Tuple[Optional[bytes], Optional[str]]:
     """截图并去重，返回 (image_bytes, md5_hash)
 
     如果画面与 last_hash 相同则返回 (None, same_hash)
     """
-    img = adb_screencap(timeout=timeout)
+    img = adb_screencap(serial=serial, timeout=timeout)
     if img is None:
         return (None, None)
 
@@ -212,12 +213,12 @@ class ADB:
         去重启用时，如果画面与上次相同返回 None
         """
         if dedup:
-            img, h = adb_screencap_unique(last_hash=self._last_screenshot_hash)
+            img, h = adb_screencap_unique(serial=self.serial, last_hash=self._last_screenshot_hash)
             if img is not None:
                 self._last_screenshot_hash = h
             return img
         else:
-            return adb_screencap()
+            return adb_screencap(serial=self.serial)
 
     def wait(self, seconds: float):
         """等待"""
@@ -237,4 +238,13 @@ class ADB:
 
     def check_connection(self) -> bool:
         """检查设备连接"""
-        return check_device()
+        try:
+            cmd = [ADB_PATH, "-s", self.serial, "get-state"]
+            r = subprocess.run(cmd, capture_output=True, timeout=5)
+            return r.returncode == 0 and r.stdout.decode().strip() == "device"
+        except Exception:
+            return False
+
+    # ── 触控方法已移除 ──────────────────────────────────────
+    # tap/swipe/back 已完全迁移至 MaaFw TouchManager
+    # 此类仅保留截图和连接管理功能

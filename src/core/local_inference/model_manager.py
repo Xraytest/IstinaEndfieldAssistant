@@ -420,7 +420,9 @@ class ModelManager:
         try:
             size_bytes = model_path.stat().st_size
             return round(size_bytes / (1024**3), 2)
-        except:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"获取模型大小失败：{e}")
             return None
     
     def get_disk_usage(self) -> Dict[str, Any]:

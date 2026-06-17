@@ -152,35 +152,39 @@ class GPUChecker:
             
             try:
                 result["driver_version"] = nvmlSystemGetDriverVersion().decode('utf-8')
-            except:
+            except Exception as e:
+                logger.debug(LogCategory.MAIN, f"获取驱动版本失败：{e}")
                 pass
-            
+
             gpu_count = nvmlDeviceGetCount()
             result["gpu_count"] = gpu_count
-            
+
             gpus = []
             max_memory = 0
-            
+
             for i in range(gpu_count):
                 handle = nvmlDeviceGetHandleByIndex(i)
-                
+
                 try:
                     name = nvmlDeviceGetName(handle).decode('utf-8')
-                except:
+                except Exception as e:
+                    logger.debug(LogCategory.MAIN, f"获取 GPU {i} 名称失败：{e}")
                     name = f"GPU {i}"
-                
+
                 try:
                     mem_info = nvmlDeviceGetMemoryInfo(handle)
                     total_gb = mem_info.total / (1024**3)
                     free_gb = (mem_info.total - mem_info.used) / (1024**3)
-                except:
+                except Exception as e:
+                    logger.debug(LogCategory.MAIN, f"获取 GPU {i} 显存信息失败：{e}")
                     total_gb = 0
                     free_gb = 0
-                
+
                 try:
                     major, minor = nvmlDeviceGetCudaComputeCapability(handle)
                     compute_capability = f"{major}.{minor}"
-                except:
+                except Exception as e:
+                    logger.debug(LogCategory.MAIN, f"获取 GPU {i} 计算能力失败：{e}")
                     compute_capability = ""
                 
                 gpu_info = GPUInfo(
@@ -236,7 +240,8 @@ class GPUChecker:
             
             try:
                 result["cuda_version"] = torch.version.cuda or ""
-            except:
+            except Exception as e:
+                logger.debug(LogCategory.MAIN, f"获取 CUDA 版本失败：{e}")
                 pass
             
             gpu_count = torch.cuda.device_count()
@@ -309,7 +314,8 @@ class GPUChecker:
                     stderr=subprocess.DEVNULL
                 )
                 result["driver_version"] = driver_output.strip().split('\n')[0]
-            except:
+            except Exception as e:
+                logger.debug(LogCategory.MAIN, f"获取 nvidia-smi 驱动版本失败：{e}")
                 pass
             
             gpus = []
@@ -329,7 +335,8 @@ class GPUChecker:
                     try:
                         total_gb = int(total_str) / 1024
                         free_gb = int(free_str) / 1024
-                    except:
+                    except Exception as e:
+                        logger.debug(LogCategory.MAIN, f"解析显存信息失败：{e}")
                         total_gb = 0
                         free_gb = 0
                     

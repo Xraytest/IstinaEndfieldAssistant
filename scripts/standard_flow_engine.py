@@ -131,7 +131,6 @@ class ScreenAnalyzer:
 
         result = {
             "page_type": "unknown",
-            "golden_elements": [],
             "yolo_objects": [],
             "ocr_text": "",
             "vlm_judgment": "",
@@ -144,24 +143,18 @@ class ScreenAnalyzer:
         if yolo_objects:
             result["sources"].append("yolo")
 
-        # 2. 金色元素检测
-        golden = self._detect_golden(img)
-        result["golden_elements"] = golden
-        if golden:
-            result["sources"].append("golden")
-
-        # 3. OCR 文字识别（VLM）
+        # 2. OCR 文字识别（VLM）
         ocr_text = self._ocr_via_vlm(img)
         result["ocr_text"] = ocr_text
         if ocr_text:
             result["sources"].append("ocr")
 
-        # 4. VLM 综合判断（融合 YOLO + 金色 + OCR 信息）
-        result["vlm_judgment"] = self._vlm_classify(img, golden, yolo_objects, ocr_text)
+        # 3. VLM 综合判断（融合 YOLO + OCR 信息）
+        result["vlm_judgment"] = self._vlm_classify(img, yolo_objects, ocr_text)
         result["sources"].append("vlm")
 
-        # 5. 关键词快速分类
-        result["page_type"] = self._classify_by_keywords(ocr_text, golden, yolo_objects)
+        # 4. 关键词快速分类
+        result["page_type"] = self._classify_by_keywords(ocr_text, yolo_objects)
 
         return result
 
@@ -195,32 +188,7 @@ class ScreenAnalyzer:
             print(f"[YOLO] 检测异常: {e}")
             return []
 
-    def _detect_golden(self, img) -> list:
-        """金色元素检测（OpenCV HSV 多范围）"""
-        import cv2, numpy as np
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        ranges = [
-            ("亮金", np.array([15, 80, 150]), np.array([35, 255, 255])),
-            ("暗金", np.array([15, 50, 80]), np.array([35, 255, 200])),
-            ("暖金", np.array([10, 60, 100]), np.array([40, 255, 255])),
-        ]
-        all_elements = []
-        for name, lower, upper in ranges:
-            mask = cv2.inRange(hsv, lower, upper)
-            contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-            for cnt in contours:
-                area = cv2.contourArea(cnt)
-                if area > 30:
-                    x, y, bw, bh = cv2.boundingRect(cnt)
-                    all_elements.append({
-                        "cx": x + bw // 2, "cy": y + bh // 2,
-                        "w": bw, "h": bh, "area": area, "range": name
-                    })
-        unique = []
-        for elem in sorted(all_elements, key=lambda e: e["area"], reverse=True):
-            if not any(abs(elem["cx"] - u["cx"]) < 20 and abs(elem["cy"] - u["cy"]) < 20 for u in unique):
-                unique.append(elem)
-        return unique[:20]
+
 
     def _ocr_via_vlm(self, img) -> str:
         """通过 llama-server VLM 做 OCR 文字提取（禁用 thinking 模式）
@@ -254,7 +222,7 @@ class ScreenAnalyzer:
             print(f"  [OCR] VLM 不可用: {e}")
             return ""
 
-    def _vlm_classify(self, img, golden_elements: list, yolo_objects: list, ocr_text: str) -> str:
+    def _vlm_classify(self, img, yolo_objects: list, ocr_text: str) -> str:
         """VLM 综合判断画面类型（融合 YOLO + 金色元素 + OCR 信息）
 
         超时 15 秒，失败返回空字符串，由关键词分类器兜底。
@@ -264,9 +232,6 @@ class ScreenAnalyzer:
             yolo_summary = "YOLO检测: " + (", ".join(
                 f"{o['class']}({o['confidence']})" for o in yolo_objects[:10]
             ) if yolo_objects else "无检测")
-            golden_summary = f"金色元素{len(golden_elements)}个" + (": " + ", ".join(
-                f"[{g['cx']},{g['cy']}] {g['w']}x{g['h']}" for g in golden_elements[:10]
-            ) if golden_elements else "")
 
             prompt = (
                 f"OCR文字: {ocr_text[:300]}\n"
@@ -300,16 +265,12 @@ class ScreenAnalyzer:
             print(f"  [VLM] 分类不可用: {e}")
             return ""
 
-    def _classify_by_keywords(self, ocr_text: str, golden_elements: list, yolo_objects: list) -> str:
+    def _classify_by_keywords(self, ocr_text: str, yolo_objects: list) -> str:
         """基于 OCR 关键词 + YOLO + 金色元素快速分类（不依赖 VLM）"""
         text = ocr_text.lower()
         yolo_classes = [o["class"] for o in yolo_objects]
-        gold_count = len(golden_elements)
 
         # === 异常状态检测（新增） ===
-        # UI 元素过少，可能处于异常状态或加载中间态
-        if gold_count < 10 and "person" not in yolo_classes and not yolo_objects:
-            return "unknown"
 
         # OCR 失效时的视觉特征判断（VLM OCR 超时返回"无文字"）
         # 退出对话框：10-18 个金色元素（扩展范围）+ 无 person + OCR 为空/无文字
@@ -358,13 +319,13 @@ class ScreenAnalyzer:
         if "person" in yolo_classes and any(kw in text for kw in ["探索", "工业", "基地"]):
             return "world"
         # 探索世界 — 有角色且大量金色物体（游戏内3D场景）
-        if "person" in yolo_classes and len(golden_elements) > 10:
+        if "person" in yolo_classes:
             return "world"
         # 探索世界 — 有顶部栏 HUD 文字
         if any(kw in text for kw in ["探索", "工业", "基地"]):
             return "world"
         # 金色按钮特征：有金色元素且有领取/确认相关文字
-        if golden_elements and any(kw in text for kw in ["领取", "确认", "确定", "claim", "ok"]):
+        if any(kw in text for kw in ["领取", "确认", "确定", "claim", "ok"]):
             return "quest_panel"
         return "unknown"
 
@@ -1345,7 +1306,7 @@ class StandardFlowExecutor:
                 resized = cv2.resize(rotated, (1280, 720))
                 analysis = self.screen_analyzer.analyze(resized)
                 print(f"  [画面] YOLO={len(analysis['yolo_objects'])}obj "
-                      f"金色={len(analysis['golden_elements'])}btn "
+                      f"btn "
                       f"OCR={analysis['ocr_text'][:60].replace(chr(10),' ')}")
                 if analysis['page_type'] != 'unknown':
                     print(f"  [判断] {analysis['page_type']}")

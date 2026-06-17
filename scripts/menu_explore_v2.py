@@ -167,56 +167,17 @@ print(f"Menu: mean={menu_mean:.1f} std={menu_std:.1f}", flush=True)
 cv2.imwrite(os.path.join(CACHE, 'mev2_menu.png'), menu)
 
 # Phase 3: 金色检测
-print("\n[P3] Golden element detection...", flush=True)
-golden = detect_golden(menu)
-print(f"Found {len(golden)} golden elements", flush=True)
+# Golden detection removed
+golden = []  # 已移除
 for g in golden[:30]:
     region = "TOP" if g['cy'] < 200 else ("BTM" if g['cy'] > 800 else ("MID-BTM" if g['cy'] > 500 else "MID"))
     print(f"  ({g['cx']:>4},{g['cy']:>4}) {g['w']:>4}x{g['h']:>4} area={g['area']:>8.0f} [{region}]", flush=True)
 
 # Phase 4: 测试金色按钮
 results = []
-print("\n[P4] Test golden buttons...", flush=True)
+# Golden button testing removed
 tested = set()
-for g in golden[:20]:
-    x, y = g['cx'], g['cy']
-    key = (x // 40, y // 40)
-    if key in tested:
-        continue
-    tested.add(key)
-    
-    # 确保在menu上
-    ensure_on_menu(menu_mean, menu_std)
-    
-    before = cap_safe()
-    if before is None:
-        continue
-    cv2.imwrite(TMP1, before)
-    
-    tap(x, y)
-    time.sleep(2.5)
-    
-    after = cap_safe()
-    if after is None:
-        continue
-    cv2.imwrite(TMP2, after)
-    
-    # 验证before/after都不是黑屏
-    if before.mean() < 0.5:
-        print(f"  [SKIP] before black", flush=True)
-        continue
-    if after.mean() < 0.5:
-        print(f"  [SKIP] after black", flush=True)
-        continue
-    
-    d = diff_file(TMP1, TMP2)
-    tag = "BIG" if d > 800000 else ("MID" if d > 200000 else "low")
-    
-    print(f"  [{tag}] ({x:>4},{y:>4}) area={g['area']:.0f} diff={d:>10,}  bm={before.mean():.0f}->am={after.mean():.0f}", flush=True)
-    
-    if d > 500000:
-        cv2.imwrite(os.path.join(CACHE, f'mev2_golden_{x}_{y}.png'), after)
-        results.append({"source": "golden", "x": x, "y": y, "area": float(g['area']), "diff": int(d), "tag": tag})
+# Golden button testing removed
     
     for _ in range(3):
         back()

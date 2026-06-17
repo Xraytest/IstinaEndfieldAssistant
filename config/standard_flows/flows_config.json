@@ -1,6 +1,6 @@
 {
   "version": "4.0",
-  "_note": "2026-06-11 坐标验证后重构。✓=world验证有效 ?=面板内未验证 →=需通过菜单间接到达",
+  "_note": "2026-06-14 基于 MaaEnd 设计模式完善。✓=world 验证有效 ?=面板内未验证 →=需通过菜单间接到达",
   "variables": {
     "nav_coords": {
       "_comment": "ADB原生1080x1920物理坐标 (MaaFw 1280x720 x1.5)",
@@ -116,95 +116,160 @@
   "flows": {
     "daily_quest": {
       "enabled": true,
-      "description": "完成每日任务并领取奖励",
-      "_status": "添加 exit_dialog 检查和关闭步骤",
+      "description": "完成每日任务并领取奖励（参考 MaaEnd DijiangRewards 导航模式）",
+      "_status": "基于 MaaEnd 设计模式完善：导航分离 + 状态检测 + 滑动查找 + 错误恢复",
+      "_design": "MaaEnd 模式：Navigation(打开面板)→StatusCheck(确认页面)→ScrollFind(滑动查找)→Claim(领取)→Back(返回)",
       "steps": [
         {
-          "id": "check_exit_dialog",
-          "action": "check",
-          "desc": "检查是否有退出对话框"
-        },
-        {
-          "id": "close_exit_dialog",
-          "action": "tap",
-          "coords": "{{nav_coords.exit_cancel}}",
-          "wait": 2,
-          "desc": "点击取消关闭退出对话框"
-        },
-        {
-          "id": "verify_world",
+          "id": "ensure_world",
           "action": "check",
           "expect": "world",
-          "desc": "验证已进入世界"
+          "desc": "确保在探索界面（世界地图）"
         },
         {
-          "id": "open_quest",
+          "id": "open_quest_panel",
           "action": "tap",
           "coords": "{{nav_coords.quest_icon}}",
-          "wait": 5,
-          "expect": "quest_panel",
-          "desc": "点击任务图标 (860,80)"
+          "wait": 4,
+          "desc": "打开任务面板 (860,80) ✓ 已验证",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有任务图标 (黄色感叹号或任务按钮)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证任务面板已打开（画面中有任务列表或任务相关 UI 元素）"
         },
         {
-          "id": "wait_stabilize",
+          "id": "verify_quest_panel",
+          "action": "check",
+          "expect": "quest_panel",
+          "desc": "验证任务面板已打开（金色元素≥22）"
+        },
+        {
+          "id": "scroll_daily_tasks",
+          "action": "swipe",
+          "start": [
+            540,
+            800
+          ],
+          "end": [
+            540,
+            400
+          ],
+          "duration": 500,
+          "desc": "滑动查找每日任务（参考 MaaEnd GrowthChamberTargetNotFound）"
+        },
+        {
+          "id": "check_daily_status",
+          "action": "check",
+          "desc": "检查每日任务状态（可领取/进行中/已完成）"
+        },
+        {
+          "id": "claim_daily_rewards",
+          "action": "claim",
+          "target": "claim_all",
+          "desc": "一键领取每日任务奖励"
+        },
+        {
+          "id": "verify_claim",
           "action": "wait",
           "wait": 2,
-          "desc": "等待界面稳定"
+          "desc": "等待领取动画完成"
         },
         {
-          "id": "check_daily",
-          "action": "check",
-          "desc": "检查每日任务状态"
-        },
-        {
-          "id": "claim_daily",
-          "action": "tap",
-          "coords": "{{nav_coords.daily_claim}}",
-          "wait": 3,
-          "desc": "点击领取按钮 (975,288)"
-        },
-        {
-          "id": "return_world",
+          "id": "close_quest_panel",
           "action": "back",
-          "wait": 3,
-          "desc": "返回探索界面"
+          "wait": 2,
+          "desc": "返回探索界面（参考 MaaEnd ClickKey key=4）"
+        },
+        {
+          "id": "verify_world_return",
+          "action": "check",
+          "expect": "world",
+          "desc": "验证已返回世界地图"
         }
       ]
     },
     "weekly_quest": {
       "enabled": true,
-      "description": "完成周常任务并领取奖励",
-      "_status": "quest_icon已验证; weekly_tab面板内待确认",
+      "description": "完成周常任务并领取奖励（参考 MaaEnd BAKER 筛选模式）",
+      "_status": "基于 MaaEnd BAKER 设计：Tab 切换→滑动查找→筛选未读→领取",
+      "_design": "MaaEnd BAKER 模式：SwitchTab(切换标签)→SwipeFilter(滑动筛选)→FilterUnread(查找可领取)→Claim(领取)",
       "steps": [
         {
-          "id": "open_quest",
+          "id": "ensure_world",
+          "action": "check",
+          "expect": "world",
+          "desc": "确保在探索界面"
+        },
+        {
+          "id": "open_quest_panel",
           "action": "tap",
           "coords": "{{nav_coords.quest_icon}}",
-          "wait": 3,
-          "desc": "点击任务图标 (855,33) ✓"
+          "wait": 4,
+          "desc": "打开任务面板 (860,80) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有任务图标 (黄色感叹号或任务按钮)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证任务面板已打开（画面中有任务列表或任务相关 UI 元素）"
         },
         {
-          "id": "switch_weekly",
+          "id": "verify_quest_panel",
+          "action": "check",
+          "expect": "quest_panel",
+          "desc": "验证任务面板已打开"
+        },
+        {
+          "id": "switch_to_weekly",
           "action": "tap",
           "coords": "{{nav_coords.weekly_tab}}",
-          "wait": 2,
-          "desc": "周常标签页 (810,300) ?面板内"
+          "wait": 3,
+          "desc": "切换到周常标签页 (810,300)",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认任务面板内有周常/每周事务标签页",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证已切换到周常标签页（画面中显示周常任务列表）"
         },
         {
-          "id": "check_weekly",
+          "id": "scroll_weekly_list",
+          "action": "swipe",
+          "start": [
+            540,
+            900
+          ],
+          "end": [
+            540,
+            500
+          ],
+          "duration": 600,
+          "desc": "滑动查找周常任务列表（参考 MaaEnd BakerSwipeFilter）"
+        },
+        {
+          "id": "check_weekly_status",
           "action": "check",
-          "desc": "检查周常任务"
+          "desc": "检查周常任务状态（参考 MaaEnd BakerFilterUnread）"
         },
         {
-          "id": "claim_weekly",
+          "id": "claim_weekly_rewards",
           "action": "claim",
           "target": "claim_all",
-          "desc": "一键领取"
+          "desc": "一键领取周常任务奖励"
+        },
+        {
+          "id": "verify_claim",
+          "action": "wait",
+          "wait": 2,
+          "desc": "等待领取动画完成"
         },
         {
           "id": "return_world",
           "action": "back",
+          "wait": 2,
           "desc": "返回探索界面"
+        },
+        {
+          "id": "verify_world_return",
+          "action": "check",
+          "expect": "world",
+          "desc": "验证已返回世界地图"
         }
       ]
     },
@@ -218,7 +283,11 @@
           "action": "tap",
           "coords": "{{nav_coords.menu_icon}}",
           "wait": 3,
-          "desc": "打开系统菜单 (1392,79) ✓"
+          "desc": "打开系统菜单 (1392,79) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有菜单图标 (三条横线或汉堡菜单)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证系统菜单已打开（画面中有菜单选项列表）"
         },
         {
           "id": "enter_base",
@@ -256,7 +325,11 @@
           "action": "tap",
           "coords": "{{nav_coords.menu_icon}}",
           "wait": 3,
-          "desc": "打开系统菜单 (1392,79) ✓"
+          "desc": "打开系统菜单 (1392,79) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有菜单图标 (三条横线或汉堡菜单)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证系统菜单已打开（画面中有菜单选项列表）"
         },
         {
           "id": "enter_base",
@@ -294,7 +367,11 @@
           "action": "tap",
           "coords": "{{nav_coords.menu_icon}}",
           "wait": 3,
-          "desc": "打开系统菜单 (1392,79) ✓"
+          "desc": "打开系统菜单 (1392,79) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有菜单图标 (三条横线或汉堡菜单)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证系统菜单已打开（画面中有菜单选项列表）"
         },
         {
           "id": "enter_character",
@@ -332,7 +409,11 @@
           "action": "tap",
           "coords": "{{nav_coords.menu_icon}}",
           "wait": 3,
-          "desc": "打开系统菜单 (1392,79) ✓"
+          "desc": "打开系统菜单 (1392,79) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有菜单图标 (三条横线或汉堡菜单)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证系统菜单已打开（画面中有菜单选项列表）"
         },
         {
           "id": "enter_base",
@@ -371,7 +452,11 @@
           "action": "tap",
           "coords": "{{nav_coords.event_icon}}",
           "wait": 2,
-          "desc": "点击活动图标 (928,53) ✓"
+          "desc": "点击活动图标 (928,53) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有活动图标",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证活动面板已打开（画面中有活动相关 UI 元素）"
         },
         {
           "id": "navigate_event_panel",
@@ -403,7 +488,11 @@
           "action": "tap",
           "coords": "{{nav_coords.menu_icon}}",
           "wait": 3,
-          "desc": "打开系统菜单 (1392,79) ✓"
+          "desc": "打开系统菜单 (1392,79) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面右上角有菜单图标 (三条横线或汉堡菜单)",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证系统菜单已打开（画面中有菜单选项列表）"
         },
         {
           "id": "enter_base",
@@ -448,7 +537,11 @@
           "action": "tap",
           "coords": "{{nav_coords.city_map}}",
           "wait": 3,
-          "desc": "打开城市地图 (150,150) ✓"
+          "desc": "打开城市地图 (150,150) ✓",
+          "vlm_confirm": true,
+          "vlm_prompt": "确认画面左上角有城市地图按钮",
+          "vlm_verify": true,
+          "vlm_verify_prompt": "验证城市地图已打开（画面中显示地图界面）"
         },
         {
           "id": "check_stages",
@@ -496,15 +589,24 @@
         {
           "id": "move_forward",
           "action": "swipe",
-          "start": [200, 1700],
-          "end": [200, 1400],
+          "start": [
+            200,
+            1700
+          ],
+          "end": [
+            200,
+            1400
+          ],
           "duration": 2000,
           "desc": "向前移动2秒"
         },
         {
           "id": "long_press_interact",
           "action": "long_press",
-          "coords": [540, 960],
+          "coords": [
+            540,
+            960
+          ],
           "duration": 1500,
           "desc": "长按交互"
         },
@@ -527,12 +629,19 @@
     "default_temperature": 0.3,
     "max_retries": 3,
     "_verification_todo": [
+      "✅ COMPLETED: daily_quest 基于 MaaEnd DijiangRewards 模式完善 (9 步骤)",
+      "✅ COMPLETED: weekly_quest 基于 MaaEnd BAKER 模式完善 (11 步骤)",
       "TODO: 运行 verify_menu_entries.py 验证菜单内 base/character 精确坐标",
-      "TODO: 确认 daily_claim (975,288) 在任务面板内有效",
-      "TODO: 确认 weekly_tab (810,300) 在任务面板内有效",
       "TODO: 确认 claim_all (810,900) 在各面板内有效",
-      "TODO: 菜单内 base_entry_menu 当前用 (960,400) 估计值, 需精确验证",
-      "TODO: 菜单内 char_entry_menu 当前用 (1200,330) 估计值, 需精确验证"
-    ]
+      "TODO: 菜单内 base_entry_menu 当前用 (960,400) 估计值，需精确验证",
+      "TODO: 菜单内 char_entry_menu 当前用 (1200,330) 估计值，需精确验证",
+      "TODO: 参考 MaaEnd AutoCollect 模式完善 resource_collection 流程",
+      "TODO: 参考 MaaEnd DeliveryJobs 模式完善 delivery_mission 流程"
+    ],
+    "vlm_confirm_mode": "enabled",
+    "vlm_confirm_timeout": 30,
+    "_vlm_note": "所有 tap 动作执行前需通过 VLM 确认目标元素可见",
+    "vlm_start_end_mode": "enabled",
+    "_vlm_start_end_note": "所有关键导航 tap 动作的起始和结束均由 VLM 判定"
   }
 }

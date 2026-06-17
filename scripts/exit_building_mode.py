@@ -74,9 +74,9 @@ for attempt in range(10):
         print(f"  取消建造...")
         # 尝试多个可能的取消按钮位置
         cancel_candidates = [
-            (1319, 49),   # top-right close X (golden element)
-            (1749, 721),  # right-side golden element
-            (1456, 912),  # bottom-right golden element
+            (1319, 49),   # UI element element)
+            (1749, 721),  # UI element element
+            (1456, 912),  # UI element element
             (834, 717),   # generic cancel
             (500, 900),   # bottom-left cancel
         ]

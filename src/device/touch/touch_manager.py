@@ -344,7 +344,33 @@ class TouchManager:
     def get_resolution(self) -> Tuple[int, int]:
         """获取设备分辨率"""
         return self._resolution
-    
+
+    def wake_device(self) -> bool:
+        """
+        设备唤醒 - 发送 KEYCODE_POWER (26)
+
+        Returns:
+            bool: 是否执行成功
+        """
+        import subprocess
+        from pathlib import Path
+        PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+        adb_path = str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe")
+
+        self.logger.info(LogCategory.MAIN, "发送设备唤醒指令 (KEYCODE_POWER = 26)")
+        cmd = [adb_path, "-s", self._device_serial, "shell", "input", "keyevent", "26"]
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=10)
+            ok = result.returncode == 0
+            if ok:
+                self.logger.info(LogCategory.MAIN, "设备唤醒成功")
+            else:
+                self.logger.exception(LogCategory.MAIN, "设备唤醒失败", error=result.stderr.decode('utf-8', errors='replace'))
+            return ok
+        except Exception as e:
+            self.logger.exception(LogCategory.MAIN, "设备唤醒异常", error=str(e))
+            return False
+
     @property
     def connected(self) -> bool:
         """是否已连接"""
@@ -360,11 +386,11 @@ class TouchManager:
     def execute_tool_call(self, tool_name: str, params: Dict[str, Any]) -> bool:
         """
         统一工具执行入口
-        
+
         Args:
-            tool_name: 工具名称 (click, swipe, long_press, pipeline_task)
+            tool_name: 工具名称 (click, swipe, long_press, pipeline_task, wake_device)
             params: 参数字典
-        
+
         Returns:
             bool: 是否执行成功
         """
@@ -403,14 +429,16 @@ class TouchManager:
             if not app_name:
                 self.logger.exception(LogCategory.MAIN, "open_app 缺少 app_name 参数")
                 return False
-            
+
             # 根据设备类型选择对应的 executor
             if self._device_type == TouchDeviceType.ANDROID and self._android_executor:
                 return self._android_executor.start_app(app_name)
             else:
                 self.logger.exception(LogCategory.MAIN, "控制器未初始化")
                 return False
-            
+        elif tool_name == "wake_device":
+            # 设备唤醒 - 发送 KEYCODE_POWER (26)
+            return self.wake_device()
         else:
             self.logger.exception(LogCategory.MAIN, "未知工具名称", tool_name=tool_name)
             return False

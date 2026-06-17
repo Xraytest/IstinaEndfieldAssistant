@@ -83,7 +83,6 @@ cv2.imwrite(os.path.join(CACHE, 'grid_menu.png'), menu_img)
 # Step 2: 金色检测
 print("\n[2] Golden detection...", flush=True)
 golden = detect_golden(menu_img)
-print(f"Found {len(golden)} golden elements", flush=True)
 for g in golden[:25]:
     region = "TOP" if g['cy'] < 200 else ("BTM" if g['cy'] > 800 else ("MID-BTM" if g['cy'] > 500 else "MID"))
     print(f"  ({g['cx']:>4},{g['cy']:>4}) {g['w']:>4}x{g['h']:>4} area={g['area']:>8.0f} [{region}]", flush=True)

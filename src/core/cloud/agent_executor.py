@@ -42,7 +42,9 @@ class AgentExecutor:
             return False
         try:
             return self.inference_manager.is_local_available()
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"检查本地推理可用性失败：{e}")
             return False
 
     @property

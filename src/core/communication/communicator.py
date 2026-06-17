@@ -108,6 +108,32 @@ class ClientCommunicator:
                         data_size=data_length)
         return original_data
     
+
+    def _recv_exact(self, sock, length: int) -> bytes:
+        """
+        精确接收指定字节数（修复 3.4：带重试机制）
+        
+        Args:
+            sock: socket 对象
+            length: 需要接收的字节数
+            
+        Returns:
+            bytes: 接收到的数据（可能不足 length）
+        """
+        buffer = b""
+        while len(buffer) < length:
+            remaining = length - len(buffer)
+            try:
+                chunk = sock.recv(min(4096, remaining))
+                if not chunk:
+                    # 连接关闭
+                    return buffer
+                buffer += chunk
+            except socket.timeout:
+                # 超时后继续尝试（网络抖动）
+                continue
+        return buffer
+
     def _send_and_receive(self, message_data: bytes) -> Optional[bytes]:
         """发送消息并接收响应"""
         start_time = time.time()
@@ -127,31 +153,23 @@ class ClientCommunicator:
                 self.logger.debug(LogCategory.COMMUNICATION, "发送消息数据")
                 sock.sendall(message_data)
                 
-                # 接收响应头
-                header_data = b""
-                while len(header_data) < 9:
-                    chunk = sock.recv(9 - len(header_data))
-                    if not chunk:
-                        self.logger.exception(LogCategory.COMMUNICATION, "接收响应头异常",
-                                           received_len=len(header_data))
-                        return None
-                    header_data += chunk
+                # 接收响应头（修复 3.4：使用精确接收）
+                header_data = self._recv_exact(sock, 9)
+                if len(header_data) < 9:
+                    self.logger.exception(LogCategory.COMMUNICATION, "接收响应头失败",
+                                       received_len=len(header_data))
+                    return None
                 
                 # 解析数据长度
                 data_length = struct.unpack('!I', header_data[5:9])[0]
                 self.logger.debug(LogCategory.COMMUNICATION, "接收响应头完成",
                                 data_size=data_length)
                 
-                # 接收数据体
-                data_buffer = b""
-                while len(data_buffer) < data_length:
-                    remaining = data_length - len(data_buffer)
-                    chunk = sock.recv(min(4096, remaining))
-                    if not chunk:
-                        self.logger.exception(LogCategory.COMMUNICATION, "接收响应数据异常",
-                                           received_len=len(data_buffer), expected_len=data_length)
-                        break
-                    data_buffer += chunk
+                # 接收数据体（修复 3.4：使用精确接收）
+                data_buffer = self._recv_exact(sock, data_length)
+                if len(data_buffer) < data_length:
+                    self.logger.exception(LogCategory.COMMUNICATION, "接收响应数据不完整",
+                                       received_len=len(data_buffer), expected_len=data_length)
                 
                 if len(data_buffer) != data_length:
                     self.logger.exception(LogCategory.COMMUNICATION, "响应数据不完整",

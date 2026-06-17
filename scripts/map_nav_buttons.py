@@ -30,7 +30,7 @@ def esc():
     subprocess.run([ADB, '-s', SERIAL, 'shell', 'input', 'keyevent', '111'], timeout=5, capture_output=True)
 
 # 测试点位：基于金色元素检测 + 像素扫描结果
-# 顶部栏 Y≈29-60 区域 (golden @ 29, scan hits @ 40)
+# UI element @ 29, scan hits @ 40)
 # 底部栏 Y=930 区域 (scan整行命中)
 # 也测试底部栏Y=980和1030
 

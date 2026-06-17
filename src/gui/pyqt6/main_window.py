@@ -264,6 +264,7 @@ class MainWindow(QMainWindow):
 
         self._is_logged_in: bool = False
         self._require_login: bool = True
+        self._window_shown: bool = False  # 标记窗口是否已显示
 
         self._setup_window()
         self._setup_ui()
@@ -276,6 +277,59 @@ class MainWindow(QMainWindow):
     def _setup_window(self) -> None:
         self.setWindowTitle(self._title)
         self.setMinimumSize(QSize(self._min_width, self._min_height))
+        # 移除 Tool 标志，确保窗口被视为应用程序窗口而非工具窗口
+        # 注意：Tool (0xb) 包含 Window (0x1) 位，所以不能直接 | Window
+        # 只需移除 Tool 即可，Window 标志会保留
+        current_flags = self.windowFlags()
+        self.setWindowFlags(current_flags & ~Qt.WindowType.Tool.value)
+
+    def ensure_window_buttons(self) -> None:
+        """Ensure Windows system buttons are visible.
+
+        关键：QMainWindow 默认 flags 已经包含所有需要的按钮标志
+        不需要修改 flags，只需确保窗口正确显示
+        """
+        try:
+            # 不需要修改 flags，QMainWindow 默认已经有正确的标题栏
+            # 只需确保窗口显示
+            self.show()
+        except Exception:
+            pass
+
+    def _ensure_appwindow_style(self) -> None:
+        """通过 Win32 API 设置 WS_EX_APPWINDOW，确保标题栏正确显示。
+
+        PyQt6 的 QMainWindow 默认 ExStyle 缺少 WS_EX_APPWINDOW，
+        导致窗口被视为工具窗口而非应用程序窗口。
+        需要通过 Win32 API 直接设置。
+        """
+        try:
+            import ctypes
+            user32 = ctypes.windll.user32
+            hwnd = int(self.winId())
+
+            GWL_EXSTYLE = -20
+            WS_EX_APPWINDOW = 0x00040000
+
+            # 获取当前 ExStyle
+            ex_style = user32.GetWindowLongW(hwnd, GWL_EXSTYLE)
+
+            # 添加 WS_EX_APPWINDOW
+            if not (ex_style & WS_EX_APPWINDOW):
+                new_ex_style = ex_style | WS_EX_APPWINDOW
+                user32.SetWindowLongW(hwnd, GWL_EXSTYLE, new_ex_style)
+
+                # 刷新窗口样式
+                # 修复：移除 SWP_NOACTIVATE，允许窗口正常激活，避免模态对话框显示后主窗口无响应
+                SWP_NOMOVE = 0x0002
+                SWP_NOSIZE = 0x0001
+                SWP_NOZORDER = 0x0004
+                SWP_FRAMECHANGED = 0x0020
+
+                user32.SetWindowPos(hwnd, 0, 0, 0, 0, 0,
+                                    SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED)
+        except Exception:
+            pass
 
     def _setup_ui(self) -> None:
         self._central_widget = QWidget()
@@ -347,7 +401,7 @@ class MainWindow(QMainWindow):
         self._navigation_bar.set_login_state(True, False, "auth_cloud")
         self._auth_page_id = "auth_cloud"
         self._auto_login_attempted = False
-        QTimer.singleShot(100, self._auto_login)
+        # 自动登录将在 showEvent 中触发，确保窗口已完全显示
         self._setup_tray()
 
     def _setup_connections(self) -> None:
@@ -374,11 +428,18 @@ class MainWindow(QMainWindow):
 
         if self._agent_executor:
             if self._settings_page:
-                self._settings_page.model_tag_changed.connect(self._on_cloud_model_tag_changed)
+                self._settings_page.model_tag_changed.connect(self._settings_page.model_tag_changed)
 
     def _auto_login(self) -> None:
-        if self._auto_login_attempted:
+        """自动登录（修复 3.1：添加双向标志支持注销后重新登录）"""
+        # 修复：如果已完全登录，重置标志允许重新登录
+        if self._auto_login_attempted and self._is_logged_in:
             return
+        
+        # 检查是否需要重置标志（注销后）
+        if self._auto_login_attempted and not self._is_logged_in:
+            self._auto_login_attempted = False  # 重置标志
+        
         self._auto_login_attempted = True
         if self._auth_page:
             self._auth_page.try_auto_login()
@@ -483,7 +544,32 @@ class MainWindow(QMainWindow):
             self._tray_icon = QSystemTrayIcon(icon, self)
             self._tray_icon.setToolTip("IstinaAI")
 
-            tray_menu = QMenu()
+            # 修复托盘菜单透明问题：
+            # 1. 指定 parent 为 self（主窗口），确保渲染上下文完整
+            # 2. 显式设置不透明背景色，避免半透明 RGBA 导致的视觉透明
+            tray_menu = QMenu(self)
+            tray_menu.setStyleSheet("""
+                QMenu {
+                    background-color: #10101a;
+                    color: #e8e8ee;
+                    border: 1px solid #18d1ff;
+                    border-radius: 4px;
+                    padding: 4px;
+                }
+                QMenu::item {
+                    padding: 8px 16px;
+                    border-radius: 2px;
+                }
+                QMenu::item:selected {
+                    background-color: rgba(24, 209, 255, 0.25);
+                }
+                QMenu::separator {
+                    height: 1px;
+                    background-color: rgba(24, 209, 255, 0.10);
+                    margin: 4px 8px;
+                }
+            """)
+            
             restore_action = tray_menu.addAction("显示窗口")
             restore_action.triggered.connect(self._restore_from_tray)
             tray_menu.addSeparator()
@@ -579,6 +665,14 @@ class MainWindow(QMainWindow):
             self._apply_toolwindow_running = True
             changed = []
             exclude = set(exclude_hwnds or [])
+            # 排除主窗口 HWND（在 UI 线程中获取）
+            main_window_hwnd = 0
+            try:
+                main_window_hwnd = int(self.winId())
+                if main_window_hwnd != 0:
+                    exclude.add(main_window_hwnd)
+            except Exception:
+                pass
 
             def _worker():
                 try:
@@ -599,6 +693,9 @@ class MainWindow(QMainWindow):
                             buf = ctypes.create_unicode_buffer(length + 1)
                             user32.GetWindowTextW(hwnd, buf, length + 1)
                             title = buf.value
+                            # 排除主窗口（标题检查）
+                            if 'Istina Endfield' in title or 'Istina//Endfield' in title:
+                                return True
                             # Get ex style
                             try:
                                 ex = user32.GetWindowLongPtrW(hwnd, -20)
@@ -611,7 +708,7 @@ class MainWindow(QMainWindow):
                             WS_EX_TOOLWINDOW = 0x00000080
                             if not (ex & WS_EX_APPWINDOW):
                                 return True
-                            do_change = aggressive or (not title or len(title.strip()) == 0 or 'QMessageBox' in title or 'Istina' in title)
+                            do_change = aggressive or (not title or len(title.strip()) == 0 or 'QMessageBox' in title)
                             if do_change:
                                 try:
                                     owner_hwnd = getattr(self, '_hidden_owner_hwnd', 0) or getattr(self, '_native_hidden_owner_hwnd', 0)
@@ -783,7 +880,7 @@ class MainWindow(QMainWindow):
                     owner.setAttribute(Qt.WA_NativeWindow, True)
                 except Exception:
                     pass
-            owner.setWindowFlag(Qt.Tool, True)
+            owner.setWindowFlag(Qt.WindowType.Tool, True)
             owner.setWindowTitle("istina_hidden_owner")
             # 通过先 show 再 hide 强制创建并稳定 native HWND
             try:
@@ -1188,6 +1285,11 @@ class MainWindow(QMainWindow):
                     executor = None
             for event, hwnd in items:
                 try:
+                    # 跳过主窗口：不要修改主窗口的 EXSTYLE
+                    # 主窗口的标题栏应该保持默认样式
+                    if int(hwnd) == int(self.winId()):
+                        continue
+                    
                     # If minimizing/tray visible, prefer applying TOOLWINDOW to new windows
                     if getattr(self, '_minimize_to_tray', False) and getattr(self, '_tray_icon', None) and getattr(self._tray_icon, 'isVisible', lambda: False)():
                         owner = getattr(self, '_hidden_owner_hwnd', 0)
@@ -1434,8 +1536,8 @@ class MainWindow(QMainWindow):
                 try:
                     if not hasattr(self, '_orig_window_flags'):
                         self._orig_window_flags = self.windowFlags()
-                    # 添加 Qt.Tool 标志（通过先 show 触发 native window 更新）
-                    self.setWindowFlag(Qt.Tool, True)
+                    # 添加 Qt.WindowType.Tool 标志（通过先 show 触发 native window 更新）
+                    self.setWindowFlag(Qt.WindowType.Tool, True)
                     try:
                         self.show()
                         QApplication.processEvents()
@@ -1571,7 +1673,9 @@ class MainWindow(QMainWindow):
             if hasattr(self, '_orig_window_flags'):
                 self.setWindowFlags(self._orig_window_flags)
             else:
-                self.setWindowFlag(Qt.Tool, False)
+                self.setWindowFlag(Qt.WindowType.Tool, False)
+            # 确保系统按钮标志正确设置
+            self.ensure_window_buttons()
             QApplication.processEvents()
             self.showNormal()
             try:
@@ -1764,7 +1868,7 @@ class MainWindow(QMainWindow):
             if not hasattr(self, '_orig_window_flags'):
                 self._orig_window_flags = self.windowFlags()
             # 设置为 Tool 窗口并隐藏
-            self.setWindowFlag(Qt.Tool, True)
+            self.setWindowFlag(Qt.WindowType.Tool, True)
             self.hide()
             # Win32 设置：移除 APPWINDOW 并添加 TOOLWINDOW，避免任务栏残留
             try:
@@ -1855,7 +1959,10 @@ class MainWindow(QMainWindow):
                 self.append_log(f"用户已认证: {user_id}", "INFO")
                 if self.has_page("standard_reasoning"):
                     self.show_page("standard_reasoning")
-                QMessageBox.information(self, "认证成功", f"欢迎回来，{user_id or '用户'}")
+                # 使用 QTimer 延迟显示消息，确保窗口已完全显示并避免黑屏小窗口问题
+                QTimer.singleShot(300, lambda: QMessageBox.information(
+                    self, "认证成功", f"欢迎回来，{user_id or '用户'}"
+                ))
             else:
                 actual_error = error_msg if error_msg else (result[1] if isinstance(result, tuple) and len(result) > 1 else "未知错误")
                 self.set_status(f">>> 认证失败: {actual_error}")
@@ -1946,6 +2053,42 @@ class MainWindow(QMainWindow):
 
     def _refresh_user_info(self):
         self._refresh_auth_status()
+
+    def showEvent(self, event):
+        """窗口首次显示时确保正确的几何尺寸和布局
+        """
+        from PyQt6.QtCore import QEvent
+        if event.type() == QEvent.Type.Show and not self._window_shown:
+            self._window_shown = True
+            # 重新设置窗口标题
+            self.setWindowTitle(self._title)
+            # 确保窗口按钮可见（QMainWindow 默认已有正确 flags）
+            self.ensure_window_buttons()
+            # 设置窗口大小
+            self.resize(max(self._min_width, 1280), max(self._min_height, 800))
+            # 通过 Win32 API 设置 WS_EX_APPWINDOW，确保标题栏正确显示
+            self._ensure_appwindow_style()
+            # 修复 3.1：增加延迟到 1 秒，确保窗口完全就绪
+            QTimer.singleShot(1000, self._auto_login)
+        super().showEvent(event)
+
+    def openEvent(self, event):
+        """窗口完全打开事件（修复 3.1：窗口完全就绪后再触发自动登录）"""
+        super().openEvent(event)
+        # 窗口完全就绪，可以安全触发自动登录
+        if not self._auto_login_attempted:
+            QTimer.singleShot(500, self._auto_login)
+
+    def _center_on_screen(self):
+        """计算屏幕中心位置"""
+        from PyQt6.QtWidgets import QApplication
+        from PyQt6.QtCore import QPoint
+        screen = QApplication.primaryScreen().geometry()
+        window_geometry = self.frameGeometry()
+        return QPoint(
+            screen.x() + (screen.width() - window_geometry.width()) // 2,
+            screen.y() + (screen.height() - window_geometry.height()) // 2
+        )
 
     def _refresh_auth_status(self):
         if not self._auth_manager or not self._auth_page:

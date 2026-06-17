@@ -27,16 +27,6 @@ def screencap():
         return None
     return cv2.imdecode(np.frombuffer(r.stdout, np.uint8), cv2.IMREAD_COLOR)
 
-def detect_golden(img):
-    if img is None:
-        return 0
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower = np.array([15, 80, 150])
-    upper = np.array([35, 255, 255])
-    mask = cv2.inRange(hsv, lower, upper)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    golden = [c for c in contours if cv2.contourArea(c) > 30]
-    return len(golden), golden
 
 def main():
     print("\n" + "="*70)
