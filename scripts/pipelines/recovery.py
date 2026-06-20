@@ -1,11 +1,29 @@
 # Robust game recovery + task analysis
-import subprocess, time, sys, io, os, base64, json, re
+import subprocess, time, sys, io, os, base64, json, re, argparse
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
 
-adb = [os.path.join(PROJECT_ROOT, '3rd-party/adb/adb.exe'), '-s', 'localhost:16512']
+# 命令行参数
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", help="设备地址, 如 localhost:16512")
+parser.add_argument("--adb", help="ADB 路径")
+args, _ = parser.parse_known_args()
+
+# 从配置读取默认值
+config = {}
+try:
+    with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+device_config = config.get("device", {})
+
+adb_path = args.adb or device_config.get("adb_path", os.path.join(PROJECT_ROOT, '3rd-party/adb/adb.exe'))
+device_addr = args.device or device_config.get("address", 'localhost:16512')
+
+adb = [adb_path, '-s', device_addr]
 
 def tap(x, y):
     subprocess.run(adb + ['shell', 'input', 'tap', str(x), str(y)], capture_output=True)
@@ -14,12 +32,27 @@ def screenshot():
     subprocess.run(adb + ['shell', 'screencap', '-p', '/sdcard/s.png'], capture_output=True)
     subprocess.run(adb + ['pull', '/sdcard/s.png', 'cache/screenshot_current.png'], capture_output=True)
 
+def _load_server_config():
+    config = {}
+    try:
+        with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+            config = json.load(f)
+    except Exception:
+        pass
+    return config.get("server", {})
+
 def vlm_check(instruction, system_prompt=''):
     with open('cache/screenshot_current.png', 'rb') as f:
         b64 = base64.b64encode(f.read()).decode('utf-8')
     from core.communication import ClientCommunicator
-    comm = ClientCommunicator(host='127.0.0.1', port=9999, password='default_password', timeout=120)
-    login = comm.send_request('login', {'user_id': 'explorer', 'key': 'aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763'})
+    server_cfg = _load_server_config()
+    password = server_cfg.get('password', 'default_password')
+    api_key = server_cfg.get('api_key', 'aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763')
+    host = server_cfg.get('host', '127.0.0.1')
+    port = server_cfg.get('port', 9999)
+    user_id = server_cfg.get('user_id', 'explorer')
+    comm = ClientCommunicator(host=host, port=port, password=password, timeout=120)
+    login = comm.send_request('login', {'user_id': user_id, 'key': api_key})
     session_id = login.get('session_id', '')
     comm.set_logged_in(True)
     payload = {'instruction': instruction, 'screenshot': b64, 'history': [], 'session_id': session_id, 'user_id': 'explorer', 'model_tag': 'vision', 'system_prompt': system_prompt}

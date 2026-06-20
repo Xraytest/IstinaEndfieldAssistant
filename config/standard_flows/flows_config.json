@@ -103,7 +103,7 @@
     "pages": {
       "world_map": "world_map",
       "main_menu": "main_menu",
-      "quest_ui": "quest_ui",
+      "quest_panel": "quest_panel",
       "base_industry": "base_industry",
       "character": "character",
       "explore": "explore",

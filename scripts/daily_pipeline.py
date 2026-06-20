@@ -28,7 +28,25 @@ if SRC_DIR not in sys.path:
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-ADB = [os.path.join(PROJECT_ROOT, "3rd-party", "adb", "adb.exe"), "-s", "localhost:16512"]
+# 命令行参数
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", help="设备地址, 如 localhost:16512")
+parser.add_argument("--adb", help="ADB 路径")
+args, _ = parser.parse_known_args()
+
+# 从配置读取默认值
+config = {}
+try:
+    with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+device_config = config.get("device", {})
+
+adb_path = args.adb or device_config.get("adb_path", os.path.join(PROJECT_ROOT, "3rd-party", "adb", "adb.exe"))
+device_addr = args.device or device_config.get("address", "localhost:16512")
+
+ADB = [adb_path, "-s", device_addr]
 SCREENSHOT_PATH = os.path.join(PROJECT_ROOT, "cache", "screenshot_current.png")
 OUTPUT_PATH = os.path.join(PROJECT_ROOT, "cache", "daily_analysis.json")
 

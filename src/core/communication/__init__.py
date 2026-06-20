@@ -1,5 +1,2 @@
-"""通信子系统"""
-
-from .communicator import ClientCommunicator
-
-__all__ = ['ClientCommunicator']
+"""兼容层 - 从 module 重新导出"""
+from module.communication import *  # noqa

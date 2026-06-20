@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 标准流执行引擎 - 基于JSON配置的可扩展标准流系统
 
@@ -28,7 +28,7 @@ sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))
 from core.adb_utils import ADB, adb_screencap
 from core.game_coords import Coords
 from core.page_analyzer import HighPrecisionPageAnalyzer
-from core.vlm_decider import VlmActionDecider, should_invoke_vlm
+from core.vlm_client import VLMClient
 
 # MaaFramework 触控适配器
 from device.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig, MAAFW_AVAILABLE
@@ -102,11 +102,11 @@ class FlowConfig:
 
 
 # ══════════════════════════════════════════════════════════════════
-# 多源画面分析器 — MaaFw 金色元素 + OCR 文字 + VLM 综合判断
+# 多源画面分析器 — YOLO + OCR + VLM 综合判断
 # ══════════════════════════════════════════════════════════════════
 
 class ScreenAnalyzer:
-    """多源画面分析器：YOLO 元素检测 + 金色元素 + OCR 文字 + VLM 综合判断"""
+    """多源画面分析器：YOLO 元素检测 + OCR 文字 + VLM 综合判断"""
 
     def __init__(self, maafw_executor=None, llama_url="http://127.0.0.1:8080"):
         self._maafw = maafw_executor
@@ -223,7 +223,7 @@ class ScreenAnalyzer:
             return ""
 
     def _vlm_classify(self, img, yolo_objects: list, ocr_text: str) -> str:
-        """VLM 综合判断画面类型（融合 YOLO + 金色元素 + OCR 信息）
+        """VLM 综合判断画面类型（融合 YOLO + OCR 信息）
 
         超时 15 秒，失败返回空字符串，由关键词分类器兜底。
         """
@@ -235,8 +235,7 @@ class ScreenAnalyzer:
 
             prompt = (
                 f"OCR文字: {ocr_text[:300]}\n"
-                f"{yolo_summary}\n"
-                f"{golden_summary}\n\n"
+                f"{yolo_summary}\n\n"
                 "请判断当前画面属于哪种类型, 只回答一个词: title(标题/登录画面), loading(加载中), "
                 "world(探索世界), quest_panel(任务面板), settings(设置菜单), other(其他)"
             )
@@ -266,32 +265,14 @@ class ScreenAnalyzer:
             return ""
 
     def _classify_by_keywords(self, ocr_text: str, yolo_objects: list) -> str:
-        """基于 OCR 关键词 + YOLO + 金色元素快速分类（不依赖 VLM）"""
+        """基于 OCR 关键词 + YOLO 快速分类（不依赖 VLM）"""
         text = ocr_text.lower()
         yolo_classes = [o["class"] for o in yolo_objects]
-
-        # === 异常状态检测（新增） ===
-
-        # OCR 失效时的视觉特征判断（VLM OCR 超时返回"无文字"）
-        # 退出对话框：10-18 个金色元素（扩展范围）+ 无 person + OCR 为空/无文字
-        if 10 <= gold_count <= 18 and "person" not in yolo_classes and (not text.strip() or text == "无文字"):
-            return "exit_dialog"
-        # 世界页面：16-24 个金色元素（扩展范围）+ 无 person + OCR 为空/无文字
-        if 16 <= gold_count <= 24 and "person" not in yolo_classes and (not text.strip() or text == "无文字"):
-            return "world"
-        # 任务面板：大量金色元素（UI 按钮/边框）+ 无 person（非 3D 场景）
-        if gold_count > 20 and "person" not in yolo_classes:
-            return "quest_panel"
-        # 任务面板：中等金色元素 + 无 person + 有 UI 类物体
-        if gold_count > 10 and "person" not in yolo_classes:
-            ui_classes = ["laptop", "cell phone", "remote", "keyboard", "mouse"]
-            if any(c in yolo_classes for c in ui_classes):
-                return "quest_panel"
 
         # 标题/登录画面 — 有"点击进入"等提示文字
         if any(kw in text for kw in ["点击进入", "进入游戏", "开始游戏", "tap to start", "touch to start"]):
             return "title"
-        # 标题画面 — YOLO 未检测到 person（无角色），且 OCR 无 HUD 文字
+        # 标题画面 — YOLO 未检测到任何物体，且 OCR 无 HUD 文字
         if not yolo_objects and not text.strip():
             return "title"
         # 加载中
@@ -318,13 +299,13 @@ class ScreenAnalyzer:
         # 探索世界 — YOLO 检测到 person（角色）+ 有探索/工业等 HUD 文字
         if "person" in yolo_classes and any(kw in text for kw in ["探索", "工业", "基地"]):
             return "world"
-        # 探索世界 — 有角色且大量金色物体（游戏内3D场景）
+        # 探索世界 — 有角色（游戏内3D场景）
         if "person" in yolo_classes:
             return "world"
         # 探索世界 — 有顶部栏 HUD 文字
         if any(kw in text for kw in ["探索", "工业", "基地"]):
             return "world"
-        # 金色按钮特征：有金色元素且有领取/确认相关文字
+        # 按钮特征：有领取/确认相关文字
         if any(kw in text for kw in ["领取", "确认", "确定", "claim", "ok"]):
             return "quest_panel"
         return "unknown"
@@ -996,14 +977,16 @@ class StandardFlowExecutor:
         # 初始化画面分析器
         self.screen_analyzer = ScreenAnalyzer(maafw_executor=self._maafw)
         self.page_analyzer = HighPrecisionPageAnalyzer()
-        self.vlm_decider = VlmActionDecider()
+        self.vlm_client = VLMClient({"vlm_mode": "local"})
 
     def stop(self):
         self._stop_requested = True
 
     # ── MaaFw 触控路由 ──────────────────────────────────────
     def _tap(self, x: int, y: int) -> bool:
-        """触控点击：使用 ADB 原生 input tap（避免 MaaFw post_click 的 fortl 崩溃）"""
+        """触控点击：使用 MaaFw（优先），回退 ADB"""
+        if self._maafw and self._maafw.connected:
+            return self._maafw.click(x, y)
         return self.adb.tap(x, y)
 
     def _swipe(self, x1: int, y1: int, x2: int, y2: int, duration: int = 300) -> bool:
@@ -1014,7 +997,12 @@ class StandardFlowExecutor:
         return adb_swipe(x1, y1, x2, y2, duration)
 
     def _back(self) -> bool:
-        """返回键：ADB keyevent（MaaFw 无独立 back 方法）"""
+        """返回键：MaaFw keyevent(4)（优先），回退 ADB"""
+        if self._maafw and self._maafw.connected:
+            job = self._maafw.post_keyevent(4)
+            if job is not None:
+                job.wait()
+                return job.succeeded
         return self.adb.back()
 
     def _extract_action(self, analysis: str, expected_action: str) -> tuple[str, Optional[list], Dict]:
@@ -1041,7 +1029,7 @@ class StandardFlowExecutor:
         if any(w in analysis for w in ['世界地图', '探索', '小地图', 'minimap', 'world_map']):
             act["page"] = "world_map"
         elif any(w in analysis for w in ['任务', 'quest', '委托', '日常', '周常']):
-            act["page"] = "quest_ui"
+            act["page"] = "quest_panel"
         elif any(w in analysis for w in ['主菜单', '主页', 'main_menu', 'signin', '签到']):
             act["page"] = "main_menu"
         elif any(w in analysis for w in ['加载', 'loading', 'NOW LOADING']):
@@ -1065,7 +1053,7 @@ class StandardFlowExecutor:
         elif expected_action == "back":
             act["action"] = "back"
         elif expected_action == "claim":
-            if act.get("page") == "quest_ui":
+            if act.get("page") == "quest_panel":
                 act["action"] = "claim"
                 if not act["coords"]:
                     act["coords"] = [960, 540]
@@ -1096,16 +1084,20 @@ class StandardFlowExecutor:
         return fallback[idx][0], fallback[idx][1], fallback[idx][2]
 
     def _restart_game(self):
-        """重启游戏"""
-        adb_path = str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe")
-        subprocess.run([adb_path, "-s", "localhost:16512", "shell", "am", "force-stop", "com.hypergryph.endfield"],
-                      capture_output=True, timeout=10)
-        time.sleep(3)
-        # monkey 启动比 am start 更可靠
-        subprocess.run([adb_path, "-s", "localhost:16512", "shell",
-                      "monkey", "-p", "com.hypergryph.endfield",
-                      "-c", "android.intent.category.LAUNCHER", "1"],
-                      capture_output=True, timeout=15)
+        """重启游戏 - 使用 MaaFw stop_app + start_app"""
+        if self._maafw and self._maafw.connected:
+            self._maafw.stop_app("com.hypergryph.endfield")
+            time.sleep(3)
+            self._maafw.start_app("com.hypergryph.endfield")
+        else:
+            adb_path = str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe")
+            subprocess.run([adb_path, "-s", "localhost:16512", "shell", "am", "force-stop", "com.hypergryph.endfield"],
+                          capture_output=True, timeout=10)
+            time.sleep(3)
+            subprocess.run([adb_path, "-s", "localhost:16512", "shell",
+                          "monkey", "-p", "com.hypergryph.endfield",
+                          "-c", "android.intent.category.LAUNCHER", "1"],
+                          capture_output=True, timeout=15)
         time.sleep(30)
         for _ in range(3):
             self._tap(540, 960)
@@ -1136,6 +1128,18 @@ class StandardFlowExecutor:
             step_id = i + 1
             step_action = step_cfg.get("action", "none")
             step_desc = step_cfg.get("desc", str(step_cfg))
+
+            # ── v5 配置兼容处理 ──
+            v5_fields = {"use_recognition", "recognition", "feature_check", "recovery"}
+            present_v5 = v5_fields & set(step_cfg.keys())
+            if present_v5:
+                print(f"  [V5] 检测到 v5 字段: {present_v5}，当前版本跳过处理")
+                if step_cfg.get("use_recognition"):
+                    print(f"  [V5] use_recognition=True 但识别引擎未集成，使用硬编码坐标")
+                if step_cfg.get("feature_check"):
+                    print(f"  [V5] feature_check 配置存在，当前版本跳过")
+                if step_cfg.get("recovery"):
+                    print(f"  [V5] recovery 策略存在，当前版本使用默认恢复")
 
             print(f"\n[步骤 {step_id}/{len(steps)}] {step_desc}")
             print("-" * 50)
@@ -1276,6 +1280,9 @@ class StandardFlowExecutor:
             status = "OK" if success else "FAIL"
             print(f"  [{status}]")
 
+            # 更新全局成功状态
+            all_success = all_success and success
+
             self.adb.wait(1)
 
         print(f"\n流程完成: {'成功' if all_success else '有失败步骤'}\n")
@@ -1382,7 +1389,7 @@ class StandardFlowExecutor:
                 if cv_img is not None:
                     ctx = {"expected_page": expect, "step_desc": step_cfg.get("desc", ""),
                            "last_action": f"点击 ({coords[0]},{coords[1]})"}
-                    vlm = self.vlm_decider.decide_action(cv_img,
+                    vlm = self.vlm_client.decide_action(cv_img,
                         {"page_type": page, "confidence": confidence, "features": features}, ctx)
                     print(f"  [VLM恢复] 建议={vlm.get('suggested_action','?')} → {vlm.get('reason','')[:80]}")
                     if vlm.get("suggested_action") == "back":
@@ -1749,9 +1756,9 @@ def main():
     import numpy as np
     import cv2
 
-    # 初始化高精度页面分析器（替换旧的金色元素计数）
+    # 初始化高精度页面分析器
     _page_analyzer = HighPrecisionPageAnalyzer()
-    _vlm_decider = VlmActionDecider()
+    _vlm_client = VLMClient({"vlm_mode": "local"})
 
     def _classify_page(cv_img):
         """使用多特征分析器判断页面类型"""
@@ -1762,13 +1769,13 @@ def main():
     def _classify_with_vlm(cv_img, expected_page="world", step_desc=""):
         """OpenCV 优先，不确定时 VLM 介入决策"""
         result = _classify_page(cv_img)
-        if should_invoke_vlm(result, expected_page):
+        if VLMClient.should_invoke_vlm(result, expected_page):
             context = {
                 "expected_page": expected_page,
                 "step_desc": step_desc,
                 "last_action": "按返回键/点击中央"
             }
-            vlm_result = _vlm_decider.decide_action(cv_img, result, context)
+            vlm_result = _vlm_client.decide_action(cv_img, result, context)
             print(f"  [VLM] 决策：{vlm_result.get('suggested_action', '?')} → {vlm_result.get('reason', '')[:80]}")
             # 用 VLM 结果覆盖 page_type
             result["page_type"] = vlm_result.get("page_type", result["page_type"])
@@ -1776,39 +1783,6 @@ def main():
             result["vlm_action"] = vlm_result
         return result
 
-    # 保留旧的金色元素计数方法（用于降级/调试）
-    def _count_gold_elements(cv_img):
-        """计算金色元素数量（页面类型判断依据）"""
-        if cv_img is None:
-            return 0
-        # 旋转到横屏并 resize
-        img_rot = cv2.rotate(cv_img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-        img_resized = cv2.resize(img_rot, (1280, 720))
-        hsv = cv2.cvtColor(img_resized, cv2.COLOR_BGR2HSV)
-        lower_gold = np.array([25, 100, 100])
-        upper_gold = np.array([35, 255, 255])
-        mask = cv2.inRange(hsv, lower_gold, upper_gold)
-        kernel = np.ones((3,3),np.uint8)
-        dilated_mask = cv2.dilate(mask, kernel, iterations=2)
-        eroded_mask = cv2.erode(dilated_mask, kernel, iterations=1)
-        contours, _ = cv2.findContours(eroded_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-        return len([c for c in contours if cv2.contourArea(c) > 50])
-    
-    def _classify_page_by_gold(gold_count):
-        """基于金色元素数量判断页面类型"""
-        if gold_count >= 22:
-            return "quest_panel"
-        elif gold_count >= 18:
-            return "world"
-        elif gold_count >= 15:
-            return "world_low_gold"
-        elif gold_count >= 12:
-            return "exit_dialog"
-        elif gold_count >= 8:
-            return "menu"
-        else:
-            return "other"
-    
     def _close_exit_dialog():
         """关闭退出对话框，尝试多个候选坐标"""
         cancel_candidates = [
@@ -2035,3 +2009,4 @@ def main():
 
 if __name__ == "__main__":
     sys.exit(main())
+

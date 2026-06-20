@@ -164,20 +164,20 @@ def _elements_from_vlm(vlm_data: Dict[str, Any], page_name: str, page_hash: str)
 
 class ElementAnalyzer:
     """VLM界面元素分析器
-    
-    调用IstinaPlatform大参数模型分析游戏画面。
+
+    使用 VLMClient 统一中间体分析游戏画面，不直接依赖 IstinaPlatform。
     """
 
     def __init__(
         self,
-        communicator,
+        vlm_client,
         screen_capture,
         device_serial: str = "localhost:16512",
         model_tag: str = "exploration_deep",
         session_id: str = "",
         user_id: str = "explorer",
     ):
-        self.communicator = communicator
+        self._vlm_client = vlm_client
         self.screen_capture = screen_capture
         self.device_serial = device_serial
         self.model_tag = model_tag
@@ -201,28 +201,21 @@ class ElementAnalyzer:
         return raw
 
     def _send_analysis(self, instruction: str, system_prompt: str) -> Optional[Dict[str, Any]]:
-        """发送分析请求到IstinaPlatform"""
+        """通过 VLMClient 发送分析请求"""
         screenshot_b64 = self._capture_and_encode()
         if not screenshot_b64:
             return None
 
-        payload = {
-            "instruction": instruction,
-            "screenshot": screenshot_b64,
-            "history": [],
-            "session_id": self.session_id,
-            "user_id": self.user_id,
-            "model_tag": self.model_tag,
-            "system_prompt": system_prompt,
-        }
-
-        result = self.communicator.send_request("agent_chat", payload)
-        if not result or result.get("status") != "success":
+        result = self._vlm_client.analyze_image(
+            screenshot_b64, instruction,
+            system_prompt=system_prompt,
+        )
+        if result.get("status") != "success":
             return None
 
-        reply = result.get("reply", "")
-        self._last_raw_reply = reply
-        return _parse_json_from_reply(reply)
+        content = result.get("content", "")
+        self._last_raw_reply = content
+        return _parse_json_from_reply(content)
 
     def analyze_full_page(self) -> Optional[AnalysisResult]:
         """全页面元素分析

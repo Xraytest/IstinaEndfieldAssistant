@@ -148,6 +148,27 @@ class MaaFwTouchExecutor:
             # 创建资源
             self._resource = Resource()
             self.logger.debug(LogCategory.MAIN, "Resource创建完成")
+
+            # 加载 OCR 模型
+            try:
+                ocr_model_path = Path(
+                    os.path.expandvars(
+                        "%LOCALAPPDATA%\\MaaXYZ\\MaaMCP\\resource\\model\\ocr"
+                    )
+                )
+                if ocr_model_path.exists():
+                    ocr_job = self._resource.post_ocr_model(ocr_model_path)
+                    ocr_job.wait()
+                    if ocr_job.succeeded:
+                        self.logger.info(LogCategory.MAIN, "OCR模型加载成功",
+                                        path=str(ocr_model_path))
+                    else:
+                        self.logger.warning(LogCategory.MAIN, "OCR模型加载失败")
+                else:
+                    self.logger.warning(LogCategory.MAIN, "OCR模型目录不存在",
+                                       path=str(ocr_model_path))
+            except Exception as e:
+                self.logger.warning(LogCategory.MAIN, "OCR模型加载异常", error=str(e))
             
             # 使用Toolkit自动发现设备信息（解决MuMu等模拟器需要专用配置的问题）
             adb_path = self.config.adb_path
@@ -740,3 +761,69 @@ class MaaFwTouchExecutor:
     def controller(self) -> Optional[AdbController]:
         """获取Controller实例（用于单次控制）"""
         return self._controller
+
+    def ocr(self, controller_id: str = None, roi: list = None, expected: list = None) -> list:
+        """
+        执行 OCR 识别
+
+        Args:
+            controller_id: 控制器 ID（保留参数）
+            roi: 识别区域 [x, y, w, h]
+            expected: 期望文本列表
+
+        Returns:
+            OCR 结果列表
+        """
+        if not self._connected or not self._tasker:
+            return []
+
+        try:
+            from maa.pipeline import JRecognitionType, JOCR
+
+            ocr_param = JOCR(
+                expected=expected or [],
+                roi=tuple(roi) if roi else (0, 0, 0, 0),
+                threshold=0.3
+            )
+
+            # 截图
+            img = self.screencap()
+            if img is None:
+                return []
+
+            job = self._tasker.post_recognition(
+                JRecognitionType.OCR,
+                ocr_param,
+                img
+            )
+            job.wait()
+            detail = job.get()
+
+            if not detail or not detail.nodes:
+                return []
+
+            results = []
+            for node in detail.nodes:
+                if not node.recognition or not node.recognition.all_results:
+                    continue
+                for r in node.recognition.all_results:
+                    if r.score < 0.3:
+                        continue
+                    box = r.box if hasattr(r, 'box') else (0, 0, 0, 0)
+                    results.append({
+                        "text": r.text if hasattr(r, 'text') else "",
+                        "box": list(box),
+                        "x": box[0],
+                        "y": box[1],
+                        "w": box[2],
+                        "h": box[3],
+                        "cx": box[0] + box[2] // 2,
+                        "cy": box[1] + box[3] // 2,
+                        "score": r.score if hasattr(r, 'score') else 0.0,
+                    })
+            return results
+
+        except Exception as e:
+            import logging
+            logging.getLogger(__name__).debug(f"OCR 识别失败：{e}")
+            return []

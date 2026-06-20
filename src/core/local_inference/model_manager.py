@@ -60,6 +60,15 @@ class ModelManager:
     
     # 模型注册表
     MODEL_REGISTRY: Dict[str, Dict[str, Any]] = {
+        "qwen3.5-4b-ud-q4_k_xl": {
+            "modelscope_id": "unsloth/Qwen3.5-4B-GGUF",
+            "file_pattern": "*UD-Q4_K_XL*.gguf",
+            "size_gb": 2.8,
+            "description": "推荐模型，4B参数，Q4_K_XL量化，2.8GB，4GB显存可运行",
+            "quantization": "Q4_K_XL",
+            "parameters": "4B",
+            "recommended_gpu_memory_gb": 4,
+        },
         "qwen3.5-2b-qwen3.6-plus-distilled-f16": {
             "modelscope_id": "unsloth/Qwen3.5-2B-GGUF",
             "file_pattern": "*Q8_K_XL*.gguf",

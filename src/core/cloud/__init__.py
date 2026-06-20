@@ -1,17 +1,2 @@
-"""Cloud service business logic layer"""
-
-from .agent_executor import AgentExecutor
-from .page_tree import PageTree, PageNode, PageEdge, UIElement, ElementType, PageState
-from .exploration_engine import ExplorationEngine, ExplorationState, ExplorationConfig
-from .managers import (
-    AuthManager,
-    DeviceManager,
-    LogManager
-)
-
-__all__ = [
-    'AgentExecutor',
-    'PageTree', 'PageNode', 'PageEdge', 'UIElement', 'ElementType', 'PageState',
-    'ExplorationEngine', 'ExplorationState', 'ExplorationConfig',
-    'AuthManager', 'DeviceManager', 'LogManager'
-]
+"""兼容层 - 从 module 重新导出"""
+from module.cloud import *  # noqa

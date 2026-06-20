@@ -15,7 +15,6 @@ sys.path.insert(0, str(PROJECT / "scripts"))
 
 from core.adb_utils import ADB, adb_screencap
 from core.page_analyzer import HighPrecisionPageAnalyzer
-from core.vlm_decider import VlmActionDecider, should_invoke_vlm
 import cv2, numpy as np
 
 
@@ -48,7 +47,6 @@ def run_flow(flow_name: str):
     steps = flow.get("steps", [])
     adb = ADB()
     analyzer = HighPrecisionPageAnalyzer()
-    vlm = VlmActionDecider()
 
     print(f"\n{'='*60}")
     print(f"执行: {flow_name} ({flow.get('description','')})")

@@ -84,7 +84,7 @@ def _delegate_to_cli_module(module_name: str, args_list: List[str]) -> int:
     module_path = SRC_DIR / "cli" / f"{module_name}.py"
     cmd = [sys.executable, str(module_path)] + args_list
     try:
-        result = subprocess.run(cmd, timeout=args_list[-1] if any(a.isdigit() and int(a) > 60 for a in args_list) else 300)
+        result = subprocess.run(cmd, timeout=300)
         return result.returncode
     except subprocess.TimeoutExpired:
         print(f"[istina] 模块 {module_name} 超时")
@@ -106,14 +106,24 @@ def ensure_session() -> tuple:
     from core.logger import init_logger
     init_logger()
     from core.communication.communicator import ClientCommunicator
-    comm = ClientCommunicator(
-        host="127.0.0.1", port=9999,
-        password="default_password", timeout=120
-    )
-    r = comm.send_request("login", {
-        "user_id": "cli_user",
-        "key": "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763"
-    })
+
+    # 从配置读取服务器参数
+    config = {}
+    try:
+        with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+            config = json.load(f)
+    except Exception:
+        pass
+    server_cfg = config.get("server", {})
+
+    password = server_cfg.get("password", "default_password")
+    api_key = server_cfg.get("api_key", "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763")
+    host = server_cfg.get("host", "127.0.0.1")
+    port = server_cfg.get("port", 9999)
+    user_id = server_cfg.get("user_id", "cli_user")
+
+    comm = ClientCommunicator(host=host, port=port, password=password, timeout=120)
+    r = comm.send_request("login", {"user_id": user_id, "key": api_key})
     sid = r.get("session_id", "") if r else ""
     comm.set_logged_in(True)
     return comm, sid
@@ -163,7 +173,8 @@ def cmd_harvest(args):
 
 def cmd_analyze(args):
     """分析当前画面（VLM）"""
-    from core.adb_utils import ADB, vlm_analyze, VLMOptions
+    from core.adb_utils import ADB
+    from core.vlm import vlm_analyze, VLMOptions
 
     adb = ADB()
     img = adb.screencap(dedup=False)
@@ -216,58 +227,6 @@ def cmd_explore(args):
     return 0
 
 
-def cmd_scene(args):
-    """场景探索采集（轻量采集，不启动完整管线）"""
-    from core.adb_utils import ADB, vlm_analyze, VLMOptions
-    from core.game_coords import Coords
-    import hashlib
-
-    adb = ADB()
-    count = args.count or 10
-    model_tag = args.model or "exploration_deep"
-    session_dir = str(PROJECT_ROOT / "cache" / f"scene_{int(time.time())}")
-    os.makedirs(session_dir, exist_ok=True)
-
-    print(f"[istina] 场景采集启动 → {session_dir}")
-    print(f"[istina] 目标: {count} 张, 模型: {model_tag}")
-
-    last_hash = None
-    for i in range(count):
-        # 截图
-        img = adb.screencap()
-        if img is None:
-            print(f"  [{i+1}/{count}] 画面无变化，跳过")
-            adb.wait(2)
-            continue
-
-        h = hashlib.md5(img).hexdigest()[:8]
-        path = os.path.join(session_dir, f"scene_{i:03d}_{h}.png")
-        with open(path, "wb") as f:
-            f.write(img)
-        print(f"  [{i+1}/{count}] 截图已保存 ({len(img)//1024}KB) hash={h}")
-
-        # 随机探索动作
-        import random
-        action = random.choice(["tap", "swipe_left", "swipe_right", "wait"])
-        if action == "tap":
-            x = random.randint(100, 1100)
-            y = random.randint(100, 600)
-            adb.tap(x, y)
-            print(f"    → tap ({x}, {y})")
-        elif action == "swipe_left":
-            adb.swipe(900, 360, 300, 360, 600)
-            print(f"    → swipe left")
-        elif action == "swipe_right":
-            adb.swipe(300, 360, 900, 360, 600)
-            print(f"    → swipe right")
-        else:
-            adb.wait(random.uniform(1, 3))
-            print(f"    → wait")
-
-        adb.wait(2)
-
-    print(f"[istina] 场景采集完成，共 {count} 张截图")
-    return 0
 
 
 def cmd_nav(args):
@@ -424,40 +383,6 @@ def cmd_model(args):
     return 0
 
 
-def cmd_device(args):
-    """设备管理"""
-    from core.adb_utils import ADB
-
-    adb = ADB()
-
-    if args.action == "status":
-        ok = adb.check_connection()
-        print(f'{{"connected": {json.dumps(ok)}, "serial": "{adb.serial}"}}')
-
-    elif args.action == "screenshot":
-        path = adb.screenshot_path(str(PROJECT_ROOT / "cache"), tag="cli")
-        if path:
-            print(f'{{"path": "{path}", "size_bytes": {os.path.getsize(path)}}}')
-        else:
-            print('{"error":"截图失败"}')
-            return 1
-
-    elif args.action == "info":
-        from core.adb_utils import list_devices, _adb_cmd
-        devices = list_devices()
-        try:
-            r = _adb_cmd(["shell", "wm", "size"], timeout=5)
-            resolution = r.stdout.decode().strip()
-        except:
-            resolution = "unknown"
-        print_json({
-            "devices": devices,
-            "current_serial": adb.serial,
-            "resolution": resolution,
-            "adb_path": str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe"),
-        })
-
-    return 0
 
 
 def cmd_doctor(args):

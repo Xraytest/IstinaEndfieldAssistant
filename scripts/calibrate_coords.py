@@ -6,12 +6,28 @@
 参考：之前坐标扫描验证结果 (860,80) 59.9%
 """
 
-import subprocess, time, cv2, numpy as np, sys, os
+import subprocess, time, cv2, numpy as np, sys, os, json, argparse
 from pathlib import Path
 
 PROJECT = Path(__file__).resolve().parent.parent
-ADB = str(PROJECT / '3rd-party' / 'adb' / 'adb.exe')
-SERIAL = 'localhost:16512'
+
+# 命令行参数
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", help="设备地址, 如 localhost:16512")
+parser.add_argument("--adb", help="ADB 路径")
+args = parser.parse_args()
+
+# 从配置读取默认值
+config = {}
+try:
+    with open(str(PROJECT / "config" / "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+device_config = config.get("device", {})
+
+ADB = args.adb or device_config.get("adb_path", str(PROJECT / '3rd-party' / 'adb' / 'adb.exe'))
+SERIAL = args.device or device_config.get("address", 'localhost:16512')
 
 def tap(x, y):
     subprocess.run([ADB, '-s', SERIAL, 'shell', 'input', 'tap', str(int(x)), str(int(y))],
@@ -36,16 +52,6 @@ def screen_diff(img1, img2):
     _, t = cv2.threshold(g, 30, 255, cv2.THRESH_BINARY)
     return cv2.countNonZero(t)
 
-def detect_golden(img):
-    if img is None:
-        return 0
-    hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-    lower = np.array([15, 80, 150])
-    upper = np.array([35, 255, 255])
-    mask = cv2.inRange(hsv, lower, upper)
-    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    return len([c for c in contours if cv2.contourArea(c) > 30])
-
 def find_icon_by_scanning():
     """
     通过扫描右上角区域找出任务图标坐标
@@ -58,79 +64,58 @@ def find_icon_by_scanning():
     print("坐标扫描：任务图标")
     print("="*70)
     
-    # 确保在世界页面（金色 18-21）
+    # 确保在世界页面
     print("\n[准备] 确保在世界页面...")
     for i in range(10):
         back()
         time.sleep(0.5)
     time.sleep(1)
-    
-    img = screencap()
-    gold = detect_golden(img)
-    print(f"[当前] 金色元素={gold}")
-    
-    if gold < 12 or gold > 25:
-        print(f"[警告] 金色={gold}，可能不在世界页面，尝试恢复...")
-        for i in range(5):
-            back()
-            time.sleep(0.5)
-        time.sleep(1)
-        img = screencap()
-        gold = detect_golden(img)
-        print(f"[恢复后] 金色元素={gold}")
-    
+
     # 基准截图
     baseline = screencap()
-    baseline_gold = detect_golden(baseline)
-    
+
     # 扫描区域：右上角 (x: 700-1000, y: 20-120)
-    # 基于之前验证：y=40/60/80 有效
-    x_range = range(750, 950, 50)  # 750, 800, 850, 900, 949
-    y_range = [40, 60, 80, 100]   # 之前验证有效的 y 值
-    
+    x_range = range(750, 950, 50)
+    y_range = [40, 60, 80, 100]
+
     best_coord = None
     best_diff = 0
-    best_gold_change = 0
-    
+
     print("\n[扫描] 右上角区域...")
     results = []
-    
+
     for x in x_range:
         for y in y_range:
             before = screencap()
-            before_gold = detect_golden(before)
-            
+
             tap(x, y)
             time.sleep(1.5)
-            
+
             after = screencap()
-            after_gold = detect_golden(after)
             diff = screen_diff(before, after)
-            gold_change = after_gold - before_gold
-            
-            results.append((x, y, diff, gold_change))
-            
+
+            results.append((x, y, diff))
+
             # 记录最佳
-            if diff > best_diff or gold_change > best_gold_change:
+            if diff > best_diff:
                 best_diff = diff
-                best_gold_change = gold_change
                 best_coord = (x, y)
-            
+
             # 恢复
             back()
             time.sleep(0.3)
-    
+
     # 排序显示前 10 个结果
-    results.sort(key=lambda r: (r[2] + r[3]*100000), reverse=True)
-    
+    results.sort(key=lambda r: r[2], reverse=True)
+
     print("\n[结果] 前 10 个最佳坐标:")
-    for i, (x, y, diff, gold_change) in enumerate(results[:10]):
+    for i, (x, y, diff) in enumerate(results[:10]):
         marker = "★" if (x, y) == best_coord else " "
-        print(f"  {marker} ({x:4}, {y:3}) diff={diff:>8,} gold_change={gold_change:+d}")
-    
+        print(f"  {marker} ({x:4}, {y:3}) diff={diff:>8,}")
+
     if best_coord:
-        print(f"\n[最佳] {best_coord} diff={best_diff:,} gold_change={best_gold_change:+d}")
-    
+        print(f"\n[最佳] {best_coord} diff={best_diff:,}")
+
     return best_coord
 
 def verify_coordinate(coord):
@@ -148,35 +133,29 @@ def verify_coordinate(coord):
         time.sleep(0.5)
     time.sleep(1)
     
-    img = screencap()
-    gold = detect_golden(img)
-    print(f"[初始] 金色元素={gold}")
-    
     # 多次点击测试
     success_count = 0
     for attempt in range(5):
         print(f"\n[尝试 {attempt+1}/5] 点击 {coord}...")
-        
+
         before = screencap()
-        before_gold = detect_golden(before)
-        
+
         tap(x, y)
         time.sleep(2)
-        
+
         after = screencap()
-        after_gold = detect_golden(after)
         diff = screen_diff(before, after)
-        
-        print(f"  [结果] diff={diff:,} 金色={before_gold}->{after_gold} (变化={after_gold-before_gold:+d})")
-        
-        # 判断是否成功打开面板（金色增加 >= 3 或 差异 > 500000）
-        if after_gold - before_gold >= 3 or diff > 500000:
+
+        print(f"  [结果] diff={diff:,}")
+
+        # 判断是否成功打开面板（差异 > 500000）
+        if diff > 500000:
             print(f"  [成功] 面板已打开")
             success_count += 1
-            
+
             # 保存截图
             cv2.imwrite(str(PROJECT / 'cache' / f'verify_{x}_{y}.png'), after)
-            
+
             # 恢复
             back()
             time.sleep(1)

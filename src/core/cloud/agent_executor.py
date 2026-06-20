@@ -4,6 +4,8 @@ import base64
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
+from core.vlm_client import VLMClient
+
 
 class AgentState(Enum):
     IDLE = "idle"
@@ -17,17 +19,16 @@ class AgentState(Enum):
 class AgentExecutor:
     """Agent executor that processes natural language instructions through VLM feedback loop
 
-    Supports local-first routing: when a local inference engine is available,
-    uses it instead of the cloud server for faster, offline-capable execution.
+    Uses VLMClient as the unified LLM middleware — routes through local llama-server
+    or cloud server (IstinaPlatform) based on VLMClient's configuration.
     """
 
-    def __init__(self, communicator, screen_capture, touch_executor, config=None, device_serial: str = "", inference_manager=None):
-        self.communicator = communicator
+    def __init__(self, vlm_client, screen_capture, touch_executor, config=None, device_serial: str = ""):
+        self.vlm_client = vlm_client
         self.screen_capture = screen_capture
         self.touch_executor = touch_executor
         self.config = config or {}
         self.device_serial = device_serial
-        self.inference_manager = inference_manager  # 本地推理管理器（可选）
         self.state = AgentState.IDLE
         self.conversation_history: List[Dict[str, str]] = []
         self.session_id: Optional[str] = None
@@ -37,34 +38,26 @@ class AgentExecutor:
 
     @property
     def local_inference_available(self) -> bool:
-        """检查本地推理是否可用"""
-        if not self.inference_manager:
-            return False
-        try:
-            return self.inference_manager.is_local_available()
-        except Exception as e:
-            import logging
-            logging.getLogger(__name__).debug(f"检查本地推理可用性失败：{e}")
-            return False
+        """检查本地推理是否可用（委托给 VLMClient）"""
+        return self.vlm_client.is_local_available()
 
     @property
     def effective_mode(self) -> str:
         """获取当前有效推理模式"""
-        if self.local_inference_available:
-            return "local"
-        return "cloud"
+        return self.vlm_client.effective_mode
 
     def send_instruction(self, instruction: str) -> Dict[str, Any]:
-        """Send natural language instruction and execute via VLM feedback loop
+        """
+        Send natural language instruction and execute via VLM feedback loop
 
-        Local-first: if a local inference engine is available and ready,
-        routes through InferenceManager instead of the cloud server.
+        Uses VLMClient as the unified LLM middleware — routes through
+        local llama-server or cloud server based on VLMClient's config.
         """
         self.state = AgentState.THINKING
 
         # Validate dependencies
-        if not self.communicator:
-            return {"status": "error", "message": "Communicator not initialized"}
+        if not self.vlm_client:
+            return {"status": "error", "message": "VLMClient not initialized"}
         if not self.screen_capture:
             return {"status": "error", "message": "Screen capture module not initialized"}
 
@@ -86,67 +79,45 @@ class AgentExecutor:
 
         img_b64 = base64.b64encode(img_bytes).decode("utf-8")
 
-        # Get device info
-        device_info = {}
-        if hasattr(self.communicator, 'get_device_info') and self.communicator.get_device_info:
-            device_info = self.communicator.get_device_info() or {}
-        self.device_width = device_info.get('width', self.device_width)
-        self.device_height = device_info.get('height', self.device_height)
+        # === 通过 VLMClient 统一处理（自动路由本地/服务端） ===
+        prompt = (
+            f"You are PRTS agent for Arknights Endfield.\n"
+            f"Instruction: {instruction}\n\n"
+            f"Analyze the current screen and output JSON with:\n"
+            f"- actions: list of {{action, x, y}} or {{action, x1, y1, x2, y2, duration}}\n"
+            f"  action types: tap, swipe, wait\n"
+            f"- task_completed: bool\n"
+            f"- reasoning: str\n"
+            f"Output ONLY valid JSON, no other text."
+        )
 
-        # === 本地推理优先路径 ===
-        if self.local_inference_available:
-            try:
-                return self._process_with_local_inference(instruction, img_b64)
-            except Exception as e:
-                # 本地失败时自动降级到云端
-                import logging
-                logging.getLogger(__name__).warning(
-                    "Local inference failed, falling back to cloud: %s", str(e))
-
-        # === 云端推理路径（默认/降级） ===
-        return self._process_with_cloud_inference(instruction, img_b64)
-
-    def _process_with_local_inference(self, instruction: str, img_b64: str) -> Dict[str, Any]:
-        """使用本地推理处理指令"""
-        # 构建任务上下文
-        task_context = {
-            "prompt": (
-                f"You are PRTS agent for Arknights Endfield.\n"
-                f"Instruction: {instruction}\n\n"
-                f"Analyze the current screen and output JSON with:\n"
-                f"- actions: list of {{action, x, y}} or {{action, x1, y1, x2, y2, duration}}\n"
-                f"  action types: tap, swipe, wait\n"
-                f"- task_completed: bool\n"
-                f"- reasoning: str\n"
-                f"Output ONLY valid JSON, no other text."
-            ),
-            "task_id": f"agent_{int(time.time())}",
-            "temperature": 0.3,
-            "max_tokens": 2048
-        }
-
-        # 通过 InferenceManager 处理（自动选择本地/云端）
-        result = self.inference_manager.process_image(img_b64, task_context)
+        result = self.vlm_client.analyze_image(
+            img_b64, prompt,
+            max_tokens=2048, temperature=0.3,
+        )
 
         if result.get("status") != "success":
-            return {"status": "error", "message": result.get("error", "Local inference failed")}
+            self.state = AgentState.ERROR
+            return {"status": "error", "message": result.get("error", "VLM inference failed")}
 
-        # 标准化响应格式
+        # 解析响应
         reply_text = ""
         actions = []
         task_completed = False
 
-        # 从本地引擎响应中提取
-        result_data = result.get("result", result)
-        if isinstance(result_data, dict):
-            # 本地引擎返回格式: {actions: [...], task_completed: bool, reasoning: str}
-            raw_actions = result_data.get("actions") or result_data.get("touch_actions") or []
+        content = result.get("content", "")
+        parsed = result.get("parsed")
+
+        if parsed:
+            raw_actions = parsed.get("actions") or parsed.get("touch_actions") or []
             for act in raw_actions:
                 normalized = self._normalize_action(act)
                 if normalized:
                     actions.append(normalized)
-            task_completed = result_data.get("task_completed", False)
-            reply_text = result_data.get("reasoning") or result_data.get("text", "")
+            task_completed = parsed.get("task_completed", False)
+            reply_text = parsed.get("reasoning") or parsed.get("text", "")
+        else:
+            reply_text = content
 
         # 更新对话历史
         self.conversation_history.append({"role": "user", "content": instruction})
@@ -174,65 +145,7 @@ class AgentExecutor:
             "reply": reply_text,
             "execution_results": execution_results,
             "actions": actions,
-            "mode": "local"
-        }
-
-    def _process_with_cloud_inference(self, instruction: str, img_b64: str) -> Dict[str, Any]:
-        """使用云端推理处理指令（原有逻辑）"""
-        # Send to agent
-        try:
-            response = self.communicator.send_request("agent_chat", {
-                "instruction": instruction,
-                "screenshot": img_b64,
-                "device_width": self.device_width,
-                "device_height": self.device_height,
-                "model_tag": self.model_tag,
-                "history": self.conversation_history[-10:] if self.conversation_history else [],
-                "session_id": self.session_id or ""
-            })
-        except Exception as e:
-            self.state = AgentState.ERROR
-            return {"status": "error", "message": f"Agent request failed: {str(e)}"}
-
-        if not response or response.get("status") != "success":
-            self.state = AgentState.ERROR
-            return response or {"status": "error", "message": "No response from server"}
-
-        self.session_id = response.get("session_id", self.session_id)
-        self.conversation_history.append({"role": "user", "content": instruction})
-        self.conversation_history.append({"role": "assistant", "content": response.get("reply", "")})
-
-        actions = response.get("actions", [])
-
-        if not actions:
-            self.state = AgentState.DONE
-            return {"status": "success", "reply": response.get("reply", "Done")}
-
-        # Execute actions
-        self.state = AgentState.EXECUTING
-
-        if not self.touch_executor:
-            self.state = AgentState.ERROR
-            return {"status": "error", "message": "Touch executor not initialized"}
-
-        execution_results = []
-        for action in actions:
-            try:
-                result = self._execute_action(action)
-            except Exception as e:
-                result = {"action": action.get("type", "unknown"), "success": False, "error": str(e)}
-            execution_results.append(result)
-
-            if not result.get("success"):
-                self.state = AgentState.ERROR
-                break
-
-        self.state = AgentState.DONE
-        return {
-            "status": "success",
-            "reply": response.get("reply", "Done"),
-            "execution_results": execution_results,
-            "actions": actions
+            "mode": result.get("mode_used", "unknown"),
         }
 
     def _normalize_action(self, action: Dict[str, Any]) -> Optional[Dict[str, Any]]:

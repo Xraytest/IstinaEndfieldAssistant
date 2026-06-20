@@ -28,10 +28,10 @@ def patch_standard_flow():
     
     # 1. 添加 OCR 导入（在现有导入之后）
     old_imports = """from core.page_analyzer import HighPrecisionPageAnalyzer
-from core.vlm_decider import VlmActionDecider, should_invoke_vlm"""
-    
+from core.vlm_client import VLMClient"""
+
     new_imports = """from core.page_analyzer import HighPrecisionPageAnalyzer
-from core.vlm_decider import VlmActionDecider, should_invoke_vlm
+from core.vlm_client import VLMClient
 
 # OCR 模块导入（OCR+LLM 模式）
 try:
@@ -50,11 +50,11 @@ except ImportError:
     
     # 2. 修改 StandardFlowEngine 初始化，添加 OCRManager
     old_init = """        self.page_analyzer = HighPrecisionPageAnalyzer()
-        self.vlm_decider = VlmActionDecider()"""
-    
+        self.vlm_client = VLMClient({"vlm_mode": "local"})"""
+
     new_init = """        self.page_analyzer = HighPrecisionPageAnalyzer()
-        self.vlm_decider = VlmActionDecider()
-        
+        self.vlm_client = VLMClient({"vlm_mode": "local"})
+
         # OCR 管理器（OCR+LLM 模式）
         self.use_ocr = use_ocr
         self.ocr_manager = None

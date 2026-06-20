@@ -212,16 +212,32 @@ class StateMachineExecutor:
         if action_param.get("x") is not None and action_param.get("y") is not None:
             return (action_param["x"], action_param["y"])
 
-        # 从识别结果中提取位置
-        if recog_result and "location" in recog_result:
-            loc = recog_result["location"]
-            if isinstance(loc, (tuple, list)) and len(loc) >= 2:
-                return (int(loc[0]), int(loc[1]))
+        # 从识别结果中提取位置（支持新格式：bbox/center）
+        if recog_result:
+            # 优先使用 center 字段
+            if "center" in recog_result:
+                center = recog_result["center"]
+                if isinstance(center, (tuple, list)) and len(center) >= 2:
+                    return (int(center[0]), int(center[1]))
+            
+            # 兼容旧格式：location 字段
+            if "location" in recog_result:
+                loc = recog_result["location"]
+                if isinstance(loc, (tuple, list)) and len(loc) >= 2:
+                    return (int(loc[0]), int(loc[1]))
+            
+            # 从 bbox 字段计算中心
+            if "bbox" in recog_result:
+                bbox = recog_result["bbox"]
+                if isinstance(bbox, (tuple, list)) and len(bbox) == 4:
+                    x1, y1, x2, y2 = bbox
+                    return (int((x1 + x2) / 2), int((y1 + y2) / 2))
 
         # 从识别结果的 contours 中推算中心位置
-        if recog_result and "contours" in recog_result:
-            print("  [警告] 轮廓识别无精确坐标，使用默认位置")
-            return (600, 750)
+        if recog_result and "centers" in recog_result:
+            centers = recog_result["centers"]
+            if centers and len(centers) > 0:
+                return (int(centers[0][0]), int(centers[0][1]))
 
         # 回退到默认坐标
         return (600, 750)

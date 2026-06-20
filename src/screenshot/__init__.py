@@ -1,5 +1,2 @@
-"""安卓图像传递模块"""
-
-from .screen_capture import ScreenCapture
-
-__all__ = ['ScreenCapture']
+"""兼容层 - 从 module 重新导出"""
+from module.screenshot import *  # noqa

@@ -238,7 +238,7 @@ class MainWindow(QMainWindow):
                 # Fallback older enum
                 self.setAttribute(Qt.WA_NativeWindow, True)
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         self._theme = ThemeManager.get_instance()
         self._title = title
         self._min_width = min_width
@@ -428,7 +428,7 @@ class MainWindow(QMainWindow):
 
         if self._agent_executor:
             if self._settings_page:
-                self._settings_page.model_tag_changed.connect(self._settings_page.model_tag_changed)
+                self._settings_page.model_tag_changed.connect(self._on_cloud_model_tag_changed)
 
     def _auto_login(self) -> None:
         """自动登录（修复 3.1：添加双向标志支持注销后重新登录）"""
@@ -503,6 +503,7 @@ class MainWindow(QMainWindow):
         self._download_thread.finished.connect(
             lambda s, m: self.append_log(f"下载{'成功' if s else '失败'}: {m}", "INFO" if s else "ERROR")
         )
+        self._download_thread.finished.connect(self._download_thread.deleteLater)
         self._download_thread.start()
 
     def _on_model_remove_requested(self, model_name: str):
@@ -584,7 +585,7 @@ class MainWindow(QMainWindow):
             try:
                 self._install_win_event_hook()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         except Exception as e:
             self._tray_available = False
 
@@ -647,7 +648,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"诊断失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _apply_toolwindow_to_process_windows(self, exclude_hwnds: set = None, tag: str = "", aggressive: bool = False):
         """Asynchronously apply TOOLWINDOW to in-process APPWINDOWs to avoid blocking the UI.
@@ -672,7 +673,7 @@ class MainWindow(QMainWindow):
                 if main_window_hwnd != 0:
                     exclude.add(main_window_hwnd)
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
             def _worker():
                 try:
@@ -764,12 +765,12 @@ class MainWindow(QMainWindow):
                     self._apply_toolwindow_poll_timer.timeout.connect(_poll)
                     self._apply_toolwindow_poll_timer.start(150)
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         except Exception as e:
             try:
                 self.append_log(f"调整进程窗口失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _persist_minimize_setting(self, enabled: bool):
         """原子更新 config/client_config.json -> system.minimize_to_tray 以确保持久化。
@@ -866,7 +867,7 @@ class MainWindow(QMainWindow):
                     self._hidden_owner_hwnd = getattr(self, '_native_hidden_owner_hwnd', 0)
                     return
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
             # 回退到 QWidget hidden owner
             if getattr(self, '_hidden_owner_widget', None) is not None:
@@ -887,12 +888,12 @@ class MainWindow(QMainWindow):
                 owner.show()
                 QApplication.processEvents()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             try:
                 owner.hide()
                 QApplication.processEvents()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             self._hidden_owner_widget = owner
             try:
                 self._hidden_owner_hwnd = int(owner.winId())
@@ -905,7 +906,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"创建 hidden owner 失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _destroy_hidden_owner(self):
         try:
@@ -925,12 +926,12 @@ class MainWindow(QMainWindow):
             try:
                 self._destroy_native_hidden_owner()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         except Exception as e:
             try:
                 self.append_log(f'销毁 hidden owner 失败: {e}', 'ERROR')
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _ensure_native_hidden_owner(self):
         """Create a small, hidden native Win32 window to act as owner.
@@ -1019,7 +1020,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"创建 native hidden owner 失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         # 如果 in-process native owner 未创建，尝试启动外部 helper 进程
         try:
             if not getattr(self, '_native_hidden_owner_hwnd', 0):
@@ -1041,7 +1042,7 @@ class MainWindow(QMainWindow):
             try:
                 self._stop_native_owner_helper()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             import ctypes
             from ctypes import wintypes
             user32 = ctypes.windll.user32
@@ -1075,7 +1076,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"销毁 native hidden owner 失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _start_native_owner_helper(self, timeout: float = 5.0):
         """Start an external helper process that creates a native hidden window and
@@ -1089,7 +1090,7 @@ class MainWindow(QMainWindow):
                 if os.path.exists(out_file):
                     os.remove(out_file)
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             cmd = [sys.executable, helper_path, out_file]
             creationflags = 0x08000000  # CREATE_NO_WINDOW
             try:
@@ -1137,11 +1138,11 @@ class MainWindow(QMainWindow):
                     except Exception:
                         pass
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             try:
                 self.append_log(f"Started native owner helper pid={proc.pid} (async)", "INFO")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             return True
         except Exception:
             return False
@@ -1172,7 +1173,7 @@ class MainWindow(QMainWindow):
             try:
                 self._native_hidden_owner_hwnd = 0
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         except Exception:
             pass
 
@@ -1233,7 +1234,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"Install WinEvent hook failed: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _uninstall_win_event_hook(self):
         try:
@@ -1250,7 +1251,7 @@ class MainWindow(QMainWindow):
                 if getattr(self, '_win_event_poll_timer', None):
                     self._win_event_poll_timer.stop()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             # Shutdown any background executor used for win event handling
             try:
                 execr = getattr(self, '_win_event_executor', None)
@@ -1261,7 +1262,7 @@ class MainWindow(QMainWindow):
                         pass
                     self._win_event_executor = None
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         except Exception:
             pass
 
@@ -1316,7 +1317,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"Process win events failed: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _win32_apply_toolwindow(self, hwnd, owner_hwnd=None, tag='', retries=3):
         try:
@@ -1387,7 +1388,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"Win32 apply toolwindow exception: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         return False
 
     def _win32_apply_appwindow(self, hwnd, orig_parent=0, tag='', retries=3):
@@ -1461,7 +1462,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"Win32 apply appwindow exception: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
         return False
 
     def _start_winid_watcher(self, duration_ms: int = 2000, interval_ms: int = 100, role: str = 'minimize'):
@@ -1479,7 +1480,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"启动 winId watcher 失败: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def _stop_winid_watcher(self):
         try:
@@ -1527,7 +1528,7 @@ class MainWindow(QMainWindow):
             try:
                 self.append_log(f"winId watcher exception: {e}", "ERROR")
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
 
     def changeEvent(self, event):
         if event.type() == QEvent.Type.WindowStateChange:
@@ -1682,7 +1683,7 @@ class MainWindow(QMainWindow):
                 self.raise_()
                 self.activateWindow()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             # 诊断：检查 native ex_style，若已包含 APPWINDOW 则认为 Qt 恢复成功
             import ctypes
             user32 = ctypes.windll.user32
@@ -1918,15 +1919,15 @@ class MainWindow(QMainWindow):
             try:
                 self._uninstall_win_event_hook()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             try:
                 self._destroy_hidden_owner()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             try:
                 self._destroy_native_hidden_owner()
             except Exception:
-                pass
+                self.append_log("操作异常", "WARNING")
             event.accept()
         else:
             event.ignore()
@@ -2018,6 +2019,7 @@ class MainWindow(QMainWindow):
 
         self._register_thread = RegisterThread(self._auth_manager, username)
         self._register_thread.finished.connect(self._on_register_complete)
+        self._register_thread.finished.connect(self._register_thread.deleteLater)
         self._register_thread.start()
 
     def _on_register_complete(self, result):

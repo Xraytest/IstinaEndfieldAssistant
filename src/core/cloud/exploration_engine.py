@@ -14,6 +14,7 @@ from .page_tree import (
     PageTree, PageNode, PageEdge, UIElement, ElementType, PageState,
     hash_screenshot, hash_element,
 )
+from core.vlm_client import VLMClient
 
 
 EXPLORATION_SYSTEM_PROMPT = """你是《明日方舟：终末地》精确游戏UI分析器。识别所有可交互元素并输出JSON。
@@ -92,9 +93,9 @@ class ExplorationConfig:
 
 
 class ExplorationEngine:
-    def __init__(self, communicator=None, screen_capture=None, touch_executor=None,
+    def __init__(self, vlm_client=None, screen_capture=None, touch_executor=None,
                  agent_executor=None, config: ExplorationConfig = None):
-        self._communicator = communicator
+        self._vlm_client = vlm_client
         self._screen_capture = screen_capture
         self._touch_executor = touch_executor
         self._agent_executor = agent_executor
@@ -200,20 +201,21 @@ class ExplorationEngine:
 
     def _call_vlm(self, screenshot_b64: str, user_prompt: str,
                   system_prompt: str = None, model_tag: str = None) -> Optional[Dict[str, Any]]:
-        if not self._communicator:
-            self._emit("error", message="Communicator not initialized")
+        if not self._vlm_client and not self._agent_executor:
+            self._emit("error", message="VLMClient not initialized")
             return None
 
         instruction = user_prompt
         self._stats["vlm_calls"] += 1
 
+        # 优先使用 AgentExecutor（内部已使用 VLMClient）
         if self._agent_executor:
             try:
                 response = self._agent_executor.send_instruction(instruction)
                 if response and response.get("status") == "success":
                     reply_text = response.get("reply", "")
                     actions = response.get("actions", [])
-                    parsed = self._parse_json_from_text(reply_text)
+                    parsed = VLMClient._parse_json(reply_text)
                     if parsed:
                         parsed["_actions"] = actions
                         return parsed
@@ -223,22 +225,16 @@ class ExplorationEngine:
                 self._emit("error", message=f"AgentExecutor failed: {e}")
                 return None
 
+        # 直接使用 VLMClient
         try:
-            payload = {
-                "instruction": instruction,
-                "screenshot": screenshot_b64,
-                "history": [],
-                "session_id": self._config.session_id or "",
-                "user_id": self._config.user_id or "",
-                "model_tag": model_tag or self._config.model_tag,
-            }
-            if system_prompt:
-                payload["system_prompt"] = system_prompt
-            response = self._communicator.send_request("agent_chat", payload)
-            if response and response.get("status") == "success":
-                reply_text = response.get("reply", "")
-                parsed = self._parse_json_from_text(reply_text)
-                return parsed or {"reply": reply_text}
+            result = self._vlm_client.analyze_image(
+                screenshot_b64, instruction,
+                system_prompt=system_prompt,
+            )
+            if result.get("status") == "success":
+                content = result.get("content", "")
+                parsed = result.get("parsed")
+                return parsed or {"reply": content}
             return None
         except Exception as e:
             self._emit("error", message=f"VLM call failed: {e}")

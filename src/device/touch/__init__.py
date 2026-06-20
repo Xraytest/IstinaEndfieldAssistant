@@ -1,11 +1,2 @@
-"""触控模块 - MaaFramework 触控集成"""
-
-from .touch_manager import TouchManager, TouchDeviceType
-from .maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig
-
-__all__ = [
-    'TouchManager',
-    'TouchDeviceType',
-    'MaaFwTouchExecutor',
-    'MaaFwTouchConfig'
-]
+"""兼容层 - 从 module 重新导出"""
+from module.device.touch import *  # noqa

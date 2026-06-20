@@ -217,7 +217,7 @@ def cmd_analyze(args) -> int:
         print('{"error":"截图失败"}')
         return 1
 
-    from core.adb_utils import vlm_analyze, VLMOptions
+    from core.vlm import vlm_analyze, VLMOptions
     opts = VLMOptions(
         model_tag=args.model or "exploration_deep",
         timeout=args.timeout or 120,

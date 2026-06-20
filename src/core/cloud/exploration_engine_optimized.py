@@ -22,43 +22,43 @@ from enum import Enum
 
 # ── 坐标常量（1280x720 MaaMCP 空间） ────────────────────────────
 
+from core.game_coords import Coords, OVERLAY_KEYWORDS
+
 # 模式切换（左上角按钮）
-MODE_SWITCH = (75, 21)       # 在"探索"和"工业"间切换
+MODE_SWITCH = Coords.mode_switch
 
 # 顶部栏按钮（仅主世界/菜单可用，x 范围从右到左）
 TOP_BAR = {
-    "close_x":    (1170, 22),   # 关闭弹窗
-    "settings":   (630, 22),    # 设置
-    "inventory":  (570, 22),    # 背包
-    "tasks":      (540, 22),    # 任务
-    "signin":     (510, 22),    # 签到/日历
-    "event":      (480, 22),    # 活动
-    "shop":       (450, 22),    # 商店
+    "close_x":    Coords.close_overlay_x,
+    "settings":   Coords.settings_button,
+    "inventory":  Coords.inventory_button,
+    "tasks":      Coords.tasks_button,
+    "signin":     Coords.signin_tab,
+    "event":      Coords.event_button,
+    "shop":       Coords.shop_button,
 }
 
 # 退出对话框
 EXIT_DIALOG = {
-    "confirm": (793, 478),      # 确认退出
-    "cancel":  (556, 478),      # 取消退出
+    "confirm": Coords.exit_confirm,
+    "cancel":  Coords.exit_cancel,
 }
 
 # 签到页面
 SIGNIN_PAGE = {
-    "claim_all":     (1035, 323),  # 一键领取（已验证）
-    "reward_close":  (640, 500),   # 奖励弹窗确认
-    "individual_claim": [(914, 586), (1043, 586)],  # 单个领取
+    "claim_all":     Coords.claim_all,
+    "reward_close":  Coords.reward_confirm,
+    "individual_claim": [(914, 586), (1043, 586)],
 }
 
 # 活动中心
 EVENT_CENTER = {
-    "signin_entry": (112, 296),   # 左侧签到入口
-    "scroll_area_x": 120,          # 左侧列表滚动区域
+    "signin_entry": Coords.signin_entry,
+    "scroll_area_x": 120,
 }
 
 # 右侧面板覆盖层区域（OCR ROI）
 OVERLAY_ROI = (950, 60, 330, 640)  # x, y, w, h
-OVERLAY_KEYWORDS = ["每日", "每周", "任务", "日程", "领取", "收取",
-                     "一键领取", "完成", "活跃度", "作战汇报", "奖励"]
 
 CLAIM_KEYWORDS = ["领取", "收取", "一键领取", "完成", "提交", "领奖"]
 

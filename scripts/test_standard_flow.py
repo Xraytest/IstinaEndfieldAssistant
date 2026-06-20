@@ -25,7 +25,8 @@ sys.path.insert(0, str(SRC_DIR))
 sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))  # 本地安装的包
 
 # ── 导入本地模块 ──
-from core.adb_utils import ADB, vlm_analyze, VLMOptions, adb_screencap
+from core.adb_utils import ADB, adb_screencap
+from core.vlm import vlm_analyze, VLMOptions
 from core.game_coords import Coords, NAVIGATION_MAP
 
 

@@ -91,7 +91,7 @@ def load_queue():
     return {
         "queue": [
             {"id": "world_map", "entry": [100, 150], "done": False},
-            {"id": "quest_ui", "entry": [80, 480], "done": False},
+            {"id": "quest_panel", "entry": [80, 480], "done": False},
             {"id": "base_industry", "entry": [200, 80], "done": False},
             {"id": "character", "entry": [700, 200], "done": False},
             {"id": "warehouse", "entry": [800, 120], "done": False},

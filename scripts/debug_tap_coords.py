@@ -1,13 +1,26 @@
 #!/usr/bin/env python3
 """调试 tap 坐标对比：扫描脚本 vs 标准流引擎"""
-import subprocess, time, cv2, numpy as np, sys, os
+import subprocess, time, cv2, numpy as np, sys, os, json, argparse
 from pathlib import Path
 
-PROJECT_ROOT = Path(r'C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant')
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(PROJECT_ROOT / "src"))
 
-ADB_PATH = f"{PROJECT_ROOT}\\3rd-party\\adb\\adb.exe"
-DEVICE = "localhost:16512"
+parser = argparse.ArgumentParser()
+parser.add_argument("--device", help="设备地址, 如 localhost:16512")
+parser.add_argument("--adb", help="ADB 路径")
+args = parser.parse_args()
+
+config = {}
+try:
+    with open(str(PROJECT_ROOT / "config" / "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+device_config = config.get("device", {})
+
+ADB_PATH = args.adb or device_config.get("adb_path", str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe"))
+DEVICE = args.device or device_config.get("address", "localhost:16512")
 
 # 测试坐标：扫描脚本验证有效的坐标
 TEST_X, TEST_Y = 860, 80
@@ -19,27 +32,6 @@ def adb_screencap():
     if r.returncode == 0 and len(r.stdout) > 1000:
         return cv2.imdecode(np.frombuffer(r.stdout, dtype=np.uint8), cv2.IMREAD_COLOR)
     return None
-
-def count_gold_elements(img):
-    """计算金色元素数量（页面特征）"""
-    if img is None:
-        return 0
-    # 旋转到横屏
-    img_rot = cv2.rotate(img, cv2.ROTATE_90_COUNTERCLOCKWISE)
-    img_resized = cv2.resize(img_rot, (1280, 720))
-    
-    hsv = cv2.cvtColor(img_resized, cv2.COLOR_BGR2HSV)
-    lower_gold = np.array([25, 100, 100])
-    upper_gold = np.array([35, 255, 255])
-    mask = cv2.inRange(hsv, lower_gold, upper_gold)
-    
-    kernel = np.ones((3,3),np.uint8)
-    dilated_mask = cv2.dilate(mask, kernel, iterations=2)
-    eroded_mask = cv2.erode(dilated_mask, kernel, iterations=1)
-    
-    contours, _ = cv2.findContours(eroded_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    valid_contours = [c for c in contours if cv2.contourArea(c) > 50]
-    return len(valid_contours)
 
 def adb_back():
     """按返回键"""
@@ -69,71 +61,58 @@ def test_adb_utils_tap_direct():
     return adb_tap(860, 80)
 
 def main():
-    # 回到世界
-    print("[前置] 回到世界...")
-    for i in range(8):
-        adb_back()
-        time.sleep(0.3)
-    time.sleep(2)
-    
+    print("="*60)
+    print("Tap 坐标调试")
+    print("="*60)
+
     # 基准截图
     img_base = adb_screencap()
     if img_base is None:
         print("[ERROR] 基准截图失败")
         sys.exit(1)
     
-    gold_base = count_gold_elements(img_base)
     print(f"[基准] 分辨率：{img_base.shape[1]}x{img_base.shape[0]}")
-    print(f"[基准] 金色元素：{gold_base}")
-    
-    if gold_base < 15:
-        print("[警告] 金色元素数量较少，可能不在世界页面")
-    elif gold_base > 20:
-        print("[提示] 金色元素数量较多，可能在任务面板页面")
-    else:
-        print("[提示] 金色元素数量正常，应在世界页面")
-    
+
     # 测试三种 tap 方式
     tests = [
         ("扫描脚本方式", test_scan_script_tap),
         ("ADB().tap()", test_adb_utils_tap),
         ("adb_tap()", test_adb_utils_tap_direct),
     ]
-    
+
     for name, test_func in tests:
         print(f"\n{'='*60}")
         print(f"[测试] {name}")
         print(f"{'='*60}")
-        
+
         # 确保回到世界
         print("[准备] 回到世界...")
         for _ in range(5):
             adb_back()
             time.sleep(0.3)
         time.sleep(1)
-        
-        img_before = adb_screencap()
-        gold_before = count_gold_elements(img_before)
-        print(f"[点击前] 金色元素：{gold_before}")
-        
+
         # 执行 tap
         success = test_func()
         print(f"[点击] input tap 860 80 {'成功' if success else '失败'}")
-        
+
         # 等待并截图
         time.sleep(3)
         img_after = adb_screencap()
-        gold_after = count_gold_elements(img_after)
-        print(f"[点击后] 金色元素：{gold_after}")
-        
-        # 判断结果
-        if gold_after > gold_before + 5:
-            print(f"[结果] ✅ 面板已打开 (金色 +{gold_after - gold_before})")
-        elif gold_after < gold_before - 5:
-            print(f"[结果] ❌ 金色消失 (金色 -{gold_before - gold_after})")
+
+        # 判断结果（通过像素差异）
+        if img_after is not None and img_base is not None:
+            diff = cv2.absdiff(img_after, img_base)
+            gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+            _, thresh = cv2.threshold(gray_diff, 30, 255, cv2.THRESH_BINARY)
+            changed_pixels = cv2.countNonZero(thresh)
+            if changed_pixels > 500000:
+                print(f"[结果] ✅ 面板已打开 (变化像素: {changed_pixels:,})")
+            else:
+                print(f"[结果] ⚠️  无明显变化 (变化像素: {changed_pixels:,})")
         else:
-            print(f"[结果] ⚠️  无明显变化 (金色 {gold_after - gold_before:+d})")
-        
+            print("[结果] ⚠️  无法判断")
+
         # 返回
         print("[恢复] 按返回键...")
         for _ in range(3):

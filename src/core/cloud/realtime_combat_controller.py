@@ -37,12 +37,12 @@ class CombatState(Enum):
 class VLMController:
     """
     Large/small VLM communication coordinator.
-    Large VLM evaluates if combat is active; small VLM generates real-time control.
+    Uses VLMClient as the unified LLM middleware.
     """
-    def __init__(self, communicator, touch_executor, screen_capture,
+    def __init__(self, vlm_client, touch_executor, screen_capture,
                  large_vlm_config: Dict[str, Any] = None,
                  small_vlm=None):
-        self._communicator = communicator
+        self._vlm_client = vlm_client
         self._touch = touch_executor
         self._screen = screen_capture
         self._large_config = large_vlm_config or {}
@@ -56,39 +56,29 @@ class VLMController:
         self._small_vlm = engine
 
     def evaluate_combat_state(self, screenshot_b64: str) -> CombatState:
-        """Large VLM evaluates whether current screen is combat/real-time action"""
-        if not self._communicator:
+        """通过 VLMClient 判断当前画面是否为战斗状态"""
+        if not self._vlm_client:
             return CombatState.IDLE
         try:
-            response = self._communicator.send_request("agent_chat", {
-                "instruction": (
-                    "Analyze the current screen of Arknights Endfield. "
-                    "Determine if the player is in active combat/real-time action state. "
-                    "Return JSON: {\"is_combat\": bool, \"state\": \"idle/exploring/combat\", \"reason\": \"...\"}"
-                ),
-                "screenshot": screenshot_b64,
-                "session_id": self._large_config.get("session_id", ""),
-                "model_tag": self._large_config.get("model_tag", "exploration_deep")
-            })
-            if response and response.get("status") == "success":
-                reply = response.get("reply", "")
-                try:
-                    parsed = json.loads(reply)
-                    if parsed.get("is_combat"):
-                        self._state = CombatState.COMBAT_ACTIVE
-                        return CombatState.COMBAT_ACTIVE
-                    state_str = parsed.get("state", "idle")
-                    if state_str == "exploring":
-                        self._state = CombatState.EXPLORING
-                        return CombatState.EXPLORING
-                except json.JSONDecodeError:
-                    if any(kw in reply.lower() for kw in ["combat", "战斗", "battle"]):
-                        self._state = CombatState.COMBAT_ACTIVE
-                        return CombatState.COMBAT_ACTIVE
-            self._state = CombatState.IDLE
+            result = self._vlm_client.analyze_image(
+                screenshot_b64,
+                "Analyze the current screen of Arknights Endfield. "
+                "Determine if the player is in active combat/real-time action state. "
+                "Return JSON: {\"is_combat\": bool, \"state\": \"idle/exploring/combat\", \"reason\": \"...\"}",
+                max_tokens=256, temperature=0.1,
+            )
+            if result.get("status") == "success" and result.get("parsed"):
+                parsed = result["parsed"]
+                if parsed.get("is_combat", False):
+                    return CombatState.COMBAT_ACTIVE
+                state_str = parsed.get("state", "idle")
+                if state_str == "exploring":
+                    return CombatState.EXPLORING
+                return CombatState.IDLE
             return CombatState.IDLE
         except Exception as e:
-            logger.error(LogCategory.INFERENCE, "Combat state evaluation failed", error=str(e))
+            import logging
+            logging.getLogger(__name__).exception(f"VLM combat evaluation failed: {e}")
             return CombatState.ERROR
 
     def get_combat_instruction(self, screenshot_b64: str, context: Dict[str, Any] = None) -> Dict[str, Any]:

@@ -14,20 +14,10 @@ from dataclasses import dataclass, field
 
 # ── 常量定义 ──────────────────────────────────────────────────────
 
-# 屏幕分辨率（MaaMCP 截图坐标空间）
-SCREEN_WIDTH = 1280
-SCREEN_HEIGHT = 720
-
-# 顶部栏区域（基于实际 OCR 检测）
-TOP_BAR_Y_RANGE = (10, 80)
-
-# 右侧面板覆盖层 ROI（Overlay Panel Region）
-OVERLAY_ROI = {
-    "x_start": 950,    # 面板左边缘
-    "x_end": 1280,     # 右边缘
-    "y_start": 60,     # 面板顶部
-    "y_end": 700,      # 面板底部
-}
+from core.game_coords import (
+    SCREEN_WIDTH, SCREEN_HEIGHT, TOP_BAR_Y_RANGE, OVERLAY_ROI,
+    Coords, OVERLAY_KEYWORDS
+)
 
 # 顶部栏按钮预期位置（1280x720 坐标空间）
 TOP_BAR_BUTTONS = {
@@ -41,37 +31,23 @@ TOP_BAR_BUTTONS = {
     "settings":     {"label": "设置",       "x_range": (630, 690),  "y_range": (10, 45)},
 }
 
-# 已知的功能坐标（1280x720 MaaMCP 空间）
+# 已知的功能坐标（使用 game_coords.py 中的 Coords 类）
 KNOWN_COORDS = {
-    # 顶部栏（仅当在主世界地图时可用）
-    "tasks_button":     (570, 22),   # 任务按钮
-    "event_button":     (510, 22),   # 活动按钮
-    "back_button":      (450, 22),   # 返回按钮
-    "close_overlay_x":  (1170, 22),  # 关闭面板 X 按钮
-
-    # 签到页面
-    "claim_all":        (1035, 323), # 一键领取（已验证成功）
-    "reward_confirm":   (640, 500),  # 奖励确认弹窗点击位置
-
-    # 活动中心
-    "signin_entry":     (112, 296),  # 签到入口（活动中心左侧列表）
-
-    # 退出游戏对话框
-    "exit_confirm":     (793, 478),  # "确认" 退出
-    "exit_cancel":      (556, 478),  # "取消" 退出
+    "tasks_button":     Coords.tasks_button,
+    "event_button":     Coords.event_button,
+    "back_button":      Coords.back_button,
+    "close_overlay_x":  Coords.close_overlay_x,
+    "claim_all":        Coords.claim_all,
+    "reward_confirm":   Coords.reward_confirm,
+    "signin_entry":     Coords.signin_entry,
+    "exit_confirm":     Coords.exit_confirm,
+    "exit_cancel":      Coords.exit_cancel,
 }
 
 # 游戏模式切换
-MODE_SWITCH_BUTTON = (75, 21)  # 在 "探索" 和 "工业" 之间切换
+MODE_SWITCH_BUTTON = Coords.mode_switch
 
 # 任务面板内可能出现的文本关键词
-OVERLAY_KEYWORDS = [
-    "每日", "每周", "任务", "日程", "签到", "作战汇报",
-    "领取", "收取", "一键领取", "完成", "提交", "领奖",
-    "进行中", "已完成", "可领取", "奖励",
-    "活跃度", "经验", "信用", "合成玉",
-]
-
 # 领取按钮关键词
 CLAIM_KEYWORDS = ["领取", "收取", "一键领取", "完成", "提交", "领奖", "CLAIM", "collect"]
 

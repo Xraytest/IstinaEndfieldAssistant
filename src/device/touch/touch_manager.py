@@ -72,6 +72,7 @@ class TouchManager:
             
             if self._android_executor.connect():
                 self._device_type = TouchDeviceType.ANDROID
+                self._device_serial = address
                 self._resolution = self._android_executor.get_resolution()
                 self._connected = True
                 self._controller = self._android_executor.controller
@@ -207,6 +208,21 @@ class TouchManager:
     
     # ==================== 单次控制方法（备用） ====================
 
+    def _convert_to_maa_coords(self, x: int, y: int) -> tuple:
+        """
+        将原始分辨率坐标转换为 MaaFw 坐标空间
+
+        Args:
+            x: 原始分辨率 x 坐标
+            y: 原始分辨率 y 坐标
+
+        Returns:
+            tuple: (maa_x, maa_y) MaaFw 坐标
+        """
+        if self._android_executor and hasattr(self._android_executor, '_convert_to_maa_coords'):
+            return self._android_executor._convert_to_maa_coords(x, y)
+        return x, y
+
     def safe_press(self, x: int, y: int, duration: int = 50) -> bool:
         """
         安全点击（单次控制，建议优先使用Pipeline）
@@ -224,16 +240,17 @@ class TouchManager:
             return False
 
         try:
-            # 坐标直接透传，不做任何缩放
+            # 坐标转换（原始分辨率 → MaaFw 空间）
+            maa_x, maa_y = self._convert_to_maa_coords(x, y)
 
-            job = self._controller.post_click(x, y)
+            job = self._controller.post_click(maa_x, maa_y)
             job.wait()
 
             if job.succeeded:
-                self.logger.debug(LogCategory.MAIN, "点击执行成功", x=x, y=y)
+                self.logger.debug(LogCategory.MAIN, "点击执行成功", x=maa_x, y=maa_y)
                 return True
             else:
-                self.logger.exception(LogCategory.MAIN, "点击执行失败", x=x, y=y)
+                self.logger.exception(LogCategory.MAIN, "点击执行失败", x=maa_x, y=maa_y)
                 return False
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "点击执行异常", error=str(e))
@@ -258,18 +275,20 @@ class TouchManager:
             return False
 
         try:
-            # 坐标直接透传，不做任何缩放
+            # 坐标转换（原始分辨率 → MaaFw 空间）
+            maa_x1, maa_y1 = self._convert_to_maa_coords(x1, y1)
+            maa_x2, maa_y2 = self._convert_to_maa_coords(x2, y2)
 
-            job = self._controller.post_swipe(x1, y1, x2, y2, duration)
+            job = self._controller.post_swipe(maa_x1, maa_y1, maa_x2, maa_y2, duration)
             job.wait()
 
             if job.succeeded:
                 self.logger.debug(LogCategory.MAIN, "滑动执行成功",
-                                x1=x1, y1=y1, x2=x2, y2=y2, duration=duration)
+                                x1=maa_x1, y1=maa_y1, x2=maa_x2, y2=maa_y2, duration=duration)
                 return True
             else:
                 self.logger.exception(LogCategory.MAIN, "滑动执行失败",
-                                x1=x1, y1=y1, x2=x2, y2=y2)
+                                x1=maa_x1, y1=maa_y1, x2=maa_x2, y2=maa_y2)
                 return False
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "滑动执行异常", error=str(e))
@@ -292,10 +311,11 @@ class TouchManager:
             return False
 
         try:
-            # 坐标直接透传，不做任何缩放
+            # 坐标转换（原始分辨率 → MaaFw 空间）
+            maa_x, maa_y = self._convert_to_maa_coords(x, y)
 
             # 长按通过touch_down + delay + touch_up实现
-            job = self._controller.post_touch_down(x, y)
+            job = self._controller.post_touch_down(maa_x, maa_y)
             job.wait()
             if not job.succeeded:
                 return False
@@ -308,10 +328,10 @@ class TouchManager:
             job.wait()
             
             if job.succeeded:
-                self.logger.debug(LogCategory.MAIN, "长按执行成功", x=x, y=y, duration=duration)
+                self.logger.debug(LogCategory.MAIN, "长按执行成功", x=maa_x, y=maa_y, duration=duration)
                 return True
             else:
-                self.logger.exception(LogCategory.MAIN, "长按执行失败", x=x, y=y)
+                self.logger.exception(LogCategory.MAIN, "长按执行失败", x=maa_x, y=maa_y)
                 return False
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "长按执行异常", error=str(e))
@@ -352,20 +372,22 @@ class TouchManager:
         Returns:
             bool: 是否执行成功
         """
-        import subprocess
-        from pathlib import Path
-        PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-        adb_path = str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe")
-
         self.logger.info(LogCategory.MAIN, "发送设备唤醒指令 (KEYCODE_POWER = 26)")
-        cmd = [adb_path, "-s", self._device_serial, "shell", "input", "keyevent", "26"]
+
+        if not self._connected or not self._android_executor:
+            self.logger.exception(LogCategory.MAIN, "设备未连接，无法唤醒")
+            return False
+
         try:
-            result = subprocess.run(cmd, capture_output=True, timeout=10)
-            ok = result.returncode == 0
+            job = self._android_executor.post_keyevent(26)
+            if job is None:
+                return False
+            job.wait()
+            ok = job.succeeded
             if ok:
                 self.logger.info(LogCategory.MAIN, "设备唤醒成功")
             else:
-                self.logger.exception(LogCategory.MAIN, "设备唤醒失败", error=result.stderr.decode('utf-8', errors='replace'))
+                self.logger.exception(LogCategory.MAIN, "设备唤醒失败")
             return ok
         except Exception as e:
             self.logger.exception(LogCategory.MAIN, "设备唤醒异常", error=str(e))
