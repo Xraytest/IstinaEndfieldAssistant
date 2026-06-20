@@ -7,6 +7,8 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from typing import Optional, Dict, Any, List
 import json
 
+from module.utils.paths import get_project_root
+
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 GREEN_STYLE = "color: #00ffa2; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -434,7 +436,7 @@ class IeaPage(QWidget):
 
         from core.cloud.exploration_engine import ExplorationEngine, ExplorationConfig
 
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+        project_root = get_project_root()
         cache_dir = os.path.join(project_root, "cache")
         os.makedirs(cache_dir, exist_ok=True)
 

@@ -15,14 +15,13 @@ VLM 分析功能（vlm_analyze）已迁移至 module.vlm 模块。
 """
 
 import io, os, sys, time, json, base64, hashlib, subprocess
-from pathlib import Path
 from typing import Optional, Dict, Any, List, Tuple, Callable
-from dataclasses import dataclass, field
+
+from module.utils.paths import get_project_root, get_adb_path
 
 
 # ── 项目路径 ──────────────────────────────────────────────────────
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-ADB_PATH = str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe")
+ADB_PATH = get_adb_path()
 DEVICE_SERIAL = "localhost:16512"
 
 # 服务器连接参数

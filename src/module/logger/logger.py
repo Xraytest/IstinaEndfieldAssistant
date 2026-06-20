@@ -11,6 +11,8 @@ from datetime import datetime
 from typing import Optional, Dict, Any, List
 from enum import Enum
 
+from module.utils.paths import get_project_root
+
 
 class LogLevel(Enum):
     """日志级别枚举"""
@@ -339,7 +341,7 @@ class ClientLogger:
         log_dir = self._config.get("log_dir", "logs")
         if not os.path.isabs(log_dir):
             # module/logger/logger.py 向上 4 层到项目根目录
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            project_root = get_project_root()
             log_dir = os.path.join(project_root, log_dir)
         self._config["log_dir"] = log_dir
 

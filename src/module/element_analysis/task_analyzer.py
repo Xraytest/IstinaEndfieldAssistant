@@ -14,6 +14,8 @@ from module.models import (
 from .element_repo import ElementRepository, AnalysisSession
 from .element_analyzer import ElementAnalyzer
 
+from module.utils.paths import get_project_root
+
 
 # 导航到任务页面的点击坐标（根据前期探索确定的入口位置）
 # 世界地图 -> 任务日志按钮 (163, 51)
@@ -275,7 +277,7 @@ class TaskAnalyzer:
         # 尝试 OCR 检测顶部栏任务按钮
         try:
             import subprocess, os
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            project_root = get_project_root()
             adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
             device = self.analyzer.device_serial
 
@@ -454,7 +456,7 @@ class TaskAnalyzer:
 
         try:
             import subprocess, os, hashlib
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+            project_root = get_project_root()
             adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
             device = self.analyzer.device_serial
 

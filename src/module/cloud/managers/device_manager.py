@@ -3,6 +3,9 @@ import os
 import json
 import re
 
+from module.utils.paths import get_cache_dir
+
+
 class DeviceManager:
     """设备管理业务逻辑类"""
     
@@ -14,13 +17,7 @@ class DeviceManager:
         
     def _load_last_connected_device(self):
         """加载上次连接的设备"""
-        # 使用绝对路径
-        current_file = os.path.abspath(__file__)
-        managers_dir = os.path.dirname(current_file)
-        core_dir = os.path.dirname(managers_dir)
-        android_dir = os.path.dirname(core_dir)
-        project_root = os.path.dirname(android_dir)
-        cache_dir = os.path.join(project_root, "cache")
+        cache_dir = get_cache_dir()
         device_cache_file = os.path.join(cache_dir, "last_device.json")
         
         if os.path.exists(device_cache_file):
@@ -31,13 +28,7 @@ class DeviceManager:
         
     def _save_last_connected_device(self, device_serial):
         """保存上次连接的设备"""
-        # 使用绝对路径
-        current_file = os.path.abspath(__file__)
-        managers_dir = os.path.dirname(current_file)
-        core_dir = os.path.dirname(managers_dir)
-        android_dir = os.path.dirname(core_dir)
-        project_root = os.path.dirname(android_dir)
-        cache_dir = os.path.join(project_root, "cache")
+        cache_dir = get_cache_dir()
         if not os.path.exists(cache_dir):
             os.makedirs(cache_dir)
             

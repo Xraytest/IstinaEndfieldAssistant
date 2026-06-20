@@ -13,6 +13,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRectF
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QPen
 
+from module.utils.paths import get_project_root
+
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 GREEN_STYLE = "color: #00ffa2; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -176,8 +178,7 @@ class PrtsFullIntelligencePage(QWidget):
         QTimer.singleShot(100, self._update_inference_mode_indicator)
 
     def _get_cache_dir(self) -> str:
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+        root = get_project_root()
         cache = os.path.join(root, "cache")
         os.makedirs(cache, exist_ok=True)
         return cache

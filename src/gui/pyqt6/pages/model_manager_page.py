@@ -6,6 +6,8 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from typing import Optional, Dict, Any
 import os
 
+from module.utils.paths import get_project_root
+
 
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -238,7 +240,7 @@ class ModelManagerPage(QWidget):
         layout.addStretch()
         
     def _get_models_dir(self) -> str:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))))
+        project_root = get_project_root()
         return os.path.join(project_root, "models")
 
     def _scan_local_models(self) -> list:

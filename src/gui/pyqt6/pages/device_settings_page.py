@@ -10,6 +10,8 @@ from PyQt6.QtCore import pyqtSignal, Qt, QTime, QTimer
 import json
 import os
 
+from module.utils.paths import get_project_root
+
 HEADER_STYLE = "color: #18d1ff; font-size: 14px; font-family: Consolas; font-weight: bold; letter-spacing: 1px; padding: 4px 0;"
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -87,8 +89,7 @@ class DeviceSettingsPage(QWidget):
         self._load_scheduled_tasks()
 
     def _get_cache_dir(self) -> str:
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+        root = get_project_root()
         cache = os.path.join(root, "cache")
         os.makedirs(cache, exist_ok=True)
         return cache

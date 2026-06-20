@@ -6,10 +6,12 @@ import os
 import sys
 from enum import Enum
 from typing import Optional, Tuple, Dict, Any, List
-from pathlib import Path
 
-# 添加MaaFramework路径
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "MaaFramework"))
+from module.utils.paths import get_project_root, ensure_src_path
+
+# 添加 MaaFramework 路径
+ensure_src_path()
+sys.path.insert(0, os.path.join(get_project_root(), "MaaFramework"))
 
 from module.logger import get_logger, LogCategory, LogLevel
 

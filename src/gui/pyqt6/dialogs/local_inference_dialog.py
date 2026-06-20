@@ -7,9 +7,11 @@ from typing import Optional, Dict, Any
 import sys
 import os
 
+from module.utils.paths import get_project_root
+
 # Add src directory to path for imports
 if __name__ == "__main__":
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_root = get_project_root()
     src_dir = os.path.join(project_root, "src")
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)

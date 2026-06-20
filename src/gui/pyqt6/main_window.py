@@ -19,14 +19,8 @@ try:
     from .pages.prts_full_intelligence_page import PrtsFullIntelligencePage
     from .pages.iea_page import IeaPage
 except ImportError:
-    import sys
-    import os
-    current_file = os.path.abspath(__file__)
-    pyqt6_dir = os.path.dirname(current_file)
-    gui_dir = os.path.dirname(pyqt6_dir)
-    src_dir = os.path.dirname(gui_dir)
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+    from module.utils.paths import ensure_src_path, get_project_root
+    ensure_src_path()
 
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.widgets.base_widgets import NavigationButton, HorizontalSeparator
@@ -529,7 +523,7 @@ class MainWindow(QMainWindow):
             self._settings_page._scan_local_models()
 
     def _get_models_dir(self) -> str:
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+        project_root = get_project_root()
         return os.path.join(project_root, "models")
 
     # ── 系统托盘 ──────────────────────────────────────────────────
@@ -780,7 +774,7 @@ class MainWindow(QMainWindow):
             import json, tempfile, os as _os
             current = os.path.dirname(os.path.abspath(__file__))
             # 统一路径：项目根目录
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+            project_root = get_project_root()
             config_path = _os.path.join(project_root, "config", "client_config.json")
 
             _os.makedirs(_os.path.dirname(config_path), exist_ok=True)
@@ -809,7 +803,7 @@ class MainWindow(QMainWindow):
             import json, sys
             current = os.path.dirname(os.path.abspath(__file__))
             # 统一路径：项目根目录
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+            project_root = get_project_root()
             config_path = os.path.join(project_root, 'config', 'client_config.json')
             
             disk_cfg = None

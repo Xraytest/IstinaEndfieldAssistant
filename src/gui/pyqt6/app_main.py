@@ -5,6 +5,8 @@ import sys
 import os
 import ctypes
 
+from module.utils.paths import get_project_root
+
 
 def _set_dark_title_bar(window):
     """Set Windows 10/11 title bar to dark mode via DWM API."""
@@ -20,11 +22,11 @@ def _set_dark_title_bar(window):
         DWMWA_WINDOW_CORNER_PREFERENCE = 33
         DWMWCP_ROUND = 2
         DWMWCP_ROUND_SMAILL = 3
-        
+
         # 创建值变量（必须保持引用直到 API 调用完成）
         dark_mode_value = ctypes.c_int(1)
         corner_value = ctypes.c_int(DWMWCP_ROUND)
-        
+
         # 启用暗色标题栏
         ctypes.windll.dwmapi.DwmSetWindowAttribute(
             hwnd,
@@ -288,7 +290,7 @@ def run_application(auth_manager=None, device_manager=None,
         """统一保存到项目根目录的配置文件"""
         # 确定唯一配置文件路径：项目根目录
         _f = os.path.dirname(os.path.abspath(__file__))
-        project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_f))))
+        project_root = get_project_root()
         config_path = os.path.join(project_root, "config", "client_config.json")
 
         try:

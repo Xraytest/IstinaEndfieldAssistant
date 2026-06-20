@@ -14,6 +14,8 @@ from dataclasses import dataclass
 
 from module.logger import get_logger, LogCategory, LogLevel
 
+from module.utils.paths import get_project_root
+
 # 尝试导入MaaFramework（pip install MaaFw，导入名 maa）
 MAAFW_AVAILABLE = False
 
@@ -137,8 +139,8 @@ class MaaFwTouchExecutor:
         
         try:
             # 初始化Toolkit配置（可选）
-            project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
-            config_dir = os.path.join(project_root, "IstinaEndfieldAssistant", "config")
+            project_root = get_project_root()
+            config_dir = os.path.join(project_root, "config")
             maa_option_path = os.path.join(config_dir, "maa_option.json")
             
             if os.path.exists(maa_option_path):

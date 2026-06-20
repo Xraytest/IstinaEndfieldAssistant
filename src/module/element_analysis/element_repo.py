@@ -13,11 +13,11 @@ from module.models import (
     TaskDefinition, TaskInstance, TaskStatus, TaskCycle,
     EventActivity, AnalysisResult,
 )
+from module.utils.paths import get_data_dir
 
 
 # 数据存储根目录
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-DATA_ROOT = os.path.join(PROJECT_ROOT, "data")
+DATA_ROOT = get_data_dir()
 
 
 def _ensure_dir(path: str) -> str:

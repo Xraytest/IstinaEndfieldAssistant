@@ -20,6 +20,8 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor
 
+from module.utils.paths import get_project_root
+
 try:
     from ..theme.theme_manager import ThemeManager
     from ..widgets.base_widgets import PrimaryButton, SecondaryButton, DangerButton, CardWidget
@@ -182,8 +184,7 @@ class AuthPage(QWidget):
         self._setup_connections()
 
     def _get_cache_dir(self) -> str:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        istina_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current_dir))))
+        istina_root = get_project_root()
         cache_dir = os.path.join(istina_root, "cache")
         return cache_dir
 

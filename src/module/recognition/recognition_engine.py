@@ -14,8 +14,9 @@
 import cv2
 import numpy as np
 from typing import Dict, Any, List, Tuple, Optional
-from pathlib import Path
-import sys
+import os
+
+from module.utils.paths import get_project_root
 
 
 class RecognitionEngine:
@@ -26,10 +27,7 @@ class RecognitionEngine:
     """
 
     def __init__(self, assets_dir: str = None):
-        # recognition_engine.py 在 src/core/recognition/
-        # parent → recognition, parent.parent → core, parent.parent.parent → src
-        # parent.parent.parent.parent → 项目根目录
-        self.assets_dir = Path(assets_dir) if assets_dir else Path(__file__).resolve().parent.parent.parent.parent / "assets"
+        self.assets_dir = assets_dir if assets_dir else os.path.join(get_project_root(), "assets")
 
     # ── 主分发 ─────────────────────────────────────────────────
 

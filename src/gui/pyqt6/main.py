@@ -8,15 +8,11 @@ import json
 # Force stdio to be unbuffered for immediate output
 sys.stdout.reconfigure(line_buffering=True)
 
-# Add src directory to Python path
-# __file__ = src/gui/pyqt6/main.py
-# dirname 5 times to get IstinaAI project root (one level above IstinaEndfieldAssistant)
-# dirname 4 times to get IstinaEndfieldAssistant project root (for src dir)
-iea_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-project_root = os.path.dirname(iea_root)  # IstinaAI root
-src_dir = os.path.join(iea_root, "src")  # IstinaEndfieldAssistant/src
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
+# Add src directory to Python path using unified path management
+from module.utils.paths import ensure_src_path, get_project_root
+ensure_src_path()
+
+project_root = get_project_root()
 
 print("[导入] 正在导入依赖模块...")
 

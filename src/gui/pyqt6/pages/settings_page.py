@@ -12,14 +12,15 @@ import json
 import re
 from pathlib import Path
 
+from module.utils.paths import get_project_root, get_src_dir
+
 if __name__ == "__main__":
-    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
-    src_dir = os.path.join(project_root, "src")
+    project_root = get_project_root()
+    src_dir = get_src_dir()
     if src_dir not in sys.path:
         sys.path.insert(0, src_dir)
 else:
-    _current_dir = os.path.dirname(os.path.abspath(__file__))
-    _src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(_current_dir))))
+    _src_dir = get_src_dir()
     if _src_dir not in sys.path:
         sys.path.insert(0, _src_dir)
 
@@ -590,8 +591,7 @@ class SettingsPage(QWidget):
         return combo
 
     def _get_cache_dir(self) -> str:
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+        root = get_project_root()
         cache = os.path.join(root, "cache")
         os.makedirs(cache, exist_ok=True)
         return cache
@@ -634,8 +634,7 @@ class SettingsPage(QWidget):
 
     def _get_config_dir(self) -> str:
         """获取配置文件目录路径"""
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+        root = get_project_root()
         return os.path.join(root, "config")
 
     def _load_models_config(self) -> List[Dict[str, Any]]:
@@ -843,8 +842,7 @@ class SettingsPage(QWidget):
 
     def _get_models_dir(self) -> str:
         """获取模型目录路径"""
-        current = os.path.dirname(os.path.abspath(__file__))
-        root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(current))))
+        root = get_project_root()
         return os.path.join(root, "models")
 
     def _on_tray_changed(self, state):
