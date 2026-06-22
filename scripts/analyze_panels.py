@@ -1,7 +1,8 @@
 """分析武陵工业计划面板的内容和导航选项"""
 import sys, os, cv2, json
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 from standard_flow_engine import ScreenAnalyzer
 
 CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'cache')

@@ -21,13 +21,13 @@ import io
 
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-# 路径设置
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-src_dir = os.path.join(project_root, "src")
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
-from core.element_analysis import (
+project_root = str(PROJECT_ROOT)
+src_dir = str(SRC_DIR)
+
+from core.service.element_analysis import (
     ElementAnalyzer, TaskAnalyzer, AnalysisSession,
     ElementRepository, TaskDefinition, TaskStatus, TaskCycle,
 )

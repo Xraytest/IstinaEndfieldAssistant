@@ -1,9 +1,10 @@
 import sys, os, time, json, subprocess, base64
 
-project_root = os.path.dirname(os.path.dirname(__file__))
-src_dir = os.path.join(project_root, "src")
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+project_root = str(PROJECT_ROOT)
+src_dir = str(SRC_DIR)
 
 from core.communication import ClientCommunicator
 from screenshot import ScreenCapture

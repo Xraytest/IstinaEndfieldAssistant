@@ -1,7 +1,10 @@
 """验证底部命中点——用ScreenAnalyzer识别面板内容"""
 import subprocess, time, os, sys, cv2, numpy as np
 
-PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = str(PROJECT_ROOT)
 CACHE = os.path.join(PROJECT, 'cache')
 ADB = os.path.join(PROJECT, '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
@@ -15,7 +18,6 @@ def full_diff(img_a, img_b):
     _, thresh = cv2.threshold(gray, 30, 255, cv2.THRESH_BINARY)
     return cv2.countNonZero(thresh)
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from standard_flow_engine import ScreenAnalyzer
 
 analyzer = ScreenAnalyzer()

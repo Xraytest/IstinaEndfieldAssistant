@@ -13,7 +13,7 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer, QRectF
 from PyQt6.QtGui import QPainter, QColor, QBrush, QFont, QPen
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -411,7 +411,7 @@ class PrtsFullIntelligencePage(QWidget):
         # 更新推理模式指示
         self._update_inference_mode_indicator()
 
-        from core.cloud.realtime_combat_controller import VLMController, CombatState
+        from core.service.cloud.realtime_combat_controller import VLMController, CombatState
         vlm_ctrl = VLMController(
             self.communicator, self.touch_executor, self.screen_capture,
             large_vlm_config={"model_tag": self._selected_model_tag, "session_id": ""}
@@ -470,7 +470,7 @@ class PrtsFullIntelligencePage(QWidget):
                         if actions:
                             for act in actions:
                                 self.agent_executor._execute_action(act)
-                    except json.JSONDecodeError:
+                    except _json.JSONDecodeError:
                         actions = response.get("actions", [])
                         if actions:
                             for act in actions:

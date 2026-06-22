@@ -2,7 +2,9 @@
 """测试ModelScope API连接"""
 import sys
 import time
-sys.path.insert(0, 'src')
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 from openai import OpenAI
 

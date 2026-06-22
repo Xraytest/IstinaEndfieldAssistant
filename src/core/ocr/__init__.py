@@ -1,2 +1,2 @@
 """兼容层 - 从 module 重新导出"""
-from module.ocr import *  # noqa
+from core.capability.ocr import *  # noqa

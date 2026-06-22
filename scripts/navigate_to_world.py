@@ -3,8 +3,8 @@
 import subprocess, time, cv2, numpy as np, sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(r'C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant')
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 ADB_PATH = f"{PROJECT_ROOT}\\3rd-party\\adb\\adb.exe"
 DEVICE = "localhost:16512"

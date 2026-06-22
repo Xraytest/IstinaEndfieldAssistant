@@ -5,7 +5,7 @@ import sys
 import os
 import ctypes
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 
 def _set_dark_title_bar(window):
@@ -139,14 +139,8 @@ try:
     from .main_window import MainWindow
     from .theme.theme_manager import ThemeManager
 except ImportError:
-    import sys
-    import os
-    current_file = os.path.abspath(__file__)
-    pyqt6_dir = os.path.dirname(current_file)
-    gui_dir = os.path.dirname(pyqt6_dir)
-    src_dir = os.path.dirname(gui_dir)
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+    from core.foundation.utils.paths import ensure_src_path
+    ensure_src_path(__file__)
     from gui.pyqt6.main_window import MainWindow
     from gui.pyqt6.theme.theme_manager import ThemeManager
 

@@ -1,9 +1,9 @@
 import sys, os, signal, time, json
 
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 project_root = os.path.dirname(os.path.dirname(__file__))
-src_dir = os.path.join(project_root, "src")
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
 
 from core.cloud.exploration_engine import ExplorationEngine, ExplorationConfig, ExplorationState
 from core.cloud.agent_executor import AgentExecutor
@@ -33,14 +33,24 @@ def main():
     touch_manager.connect_android(adb_path=adb_path, address=touch_address)
     screen_capture.set_touch_manager(touch_manager)
 
+    # 从配置读取密码和密钥
+    config_data = {}
+    try:
+        with open(os.path.join(project_root, "config", "client_config.json")) as f:
+            config_data = json.load(f)
+    except Exception:
+        pass
+    server_config = config_data.get("server", {})
+    server_password = server_config.get("password", "default_password")
+    api_key = config_data.get("api_key", "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763")
+
     communicator = ClientCommunicator(
         host="127.0.0.1",
         port=9999,
-        password="default_password",
+        password=server_password,
         timeout=300,
     )
 
-    api_key = "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763"
     arkpass_data = {"user_id": "explorer", "api_key": api_key, "server_host": "127.0.0.1", "server_port": 9999}
     arkpass_path = os.path.join(project_root, "cache", "explorer.arkpass")
     os.makedirs(os.path.dirname(arkpass_path), exist_ok=True)

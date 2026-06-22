@@ -15,10 +15,11 @@ TAN () ────────────────────────�
 import subprocess, time, cv2, numpy as np, json, sys
 from pathlib import Path
 
-PROJECT = Path(__file__).resolve().parent.parent
-SRC = PROJECT / "src"
-sys.path.insert(0, str(SRC))
-sys.path.insert(0, str(PROJECT / "scripts"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = PROJECT_ROOT
+SRC = SRC_DIR
 
 from core.adb_utils import ADB
 

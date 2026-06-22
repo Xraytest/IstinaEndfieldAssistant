@@ -5,12 +5,17 @@ import sys
 import os
 import json
 
+# 先将 src/ 加入 sys.path，确保内部模块可导入
+_src_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if _src_dir not in sys.path:
+    sys.path.insert(0, _src_dir)
+
 # Force stdio to be unbuffered for immediate output
 sys.stdout.reconfigure(line_buffering=True)
 
 # Add src directory to Python path using unified path management
-from module.utils.paths import ensure_src_path, get_project_root
-ensure_src_path()
+from core.foundation.utils.paths import ensure_src_path, get_project_root
+ensure_src_path(__file__)
 
 project_root = get_project_root()
 
@@ -46,8 +51,8 @@ def load_config(config_file: str) -> dict:
     # 默认配置包含所有必需字段，确保配置完整性
     return {
             "server": {"host": "127.0.0.1", "port": 9999},
-            "adb": {"path": "IstinaEndfieldAssistant/3rd-party/adb/adb.exe", "timeout": 10},
-            "git": {"path": "IstinaEndfieldAssistant/3rd-party/git/bin/git.exe"},
+            "adb": {"path": "3rd-party/adb/adb.exe", "timeout": 10},
+            "git": {"path": "3rd-party/git/bin/git.exe"},
             "screen": {"use_original_resolution": True},
             "touch": {
                 "maa_style": {
@@ -144,6 +149,11 @@ def main():
             timeout=300
         )
 
+        # 初始化 VLM 客户端（统一推理入口）
+        logger.debug(LogCategory.MAIN, "初始化 VLM 客户端")
+        from core.capability.vlm import VLMClient
+        vlm_client = VLMClient(config=config, communicator=communicator)
+
         # 初始化推理管理器（端侧优先）
         logger.debug(LogCategory.MAIN, "初始化推理管理器")
         from core.local_inference.inference_manager import InferenceManager
@@ -185,11 +195,10 @@ def main():
         
         logger.debug(LogCategory.MAIN, "初始化代理执行器")
         agent_executor = AgentExecutor(
-            communicator=communicator,
+            vlm_client=vlm_client,
             screen_capture=screen_capture,
             touch_executor=touch_executor,
             config=config,
-            inference_manager=inference_manager
         )
 
         print(f"[主进程] 调用 run_application() - 窗口即将显示...")

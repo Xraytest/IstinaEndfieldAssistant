@@ -1,11 +1,13 @@
 """测试所有已知顶部栏按钮位置"""
 import subprocess, time, os, sys, cv2
 
-CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'cache')
-ADB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '3rd-party', 'adb', 'adb.exe')
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+CACHE = os.path.join(str(PROJECT_ROOT), 'cache')
+ADB = os.path.join(str(PROJECT_ROOT), '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts'))
 from standard_flow_engine import ScreenAnalyzer
 
 def screencap(path):

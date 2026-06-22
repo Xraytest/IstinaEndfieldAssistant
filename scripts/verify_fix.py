@@ -14,7 +14,12 @@
 import sys, os, json, time
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
+
 CONFIG_PATH = PROJECT_ROOT / "config" / "standard_flows" / "flows_config.json"
 ENGINE_PATH = PROJECT_ROOT / "scripts" / "standard_flow_engine.py"
 
@@ -195,7 +200,6 @@ def test_standard_flow():
     
     # 导入标准流引擎
     try:
-        sys.path.insert(0, str(PROJECT_ROOT))
         from standard_flow_engine import StandardFlowExecutor, FlowConfig
     except Exception as e:
         print(f"  [失败] 导入标准流引擎失败：{e}")

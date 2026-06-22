@@ -76,13 +76,13 @@ def check_flow_steps(flow_name, flow_config):
                 if not var_name:
                     issues.append(f"  [步骤 {step_id}] 空变量引用")
             elif isinstance(coords, list) and len(coords) == 2:
-                # 直接坐标
+                # 直接坐标（游戏分辨率 1080x1920 竖屏）
                 x, y = coords
-                if x < 0 or x > 1920 or y < 0 or y > 1080:
-                    issues.append(f"  [步骤 {step_id}] 坐标超出范围：({x}, {y})")
+                if x < 0 or x > 1080 or y < 0 or y > 1920:
+                    issues.append(f"  [步骤 {step_id}] 坐标超出游戏分辨率范围：({x}, {y})")
         
         # 检查 action 类型
-        valid_actions = ["tap", "swipe", "back", "check", "claim", "navigate", "wait"]
+        valid_actions = ["tap", "swipe", "back", "check", "claim", "navigate", "wait", "long_press"]
         if action and action not in valid_actions:
             issues.append(f"  [步骤 {step_id}] 未知 action: {action}")
     

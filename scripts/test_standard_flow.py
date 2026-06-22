@@ -19,10 +19,11 @@ from typing import Dict, Any, Optional, List, Tuple
 from dataclasses import dataclass, field
 from datetime import datetime
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))  # 本地安装的包
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
 
 # ── 导入本地模块 ──
 from core.adb_utils import ADB, adb_screencap

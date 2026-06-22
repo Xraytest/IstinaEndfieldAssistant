@@ -10,7 +10,7 @@ from PyQt6.QtCore import pyqtSignal, Qt, QTime, QTimer
 import json
 import os
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 HEADER_STYLE = "color: #18d1ff; font-size: 14px; font-family: Consolas; font-weight: bold; letter-spacing: 1px; padding: 4px 0;"
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"

@@ -20,28 +20,15 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QTimer
 from PyQt6.QtGui import QColor
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 try:
     from ..theme.theme_manager import ThemeManager
     from ..widgets.base_widgets import PrimaryButton, SecondaryButton, DangerButton, CardWidget
     from ..widgets.status_indicator import ConnectionStatusIndicator
 except ImportError:
-    import sys
-    import os
-    current_file = os.path.abspath(__file__)
-    pages_dir = os.path.dirname(current_file)
-    pyqt_ui_dir = os.path.dirname(pages_dir)
-    gui_dir = os.path.dirname(pyqt_ui_dir)
-    entry_dir = os.path.dirname(gui_dir)
-    istina_dir = os.path.dirname(entry_dir)
-    project_root = os.path.dirname(istina_dir)
-    
-    if project_root not in sys.path:
-        sys.path.insert(0, project_root)
-    if istina_dir not in sys.path:
-        sys.path.insert(0, istina_dir)
-    
+    from core.foundation.utils.paths import ensure_src_path
+    ensure_src_path(__file__)
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.widgets.base_widgets import PrimaryButton, SecondaryButton, DangerButton, CardWidget
     from gui.pyqt6.widgets.status_indicator import ConnectionStatusIndicator

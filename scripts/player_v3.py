@@ -2,7 +2,9 @@
 终末地 真人v3 - 本地GPU分类(防幻觉) + Qwen策略
 """
 import json, base64, urllib.request, time, subprocess, sys, os, re, hashlib, random
-sys.path.insert(0, 'src')
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 API_QWEN = 'http://192.168.1.19:3000/v1/chat/completions'
 API_LOCAL = 'http://127.0.0.1:8080/v1/chat/completions'

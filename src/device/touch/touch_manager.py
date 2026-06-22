@@ -8,6 +8,9 @@ from enum import Enum
 from typing import Optional, Tuple, Dict, Any, List
 from pathlib import Path
 
+from utils.paths import ensure_src_path
+ensure_src_path(__file__)
+
 # 添加MaaFramework路径
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))), "MaaFramework"))
 

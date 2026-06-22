@@ -2,10 +2,11 @@ import sys, os, signal, time, json, base64, subprocess
 import io
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
-project_root = os.path.dirname(os.path.dirname(__file__))
-src_dir = os.path.join(project_root, "src")
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+project_root = str(PROJECT_ROOT)
+src_dir = str(SRC_DIR)
 
 from core.cloud.exploration_engine import ExplorationEngine, ExplorationConfig
 from core.communication import ClientCommunicator

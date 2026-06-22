@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from typing import Optional, Dict, Any
 import os
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"

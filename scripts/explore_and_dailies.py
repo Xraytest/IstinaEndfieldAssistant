@@ -4,10 +4,10 @@ records page relationships and execution flow into cache/."""
 import sys, os, time, json, re, subprocess, base64, io, hashlib
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
 
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 project_root = os.path.dirname(os.path.dirname(__file__))
-src_dir = os.path.join(project_root, "src")
-if src_dir not in sys.path:
-    sys.path.insert(0, src_dir)
 
 from core.logger import init_logger, get_logger, LogCategory
 from core.communication.communicator import ClientCommunicator
@@ -17,7 +17,6 @@ from device.touch.touch_manager import TouchManager
 
 # 尝试导入 OCR 优先决策模块
 try:
-    sys.path.insert(0, os.path.join(project_root, "scripts"))
     from ocr_decision_module import detect_screen_state, generate_navigation_plan, KNOWN_COORDS
     OCR_MODULE_AVAILABLE = True
 except ImportError:
@@ -563,7 +562,7 @@ for cycle in range(40):
                                                       if any(k in e.get("label", "") for k in ["领取", "收取", "一键领取", "完成", "提交", "领奖", "CLAIM", "collect"])]
                                     # Also try direct search within element text (VLM might label them differently)
                                     if not overlay_claims:
-                                        overlay_claims = [e for e in info4.get("elements", [])
+                                        overlay_claims = [e for e in info3.get("elements", [])
                                                           if any(k in (e.get("text", "") or "") for k in ["领取", "收取", "一键领取", "完成", "提交", "领奖"])]
                                     if overlay_claims and claim_attempts < 10:
                                         for ce in overlay_claims[:3]:

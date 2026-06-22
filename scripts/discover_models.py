@@ -1,30 +1,40 @@
 """测试服务器所有可能的模型标签，发现可用的模型映射"""
 import sys, os, json, base64, subprocess, time, re
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = str(PROJECT_ROOT)
 
 ADB = [os.path.join(PROJECT_ROOT, "3rd-party", "adb", "adb.exe"), "-s", "localhost:16512"]
 r = subprocess.run(ADB + ["exec-out", "screencap", "-p"], capture_output=True, timeout=15)
 b64 = base64.b64encode(r.stdout).decode("utf-8")
 print(f"Screenshot: {len(r.stdout)} bytes")
 
+# 从配置读取密码和密钥
+config = {}
+try:
+    with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+server_config = config.get("server", {})
+server_password = server_config.get("password", "default_password")
+api_key = config.get("api_key", "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763")
+
 from core.communication.communicator import ClientCommunicator
 from core.logger import init_logger
 init_logger()
 
-comm = ClientCommunicator(host="127.0.0.1", port=9999, password="default_password", timeout=60)
-login = comm.send_request("login", {"user_id": "explorer", "key": "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763"})
+comm = ClientCommunicator(host="127.0.0.1", port=9999, password=server_password, timeout=60)
+login = comm.send_request("login", {"user_id": "explorer", "key": api_key})
 sid = login.get("session_id", "")
 comm.set_logged_in(True)
 
 # 尝试各种可能的 model_tag
-# 策略: 供应商前缀 + 模型名, 纯模型名, 已知标签
 tags_to_try = [
-    # 已知工作的
     "exploration_deep",
     "vision",
-    # 供应商前缀
     "cherryin/qwen3.6-plus",
     "cherryin/qwen3.5-397b",
     "cherryin/qwen3.5-35b-a3b",
@@ -33,18 +43,14 @@ tags_to_try = [
     "local_qwen/qwen3.6-plus",
     "local_qwen/qwen3.5-397b",
     "local_qwen/qwen3.5-35b",
-    # 纯模型名
     "qwen3.6-plus",
     "qwen3.5-397b",
     "qwen3.5-35b-a3b",
-    # 供应商名作为标签
     "cherryin",
     "cherryin_newapi",
     "local_qwen",
-    # standard_reasoning prts
     "standard",
     "prts_full_intelligence",
-    # 带 free 标签
     "qwen3.5-9b-free",
     "cherryin/qwen3.5-9b-free",
 ]
@@ -90,7 +96,6 @@ for tag, info in sorted(results.items(), key=lambda x: (x[1].get("status",""), x
     icon = "[OK]" if status == "ok" else "[FAIL]"
     print(f"{icon} {tag:<33} {status:<10} {dt:<8.1f} {note}")
 
-# 保存结果
 with open("cache/model_tag_results.json", "w") as f:
     json.dump(results, f, indent=2, ensure_ascii=False)
 print("\n结果已保存: cache/model_tag_results.json")

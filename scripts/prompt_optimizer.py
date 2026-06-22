@@ -14,13 +14,14 @@ import sys
 import os
 import json
 import shutil
+import time
 import importlib.util
 from pathlib import Path
+from datetime import datetime
 from typing import Dict, Any, List, Set
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 # 动态导入standard_flow_engine
 spec = importlib.util.spec_from_file_location(

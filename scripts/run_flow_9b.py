@@ -7,10 +7,11 @@ import os
 from pathlib import Path
 
 # 设置路径
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
 
 # 修改标准流引擎的 Local2BEngine 以支持 9b 模型
 import importlib.util

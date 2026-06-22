@@ -5,7 +5,10 @@ Round 2: 长按任务触发自动寻路
 Round 3: 菜单关卡选择
 """
 import subprocess, time, sys, os, base64, hashlib, json, urllib.request, re
-sys.path.insert(0, 'src')
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from core.adb_utils import adb_screencap
 
 ADB = ['3rd-party/adb/adb.exe', '-s', 'localhost:16512']

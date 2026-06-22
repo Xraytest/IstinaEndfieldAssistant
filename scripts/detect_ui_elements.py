@@ -1,12 +1,14 @@
 """检测当前画面的金色元素和YOLO对象 - 无VLM依赖"""
 import subprocess, time, os, cv2, numpy as np, sys
 
-PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = str(PROJECT_ROOT)
 ADB = os.path.join(PROJECT, '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
 CACHE = os.path.join(PROJECT, 'cache')
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from standard_flow_engine import ScreenAnalyzer
 analyzer = ScreenAnalyzer()
 

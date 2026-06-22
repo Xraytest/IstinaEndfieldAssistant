@@ -3,8 +3,8 @@
 import subprocess, time, cv2, numpy as np, sys, os, json, argparse
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--device", help="设备地址, 如 localhost:16512")

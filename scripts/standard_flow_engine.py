@@ -20,10 +20,11 @@ from typing import Dict, Any, List, Optional
 from dataclasses import dataclass, field
 from datetime import datetime
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
 
 from core.adb_utils import ADB, adb_screencap
 from core.game_coords import Coords
@@ -978,6 +979,7 @@ class StandardFlowExecutor:
         self.screen_analyzer = ScreenAnalyzer(maafw_executor=self._maafw)
         self.page_analyzer = HighPrecisionPageAnalyzer()
         self.vlm_client = VLMClient({"vlm_mode": "local"})
+        self._last_hash = None  # 画面变化检测哈希值
 
     def stop(self):
         self._stop_requested = True
@@ -1009,8 +1011,8 @@ class StandardFlowExecutor:
         """从模型分析文本中提取动作（不依赖JSON）"""
         act = {"action": "none", "coords": None, "page": "other", "reason": ""}
 
-        # 弹窗检测
-        popup_texts = ['自动登出', '长时间没有操作', '维护', '断开连接', '提示', '通知']
+        # 弹窗检测（仅保留明确的弹窗关键词，避免误报）
+        popup_texts = ['自动登出', '长时间没有操作', '维护', '断开连接']
         confirm_texts = ['确认', '确定', 'OK', 'OK', '是']
         cancel_texts = ['取消', '关闭', 'Cancel', '返回']
 
@@ -1294,7 +1296,7 @@ class StandardFlowExecutor:
         if img:
             import numpy as np
             h = hashlib.md5(img).hexdigest()[:8]
-            if not hasattr(self, '_last_hash'):
+            if self._last_hash is None:
                 self._last_hash = h
             elif self._last_hash == h:
                 print(f"  [WARN] 画面无变化 ({h[:4]})")
@@ -1387,8 +1389,10 @@ class StandardFlowExecutor:
             if img:
                 cv_img = cv2.imdecode(np.frombuffer(img, np.uint8), cv2.IMREAD_COLOR)
                 if cv_img is not None:
+                    # coords 可能为 None，提供安全默认值
+                    last_coords = f"({coords[0]},{coords[1]})" if coords and len(coords) >= 2 else "(未知)"
                     ctx = {"expected_page": expect, "step_desc": step_cfg.get("desc", ""),
-                           "last_action": f"点击 ({coords[0]},{coords[1]})"}
+                           "last_action": f"点击 {last_coords}"}
                     vlm = self.vlm_client.decide_action(cv_img,
                         {"page_type": page, "confidence": confidence, "features": features}, ctx)
                     print(f"  [VLM恢复] 建议={vlm.get('suggested_action','?')} → {vlm.get('reason','')[:80]}")
@@ -1833,6 +1837,7 @@ def main():
                 # 同时保留旧的 VLM 分析（用于 OCR 文本）
                 analysis = _analyzer.analyze(cv_img)
                 ocr_text = analysis.get("ocr_text", "")[:80]
+                page = page_type  # 更新 page 变量用于后续分支判断
                 
                 print(f"  [前置 {preamble_attempt+1}/8] 页面={page_type} (置信度 {confidence:.2f})")
                 print(f"    特征：left_bar={features.get('left_bar_brightness', 0):.1f} green={features.get('green_pixels_top_right', 0):.0f} OCR={ocr_text}")

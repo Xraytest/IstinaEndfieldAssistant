@@ -3,9 +3,8 @@
 import sys, os, json, re, base64, subprocess, time
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 ADB = [str(PROJECT_ROOT / "3rd-party" / "adb" / "adb.exe"), "-s", "localhost:16512"]
 
@@ -17,10 +16,21 @@ def adb_screencap() -> bytes:
 raw = adb_screencap()
 print(f"截图大小: {len(raw)} bytes")
 
+# 从配置读取密码和密钥
+config = {}
+try:
+    with open(os.path.join(PROJECT_ROOT, "config", "client_config.json")) as f:
+        config = json.load(f)
+except Exception:
+    pass
+server_config = config.get("server", {})
+server_password = server_config.get("password", "default_password")
+api_key = config.get("api_key", "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763")
+
 # VLM 调用
 from core.communication.communicator import ClientCommunicator
-comm = ClientCommunicator(host="127.0.0.1", port=9999, password="default_password", timeout=180)
-r = comm.send_request("login", {"user_id": "explorer", "key": "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763"})
+comm = ClientCommunicator(host="127.0.0.1", port=9999, password=server_password, timeout=180)
+r = comm.send_request("login", {"user_id": "explorer", "key": api_key})
 sid = r.get("session_id", "") if r else ""
 comm.set_logged_in(True)
 

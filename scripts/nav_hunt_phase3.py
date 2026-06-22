@@ -1,7 +1,10 @@
 """导航按钮定位 Phase 3 - 扫描底部栏 + 左侧全区域 + 世界传送点"""
 import subprocess, time, os, sys, cv2, numpy as np, json
 
-PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = str(PROJECT_ROOT)
 CACHE = os.path.join(PROJECT, 'cache')
 ADB = os.path.join(PROJECT, '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
@@ -133,7 +136,6 @@ for r in results_left[:10]:
 
 # ── Phase 3: 用 ScreenAnalyzer 分析世界截图 OCR ──
 print(f"\nPhase 3: OCR 分析世界画面...")
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from standard_flow_engine import ScreenAnalyzer
 analyzer = ScreenAnalyzer()
 

@@ -10,6 +10,10 @@ from PyQt6.QtWidgets import (
 from PyQt6.QtCore import Qt, pyqtSignal, QSize, QTimer, QEvent
 from PyQt6.QtGui import QIcon, QFont
 
+# 确保路径工具在模块级别可用
+from core.foundation.utils.paths import ensure_src_path, get_project_root
+ensure_src_path(__file__)
+
 try:
     from .theme.theme_manager import ThemeManager
     from .widgets.base_widgets import NavigationButton, HorizontalSeparator
@@ -19,9 +23,6 @@ try:
     from .pages.prts_full_intelligence_page import PrtsFullIntelligencePage
     from .pages.iea_page import IeaPage
 except ImportError:
-    from module.utils.paths import ensure_src_path, get_project_root
-    ensure_src_path()
-
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.widgets.base_widgets import NavigationButton, HorizontalSeparator
     from gui.pyqt6.pages import AuthPage, SettingsPage, DeviceSettingsPage, AgentPage
@@ -600,8 +601,6 @@ class MainWindow(QMainWindow):
                 # 强制持久化最小化到托盘设置（防止 settings 保存被其它问题吞掉）
                 try:
                     self._persist_minimize_setting(enabled)
-                except Exception:
-                    pass
                 except Exception:
                     pass
         except Exception:

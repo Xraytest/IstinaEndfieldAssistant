@@ -2,7 +2,10 @@
 """测试退出对话框特征检测"""
 import subprocess, time, cv2, numpy as np, sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'src'))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from core.page_analyzer import HighPrecisionPageAnalyzer
 
 ADB = Path(__file__).resolve().parent.parent / '3rd-party' / 'adb' / 'adb.exe'

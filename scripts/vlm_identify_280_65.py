@@ -1,6 +1,9 @@
 """识别 (280,65) 按钮打开的界面"""
 import sys, os, cv2
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from standard_flow_engine import ScreenAnalyzer
 
 CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'cache')

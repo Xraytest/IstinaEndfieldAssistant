@@ -2,7 +2,9 @@
 终末地 真人v4 - 单次Qwen3.6-Plus调用(分类+决策)，严格证据驱动
 """
 import json, base64, urllib.request, time, subprocess, sys, os, re, hashlib, random
-sys.path.insert(0, 'src')
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 API = 'http://192.168.1.19:3000/v1/chat/completions'
 AUTH = 'Bearer sk-IDYeDxp4uuC5doDT2mX6iPEkkTYwfAY1lwUzm5rQQw8Yzcv3'

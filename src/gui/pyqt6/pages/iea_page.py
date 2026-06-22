@@ -7,7 +7,7 @@ from PyQt6.QtCore import Qt, pyqtSignal, QThread
 from typing import Optional, Dict, Any, List
 import json
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import get_project_root
 
 INFO_STYLE = "color: #9090a8; font-size: 12px; font-family: Consolas; padding: 3px 0;"
 VAL_STYLE = "color: #e8e8ee; font-size: 12px; font-family: Consolas; padding: 3px 0;"
@@ -434,7 +434,7 @@ class IeaPage(QWidget):
             QMessageBox.warning(self, "Exploration", "Missing dependencies: communicator, screen_capture, or touch_executor")
             return
 
-        from core.cloud.exploration_engine import ExplorationEngine, ExplorationConfig
+        from core.service.cloud.exploration_engine import ExplorationEngine, ExplorationConfig
 
         project_root = get_project_root()
         cache_dir = os.path.join(project_root, "cache")

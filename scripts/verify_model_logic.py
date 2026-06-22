@@ -8,9 +8,10 @@ import json
 import re
 from pathlib import Path
 
-# 添加项目路径
-project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root / 'src'))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+project_root = PROJECT_ROOT
 
 def test_config_loading():
     """测试配置文件加载"""

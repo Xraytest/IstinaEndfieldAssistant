@@ -12,20 +12,13 @@ import json
 import re
 from pathlib import Path
 
-from module.utils.paths import get_project_root, get_src_dir
+from core.foundation.utils.paths import ensure_src_path
+ensure_src_path(__file__)
 
-if __name__ == "__main__":
-    project_root = get_project_root()
-    src_dir = get_src_dir()
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
-else:
-    _src_dir = get_src_dir()
-    if _src_dir not in sys.path:
-        sys.path.insert(0, _src_dir)
+from core.foundation.utils.paths import get_project_root, get_src_dir
 
 try:
-    from core.local_inference.gpu_checker import GPUChecker
+    from core.capability.local_inference.gpu_checker import GPUChecker
 except ImportError:
     GPUChecker = None
 

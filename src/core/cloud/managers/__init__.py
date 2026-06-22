@@ -1,2 +1,2 @@
 """兼容层 - 从 module 重新导出"""
-from module.cloud.managers import *  # noqa
+from core.service.cloud.managers import *  # noqa

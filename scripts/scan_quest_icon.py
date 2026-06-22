@@ -2,9 +2,11 @@
 """扫描导航栏任务图标精确位置 (像素差异法)"""
 import sys, os, time, cv2, numpy as np, subprocess
 
-PROJECT_ROOT = r'C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant'
-SRC_DIR = os.path.join(PROJECT_ROOT, 'src')
-sys.path.insert(0, SRC_DIR)
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = str(PROJECT_ROOT)
+SRC_DIR = str(SRC_DIR)
 
 from device.touch.maafw_touch_adapter import MaaFwTouchExecutor, MaaFwTouchConfig, MAAFW_AVAILABLE
 

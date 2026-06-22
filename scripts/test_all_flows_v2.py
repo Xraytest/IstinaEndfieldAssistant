@@ -12,9 +12,11 @@
 import sys, json
 from pathlib import Path
 
-PROJECT = Path(__file__).resolve().parent.parent
-SRC = PROJECT / "src"
-sys.path.insert(0, str(SRC))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = PROJECT_ROOT
+SRC = SRC_DIR
 
 from core.page_analyzer import HighPrecisionPageAnalyzer
 
@@ -128,9 +130,6 @@ def test_flows_dry_run():
     
     # 测试导入
     # 测试导入 - 使用脚本路径
-    script_dir = str(PROJECT / "scripts")
-    if script_dir not in sys.path:
-        sys.path.insert(0, script_dir)
     from standard_flow_engine import StandardFlowExecutor, FlowConfig, FlowRecorder, Local2BEngine
     print("  [OK] StandardFlowExecutor 导入成功")
     print("  [OK] FlowConfig 导入成功")

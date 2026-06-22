@@ -1,22 +1,26 @@
 """Shared path setup for scripts/ directory.
 
 Usage from scripts/*.py:
-    from _path_setup import PROJECT_ROOT, SRC_DIR
-
-Usage from scripts/subdir/*.py:
-    import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
-    from _path_setup import PROJECT_ROOT, SRC_DIR
+    from _path_setup import PROJECT_ROOT, SRC_DIR, ensure_path
 """
 import sys
-import os
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-MODULE_DIR = PROJECT_ROOT / "src" / "module"
+# 自举：先添加 src 路径才能导入 utils.paths
+_SRC_DIR = Path(__file__).resolve().parent.parent / "src"
+if str(_SRC_DIR) not in sys.path:
+    sys.path.insert(0, str(_SRC_DIR))
 
-if str(SRC_DIR) not in sys.path:
-    sys.path.insert(0, str(SRC_DIR))
+from core.foundation.utils.paths import get_project_root, get_src_dir, ensure_src_path
 
-if str(MODULE_DIR) not in sys.path:
-    sys.path.insert(0, str(MODULE_DIR))
+PROJECT_ROOT = Path(get_project_root())
+SRC_DIR = Path(get_src_dir())
+
+# DEPRECATED: MODULE_DIR 保留为向后兼容别名，指向 SRC_DIR
+# 新代码请使用 from core.{foundation,capability,service}.xxx import YYY
+MODULE_DIR = SRC_DIR  # noqa: F811
+
+
+def ensure_path():
+    """确保 src 目录在 sys.path 中"""
+    ensure_src_path(__file__)

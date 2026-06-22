@@ -622,8 +622,12 @@ class MaaFwTouchExecutor:
             return False
         
         try:
-            # 坐标已在 MaaFw 空间（1280x720），无需缩放转换
-            # post_touch_down 期望 MaaFw 空间的坐标
+            # 坐标转换（原始分辨率 → MaaFw 空间），与 click()/swipe() 保持一致
+            if self.config.use_normalized_coords:
+                x, y = self._convert_to_maa_coords(x, y)
+                self.logger.debug(LogCategory.MAIN, "长按坐标转换",
+                                original=f"{x}/{y}", maa=f"{x}/{y}",
+                                scale=f"{self._resolution[0]}/{self._original_resolution[0]}")
 
             # 应用抖动
             if self.config.press_jitter_px > 0:

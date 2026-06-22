@@ -15,8 +15,10 @@ import json
 from pathlib import Path
 from typing import List, Dict
 
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root / "src"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+project_root = PROJECT_ROOT
 
 from core.adb_utils import adb_screencap
 from core.smart_element_detector import SmartElementDetector, Element

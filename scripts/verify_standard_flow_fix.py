@@ -14,9 +14,10 @@
 import sys, os, json, time, cv2, numpy as np
 from pathlib import Path
 
-PROJECT = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(PROJECT / "src"))
-sys.path.insert(0, str(PROJECT / "scripts"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = PROJECT_ROOT
 
 from core.adb_utils import ADB, adb_screencap
 

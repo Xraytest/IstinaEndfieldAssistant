@@ -2,7 +2,10 @@
 """验证菜单入口坐标和菜单内元素位置"""
 import subprocess, time, cv2, numpy as np, sys, json
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'src'))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from core.page_analyzer import HighPrecisionPageAnalyzer
 
 PROJECT = Path(__file__).resolve().parent.parent

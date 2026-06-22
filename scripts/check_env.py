@@ -1,6 +1,9 @@
 import sys, os, json, subprocess
-project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, os.path.join(project_root, "src"))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+project_root = str(PROJECT_ROOT)
 
 adb_path = os.path.join(project_root, "3rd-party", "adb", "adb.exe")
 print(f"ADB: {adb_path}")

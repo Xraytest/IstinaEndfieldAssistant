@@ -7,17 +7,13 @@ from typing import Optional, Dict, Any
 import sys
 import os
 
-from module.utils.paths import get_project_root
+from core.foundation.utils.paths import ensure_src_path
+ensure_src_path(__file__)
 
-# Add src directory to path for imports
-if __name__ == "__main__":
-    project_root = get_project_root()
-    src_dir = os.path.join(project_root, "src")
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+from core.foundation.utils.paths import get_project_root
 
 try:
-    from core.local_inference.gpu_checker import GPUChecker
+    from core.capability.local_inference.gpu_checker import GPUChecker
 except ImportError:
     GPUChecker = None
 

@@ -1,13 +1,15 @@
 """两步退出: 1)关退出对话框 2)关建造模式"""
 import subprocess, time, os, sys, cv2, numpy as np
 
-PROJECT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = str(PROJECT_ROOT)
 CACHE = os.path.join(PROJECT, 'cache')
 ADB = os.path.join(PROJECT, '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
 os.makedirs(CACHE, exist_ok=True)
 
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from standard_flow_engine import ScreenAnalyzer
 analyzer = ScreenAnalyzer()
 

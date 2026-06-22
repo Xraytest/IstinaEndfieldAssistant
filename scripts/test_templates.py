@@ -2,7 +2,10 @@
 """测试模板匹配和识别引擎"""
 import sys, cv2, numpy as np
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / 'src'))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from core.recognition import RecognitionEngine, PREDEFINED_STATES
 from core.adb_utils import ADB
 import os; os.environ['PYTHONUNBUFFERED'] = '1'

@@ -6,10 +6,10 @@
 import sys
 import os
 
-# 设置路径
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, PROJECT_ROOT)
-sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = str(PROJECT_ROOT)
 
 # 直接导入
 from scripts.standard_flow_engine import FlowConfig, Local2BEngine, FlowRecorder

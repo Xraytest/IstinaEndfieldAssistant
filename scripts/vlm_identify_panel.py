@@ -1,6 +1,9 @@
 """用 ScreenAnalyzer 识别扫描打开的界面"""
 import sys, os
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
 from standard_flow_engine import ScreenAnalyzer
 import cv2
 

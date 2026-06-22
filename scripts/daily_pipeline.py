@@ -20,10 +20,11 @@ from dataclasses import dataclass, field
 from typing import List, Optional, Dict, Any, Tuple
 from enum import Enum
 
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SRC_DIR = os.path.join(PROJECT_ROOT, "src")
-if SRC_DIR not in sys.path:
-    sys.path.insert(0, SRC_DIR)
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = str(PROJECT_ROOT)
+SRC_DIR = str(SRC_DIR)
 
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
@@ -92,8 +93,12 @@ def vlm(cfg: PipelineConfig, instruction: str, sp: str = "") -> Optional[Dict]:
     if not raw:
         return None
     from core.communication.communicator import ClientCommunicator
-    comm = ClientCommunicator(host="127.0.0.1", port=9999, password="default_password", timeout=cfg.vlm_timeout)
-    r = comm.send_request("login", {"user_id": "explorer", "key": "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763"})
+    # 从配置读取密码和密钥，避免硬编码
+    server_config = config.get("server", {})
+    server_password = server_config.get("password", "default_password")
+    api_key = config.get("api_key", "aa7d3551ab7fdb975c2eed5251df53ade38aa12cd6161475221d774f27026763")
+    comm = ClientCommunicator(host="127.0.0.1", port=9999, password=server_password, timeout=cfg.vlm_timeout)
+    r = comm.send_request("login", {"user_id": "explorer", "key": api_key})
     sid = (r or {}).get("session_id", "")
     comm.set_logged_in(True)
     b64 = base64.b64encode(raw).decode("utf-8")
@@ -339,7 +344,6 @@ class DailyPipeline:
         try:
             # ── 尝试使用优化引擎（OCR优先） ──
             try:
-                sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
                 from core.cloud.exploration_engine_optimized import OptimizedExplorationEngine
                 engine = OptimizedExplorationEngine()
                 engine.start_daily_flow()

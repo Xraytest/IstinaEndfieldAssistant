@@ -15,10 +15,10 @@ import sys, os, json, time, platform, subprocess, argparse
 from typing import Dict, Any, Optional
 from pathlib import Path
 
+from utils.paths import ensure_src_path
+ensure_src_path(__file__)
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-    sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 
 
 def _check_adb():

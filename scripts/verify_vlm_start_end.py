@@ -7,7 +7,8 @@ import json
 import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 def verify_stop_hook():
     print('='*70)
@@ -40,9 +41,6 @@ def verify_stop_hook():
             print(f'    - {step}')
     
     # 2. 验证引擎方法
-    sys.path.insert(0, str(PROJECT_ROOT))
-    sys.path.insert(0, str(PROJECT_ROOT / 'src'))
-    
     # 直接检查文件内容
     engine_file = PROJECT_ROOT / 'scripts' / 'standard_flow_engine.py'
     with open(engine_file, 'r', encoding='utf-8') as f:

@@ -16,7 +16,10 @@
 import subprocess, time, cv2, numpy as np, os, json, sys
 from pathlib import Path
 
-PROJECT = Path(__file__).resolve().parent.parent
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = PROJECT_ROOT
 ADB = str(PROJECT / '3rd-party' / 'adb' / 'adb.exe')
 SERIAL = 'localhost:16512'
 CACHE = PROJECT / 'cache' / 'high_precision_verify'
@@ -360,7 +363,6 @@ def run_standard_flow_test(flow_name="daily_quest"):
     
     # 导入标准流引擎
     try:
-        sys.path.insert(0, str(PROJECT / "src"))
         from scripts.standard_flow_engine import StandardFlowExecutor, load_config
     except Exception as e:
         print(f"[失败] 导入标准流引擎失败：{e}")

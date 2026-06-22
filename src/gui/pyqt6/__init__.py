@@ -34,14 +34,8 @@ try:
         MessageBubble,
     )
 except ImportError as e:
-    import sys
-    import os
-    current_file = os.path.abspath(__file__)
-    pyqt6_dir = os.path.dirname(current_file)
-    gui_dir = os.path.dirname(pyqt6_dir)
-    src_dir = os.path.dirname(gui_dir)
-    if src_dir not in sys.path:
-        sys.path.insert(0, src_dir)
+    from core.foundation.utils.paths import ensure_src_path
+    ensure_src_path(__file__)
     from gui.pyqt6.theme.theme_manager import ThemeManager
     from gui.pyqt6.main_window import MainWindow
     from gui.pyqt6.app_main import (
@@ -73,19 +67,22 @@ __all__ = [
 
 def create_application(
     auth_manager=None, device_manager=None,
-    execution_manager=None, task_queue_manager=None,
-    communicator=None, config=None
+    agent_executor=None, communicator=None,
+    screen_capture=None, touch_executor=None,
+    config=None, inference_manager=None
 ):
     return PyQt6Application()
 
 
 def start_gui(
     auth_manager=None, device_manager=None,
-    execution_manager=None, task_queue_manager=None,
-    communicator=None, config=None
+    agent_executor=None, communicator=None,
+    screen_capture=None, touch_executor=None,
+    config=None, inference_manager=None
 ):
     return run_application(
         auth_manager=auth_manager, device_manager=device_manager,
-        execution_manager=execution_manager, task_queue_manager=task_queue_manager,
-        communicator=communicator, config=config
+        agent_executor=agent_executor, communicator=communicator,
+        screen_capture=screen_capture, touch_executor=touch_executor,
+        config=config, inference_manager=inference_manager
     )

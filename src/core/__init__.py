@@ -1,19 +1,17 @@
-"""兼容层 - 从 module 重新导出（完整覆盖）
+"""IstinaAI 核心模块 — 三层嵌套架构
 
-所有旧路径 from core.xxx import YYY 均重定向到 module/ 版本。
-待旧代码全部迁移后，此文件可删除。
+foundation/  基础层：utils, logger, models, game_data（无内部依赖）
+capability/  能力层：device, screenshot, adb_utils, ocr, recognition, state_machine, local_inference, vlm
+service/     服务层：element_analysis, page_analyzer, device_state, cloud, communication
+
+旧导入路径 from core.xxx import YYY 仍然有效（通过各层 __init__.py 链式导出）。
 """
-from module.logger import *  # noqa
-from module.device_state import *  # noqa
-from module.adb_utils import *  # noqa
-from module.game_data import *  # noqa
-from module.vlm import *  # noqa
-from module.cloud import *  # noqa
-from module.communication import *  # noqa
-from module.element_analysis import *  # noqa
-from module.local_inference import *  # noqa
-from module.ocr import *  # noqa
-from module.recognition import *  # noqa
-from module.models import *  # noqa
-from module.state_machine import *  # noqa
-from module.utils import *  # noqa
+
+# foundation 层
+from .foundation import *  # noqa
+
+# capability 层
+from .capability import *  # noqa
+
+# service 层
+from .service import *  # noqa

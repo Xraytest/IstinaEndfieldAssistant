@@ -56,8 +56,7 @@ test_tap.png
 test_scripts/diagnostic_screenshot.png
 **/test_*.png
 
-# Test directories and all test files
-tests/
+# Test scripts output (not the test source code)
 test_scripts/
 
 # Pytest cache

@@ -2,8 +2,12 @@
 import subprocess, time, sys, io, os, base64, json, re, argparse
 os.environ['PYTHONIOENCODING'] = 'utf-8'
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8', errors='replace')
-PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, os.path.join(PROJECT_ROOT, 'src'))
+
+import sys, os; sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = str(PROJECT_ROOT)
 
 # 命令行参数
 parser = argparse.ArgumentParser()

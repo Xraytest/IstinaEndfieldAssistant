@@ -13,10 +13,11 @@ import os
 import argparse
 from pathlib import Path
 
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
 
 from standard_flow_engine import FlowConfig, StandardFlowExecutor, FlowRecorder, Local2BEngine
 from core.adb_utils import ADB, list_devices

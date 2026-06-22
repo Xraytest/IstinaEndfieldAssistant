@@ -1,8 +1,11 @@
 """正确关闭退出对话框并扫描按钮"""
 import subprocess, time, os, cv2, numpy as np, json
 
-CACHE = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'cache')
-ADB = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '3rd-party', 'adb', 'adb.exe')
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+CACHE = os.path.join(str(PROJECT_ROOT), 'cache')
+ADB = os.path.join(str(PROJECT_ROOT), '3rd-party', 'adb', 'adb.exe')
 SERIAL = 'localhost:16512'
 
 def tap(x, y):
@@ -26,8 +29,6 @@ def pixel_diff(img_a, img_b, roi):
     _, thresh = cv2.threshold(gray, 30, 255, cv2.THRESH_BINARY)
     return cv2.countNonZero(thresh)
 
-import sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'scripts'))
 from standard_flow_engine import ScreenAnalyzer
 analyzer = ScreenAnalyzer()
 

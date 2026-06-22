@@ -17,10 +17,10 @@ Device CLI 模块 — 设备检测、截图、触控操作
 import sys, os, json, time, subprocess, platform, argparse
 from typing import Optional, List
 
+from utils.paths import ensure_src_path
+ensure_src_path(__file__)
+
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-if PROJECT_ROOT not in sys.path:
-    sys.path.insert(0, PROJECT_ROOT)
-    sys.path.insert(0, os.path.join(PROJECT_ROOT, "src"))
 
 
 def _get_adb():

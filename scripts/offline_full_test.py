@@ -12,9 +12,11 @@
 import sys, json, cv2
 from pathlib import Path
 
-PROJECT = Path(__file__).resolve().parent.parent
-SRC = PROJECT / "src"
-sys.path.insert(0, str(SRC))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT = PROJECT_ROOT
+SRC = SRC_DIR
 
 from core.page_analyzer import HighPrecisionPageAnalyzer
 from core.recognition import RecognitionEngine, PREDEFINED_STATES

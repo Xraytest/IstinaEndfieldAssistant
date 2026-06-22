@@ -3,8 +3,8 @@
 import sys, os, base64, cv2, numpy as np
 from pathlib import Path
 
-PROJECT_ROOT = Path(r'C:\Users\xray\Documents\ArkStudio\IstinaAI\IstinaEndfieldAssistant')
-sys.path.insert(0, str(PROJECT_ROOT / "src"))
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
 
 from core.adb_utils import ADB, init_logger
 from core.logger import init_logger as core_init_logger

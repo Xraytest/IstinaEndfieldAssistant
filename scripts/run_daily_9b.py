@@ -13,11 +13,12 @@ from pathlib import Path
 from datetime import datetime
 
 # 设置路径
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-SRC_DIR = PROJECT_ROOT / "src"
+from _path_setup import PROJECT_ROOT, SRC_DIR, MODULE_DIR, ensure_path
+ensure_path()
+
+PROJECT_ROOT = PROJECT_ROOT
+SRC_DIR = SRC_DIR
 MODELS_DIR = PROJECT_ROOT / "models"
-sys.path.insert(0, str(SRC_DIR))
-sys.path.insert(0, str(PROJECT_ROOT / "3rd-party" / "python-packages"))
 
 # 9b 模型路径
 MODEL_9B_PATH = PROJECT_ROOT / "models" / "unsloth" / "Qwen3___5-9B-GGUF" / "Qwen3.5-9B-Q8_0.gguf"

@@ -7,7 +7,8 @@ import os
 from typing import List, Optional, Tuple, Dict, Any
 
 import sys
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils.paths import ensure_src_path
+ensure_src_path(__file__)
 from core.logger import get_logger, LogCategory, LogLevel
 
 
